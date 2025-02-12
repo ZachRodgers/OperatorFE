@@ -16,7 +16,7 @@ const OwnerDashboard = () => {
   return (
     <div className="dashboard-container">
       <h1>Owner Dashboard</h1>
-      <p>Welcome, {customer.name}! Here are your assigned lots:</p>
+      <p>Assigned lots:</p>
 
       <ul>
         {customer.assignedLots.map((lotId) => (

@@ -7,7 +7,7 @@ const RevenueDashboard = () => {
   return (
     <div className="dashboard-container">
       <h1>Revenue Dashboard</h1>
-      <p>Customer {customerId}, you are viewing revenue for Lot {lotId}.</p>
+      <p> Lot {lotId}.</p>
     </div>
   );
 };

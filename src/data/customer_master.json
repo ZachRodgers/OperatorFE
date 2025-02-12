@@ -2,21 +2,21 @@
     {
       "customerId": "1",
       "name": "Zach Rodgers",
-      "email": "zachary.w.rodgers@gmail.com",
+      "email": "zach@parkwithparallel.com",
       "phoneNo": "519-387-0600",
       "role": "owner",
-      "operatorPassword": "owner",
+      "password": "password",
       "assignedLots": ["0000-0001", "0000-0002"],
       "isVerified": "NA",
-      "lastLogin": "REPLACE"
+      "lastLogin": "NA"
     },
     {
       "customerId": "2",
       "name": "Test Operator",
-      "email": "NA",
+      "email": "julian@parkwithparallel.com",
       "phoneNo": "NA",
       "role": "operator",
-      "operatorPassword": "operator",
+      "password": "password",
       "assignedLots": ["0000-0001"],
       "isVerified": "NA",
       "lastLogin": "NA"
@@ -24,11 +24,10 @@
     {
       "customerId": "3",
       "name": "Test Owner",
-      "email": "NA",
-
+      "email": "ary@parkwithparallel.com",
       "phoneNo": "NA",
       "role": "owner",
-      "operatorPassword": "owner",
+      "password": "password",
       "assignedLots": ["0000-0003"],
       "isVerified": "NA",
       "lastLogin": "NA"

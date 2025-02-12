@@ -47,6 +47,11 @@
   input:focus {
     border-color: #007AFF;
   }
+
+  input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #FCFCFC inset; /* Changes autofill background to match input */
+    -webkit-text-fill-color: #3e4a92; /* Changes text color for autofill */
+  }
   
   .login-button {
     width: 100%;
@@ -73,7 +78,6 @@
     color: #000000;
     text-decoration: none;
     text-decoration: underline;
-    font-family: 'Montserrat', sans-serif; /* Ensures consistent font */
 }
 
   
@@ -95,4 +99,10 @@
     transition: opacity 0.3s ease;
     bottom: 60px;
     margin-left: -75px;
+  }
+
+  .error {
+    color: #FF7B7C;
+    font-size: 14px;
+    margin-top: 10px;
   }
