@@ -1,7 +1,20 @@
-import React from 'react';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import OwnerDashboard from "./pages/OwnerDashboard";
+import RevenueDashboard from "./pages/RevenueDashboard";
 
 function App() {
-  return <h1>Parallel Operator Portal IN DEV</h1>;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/:customerId/owner-dashboard" element={<OwnerDashboard />} />
+        <Route path="/:customerId/:lotId/revenue-dashboard" element={<RevenueDashboard />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

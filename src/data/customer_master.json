@@ -1,0 +1,37 @@
+[
+    {
+      "customerId": "1",
+      "name": "Zach Rodgers",
+      "email": "zachary.w.rodgers@gmail.com",
+      "phoneNo": "519-387-0600",
+      "role": "owner",
+      "operatorPassword": "owner",
+      "assignedLots": ["0000-0001", "0000-0002"],
+      "isVerified": "NA",
+      "lastLogin": "REPLACE"
+    },
+    {
+      "customerId": "2",
+      "name": "Test Operator",
+      "email": "NA",
+      "phoneNo": "NA",
+      "role": "operator",
+      "operatorPassword": "operator",
+      "assignedLots": ["0000-0001"],
+      "isVerified": "NA",
+      "lastLogin": "NA"
+    },
+    {
+      "customerId": "3",
+      "name": "Test Owner",
+      "email": "NA",
+
+      "phoneNo": "NA",
+      "role": "owner",
+      "operatorPassword": "owner",
+      "assignedLots": ["0000-0003"],
+      "isVerified": "NA",
+      "lastLogin": "NA"
+    }
+  ]
+  

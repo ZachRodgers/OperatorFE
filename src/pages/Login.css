@@ -1,0 +1,98 @@
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #F7F7F7;
+    margin: 0;
+    position: relative;
+  }
+  
+  .login-box {
+    background-color: #FFFFFF;
+    padding: 50px 120px;
+    border-radius: 10px;
+    border: 1px solid #E5E5E5;
+    text-align: center;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+  }
+  
+  .logo-operator {
+    width: 180px;
+    margin-bottom: 40px;
+  }
+  
+  input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #E0E0E0;
+    border-radius: 5px;
+    font-size: 16px;
+    background-color: #FCFCFC;
+    color: #333333;
+    caret-color: #1782ff;
+    box-sizing: border-box;
+    outline: none;
+  }
+  
+  input::placeholder {
+    color: #BDBDBD;
+  }
+  
+  input:focus {
+    border-color: #007AFF;
+  }
+  
+  .login-button {
+    width: 100%;
+    padding: 15px;
+    background-color: #007AFF;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 20px;
+  }
+  
+  .login-button:hover {
+    background-color: #18a3ff;
+  }
+  
+  .forgot-password {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #000000;
+    text-decoration: none;
+    text-decoration: underline;
+    font-family: 'Montserrat', sans-serif; /* Ensures consistent font */
+}
+
+  
+  .forgot-password:hover {
+    text-decoration: underline;
+    color: #007AFF;
+  }
+  
+  footer {
+    margin-top: 150px;
+    text-align: center;
+  }
+  
+  .powered-by-logo {
+    margin: auto;
+    position: absolute;
+    width: 150px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+    bottom: 60px;
+    margin-left: -75px;
+  }
