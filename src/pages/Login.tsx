@@ -27,9 +27,9 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLotId(""); 
-    setTempPassword(""); 
-  }, [setupMode]); // Reset fields when switching states
+    setLotId("");
+    setTempPassword("");
+  }, [setupMode]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,11 +40,14 @@ const Login = () => {
     if (customer) {
       setError("");
       localStorage.removeItem("authToken");
+
       const sessionData = {
         ...customer,
         expiresAt: Date.now() + 30 * 60 * 1000,
       };
+
       localStorage.setItem("authToken", JSON.stringify(sessionData));
+
       navigate(
         customer.role === "owner" && customer.assignedLots.length > 1
           ? `/${customer.customerId}/owner-dashboard`
@@ -92,6 +95,7 @@ const Login = () => {
         if (response.ok) {
           const newUser = updatedCustomers[customerIndex];
           localStorage.setItem("authToken", JSON.stringify(newUser));
+
           navigate(
             newUser.assignedLots.length > 1
               ? `/${newUser.customerId}/owner-dashboard`
@@ -114,7 +118,7 @@ const Login = () => {
 
         {setupMode ? (
           creatingAccount ? (
-            <form onSubmit={handleCreateAccount}>
+            <form onSubmit={handleCreateAccount} autoComplete="off">
               <div className="info-tooltip">
                 <img src="/assets/info_login.svg" alt="Info" />
                 <p>Please choose an email and password, you will use these credentials to log in.</p>
@@ -124,30 +128,32 @@ const Login = () => {
                 placeholder="Your Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
               />
               <input
                 type="password"
                 placeholder="Create Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
               <button type="submit" className="login-button">Create Account</button>
             </form>
           ) : (
-            <form onSubmit={handleSetupAccount}>
+            <form onSubmit={handleSetupAccount} autoComplete="off">
               <input
                 type="text"
                 placeholder="LotID"
                 value={lotId}
                 onChange={(e) => setLotId(e.target.value)}
-                onFocus={(e) => e.target.placeholder = "LotID"} // Fix placeholder not showing
+                autoComplete="off"
               />
               <input
                 type="password"
                 placeholder="Temp Password"
                 value={tempPassword}
                 onChange={(e) => setTempPassword(e.target.value)}
-                onFocus={(e) => e.target.placeholder = "Temp Password"} // Fix placeholder not showing
+                autoComplete="new-password"
               />
               <button type="submit" className="login-button">Setup Account</button>
               {error && <p className="error">{error}</p>}
@@ -158,18 +164,20 @@ const Login = () => {
             </form>
           )
         ) : (
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="off">
             <input
               type="text"
               placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
             />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
             />
             <button type="submit" className="login-button">Login</button>
             {error && <p className="error">{error}</p>}
