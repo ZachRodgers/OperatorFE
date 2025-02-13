@@ -75,7 +75,7 @@
     display: block;
     margin-top: 10px;
     font-size: 14px;
-    color: #000000;
+    color: #7b7b7b;
     text-decoration: none;
     text-decoration: underline;
 }
@@ -106,3 +106,54 @@
     font-size: 14px;
     margin-top: 10px;
   }
+
+  .setup-account {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #000000;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-top: 10px;
+  }
+
+  .setup-account:hover {
+    text-decoration: underline;
+    color: #007AFF;
+  }
+  
+  .info-box {
+    display: flex;
+    align-items: center;
+    border: 2px dashed #007AFF;
+    padding: 0px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #000000;
+    margin-top: 15px;
+    background: rgba(91, 166, 255, 0.10);
+  }
+  
+  .info-box img {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+  }
+  
+  .info-tooltip {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 300;
+    text-align: left;
+    color: #000000;
+    margin-bottom: 10px;
+  }
+  
+  .info-tooltip img {
+    width: 16px;
+    height: 16px;
+    margin-right: 15px;
+  }
+  

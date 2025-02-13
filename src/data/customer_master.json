@@ -1,36 +1,55 @@
 [
-    {
-      "customerId": "1",
-      "name": "Zach Rodgers",
-      "email": "zach@parkwithparallel.com",
-      "phoneNo": "519-387-0600",
-      "role": "owner",
-      "password": "password",
-      "assignedLots": ["0000-0001", "0000-0002"],
-      "isVerified": "NA",
-      "lastLogin": "NA"
-    },
-    {
-      "customerId": "2",
-      "name": "Test Operator",
-      "email": "julian@parkwithparallel.com",
-      "phoneNo": "NA",
-      "role": "operator",
-      "password": "password",
-      "assignedLots": ["0000-0001"],
-      "isVerified": "NA",
-      "lastLogin": "NA"
-    },
-    {
-      "customerId": "3",
-      "name": "Test Owner",
-      "email": "ary@parkwithparallel.com",
-      "phoneNo": "NA",
-      "role": "owner",
-      "password": "password",
-      "assignedLots": ["0000-0003"],
-      "isVerified": "NA",
-      "lastLogin": "NA"
-    }
-  ]
-  
+  {
+    "customerId": "1",
+    "name": "Zach Rodgers",
+    "email": "zach@parkwithparallel.com",
+    "phoneNo": "519-387-0600",
+    "role": "owner",
+    "password": "password",
+    "assignedLots": [
+      "0000-0001",
+      "0000-0002"
+    ],
+    "isVerified": "",
+    "lastLogin": ""
+  },
+  {
+    "customerId": "2",
+    "name": "Julian Saliby",
+    "email": "julian@parkwithparallel.com",
+    "phoneNo": "NA",
+    "role": "operator",
+    "password": "password",
+    "assignedLots": [
+      "0000-0001"
+    ],
+    "isVerified": "",
+    "lastLogin": ""
+  },
+  {
+    "customerId": "3",
+    "name": "Aryaman Harlalka",
+    "email": "ary@parkwithparallel.com",
+    "phoneNo": "",
+    "role": "owner",
+    "password": "password",
+    "assignedLots": [
+      "0000-0003"
+    ],
+    "isVerified": "",
+    "lastLogin": ""
+  },
+  {
+    "customerId": "4",
+    "name": "Temp Owner",
+    "email": "",
+    "phoneNo": "",
+    "role": "temp",
+    "password": "temporary",
+    "assignedLots": [
+      "0000-0004"
+    ],
+    "isVerified": "",
+    "lastLogin": ""
+  }
+]

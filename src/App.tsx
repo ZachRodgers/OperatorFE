@@ -6,7 +6,6 @@ import RevenueDashboard from "./pages/RevenueDashboard";
 import { getSession } from "./utils/auth"; 
 import "./App.css";
 
-// Protected Route Component
 const ProtectedRoute = ({ element, requiresLot }: { element: ReactElement; requiresLot?: boolean }) => {
   const user = getSession(); // Get stored session data
 
@@ -24,6 +23,7 @@ const ProtectedRoute = ({ element, requiresLot }: { element: ReactElement; requi
 
   return element;
 };
+
 
 function App() {
   return (

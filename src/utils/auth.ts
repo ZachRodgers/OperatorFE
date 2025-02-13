@@ -10,10 +10,21 @@ interface AuthPayload {
   };
   
   // Retrieve session
-  export const getSession = (): AuthPayload | null => {
-    const data = localStorage.getItem("authData");
-    return data ? JSON.parse(data) : null;
+  export const getSession = () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return null;
+  
+    const session = JSON.parse(token);
+  
+    // Check if session has expired
+    if (session.expiresAt && Date.now() > session.expiresAt) {
+      localStorage.removeItem("authToken"); // Clear expired session
+      return null;
+    }
+  
+    return session;
   };
+  
   
   // Remove session on logout
   export const clearSession = () => {
