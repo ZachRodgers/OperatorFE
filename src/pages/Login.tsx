@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import customersData from "../data/customer_master.json";
 import "./Login.css";
@@ -26,28 +26,25 @@ const Login = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    setLotId(""); 
+    setTempPassword(""); 
+  }, [setupMode]); // Reset fields when switching states
+
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const customer = customersData.find(
       (c) => c.email === email && c.password === password
     );
 
     if (customer) {
       setError("");
-
-      // Clear any old session to prevent conflicts
       localStorage.removeItem("authToken");
-
-      // Set session token (30-minute expiration)
       const sessionData = {
         ...customer,
         expiresAt: Date.now() + 30 * 60 * 1000,
       };
-
       localStorage.setItem("authToken", JSON.stringify(sessionData));
-
-      // Redirect based on role
       navigate(
         customer.role === "owner" && customer.assignedLots.length > 1
           ? `/${customer.customerId}/owner-dashboard`
@@ -60,7 +57,6 @@ const Login = () => {
 
   const handleSetupAccount = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const customer = customersData.find(
       (c) => c.assignedLots.includes(lotId) && c.password === tempPassword && c.role === "temp"
     );
@@ -75,7 +71,6 @@ const Login = () => {
 
   const handleCreateAccount = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const customerIndex = customersData.findIndex(
       (c) => c.assignedLots.includes(lotId) && c.role === "temp"
     );
@@ -95,11 +90,8 @@ const Login = () => {
 
         const result = await response.json();
         if (response.ok) {
-          console.log(result.message);
-
           const newUser = updatedCustomers[customerIndex];
           localStorage.setItem("authToken", JSON.stringify(newUser));
-
           navigate(
             newUser.assignedLots.length > 1
               ? `/${newUser.customerId}/owner-dashboard`
@@ -148,12 +140,14 @@ const Login = () => {
                 placeholder="LotID"
                 value={lotId}
                 onChange={(e) => setLotId(e.target.value)}
+                onFocus={(e) => e.target.placeholder = "LotID"} // Fix placeholder not showing
               />
               <input
                 type="password"
                 placeholder="Temp Password"
                 value={tempPassword}
                 onChange={(e) => setTempPassword(e.target.value)}
+                onFocus={(e) => e.target.placeholder = "Temp Password"} // Fix placeholder not showing
               />
               <button type="submit" className="login-button">Setup Account</button>
               {error && <p className="error">{error}</p>}
