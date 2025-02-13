@@ -28,27 +28,26 @@ const Login = () => {
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-  
-    // Find user by email and password
+
     const customer = customersData.find(
       (c) => c.email === email && c.password === password
     );
-  
+
     if (customer) {
       setError("");
-  
+
       // Clear any old session to prevent conflicts
       localStorage.removeItem("authToken");
-  
-      // Set a fresh session token valid for 30 minutes
+
+      // Set session token (30-minute expiration)
       const sessionData = {
         ...customer,
-        expiresAt: Date.now() + 30 * 60 * 1000, // 30-minute session expiration
+        expiresAt: Date.now() + 30 * 60 * 1000,
       };
-  
+
       localStorage.setItem("authToken", JSON.stringify(sessionData));
-  
-      // Redirect based on role (without removing old code)
+
+      // Redirect based on role
       navigate(
         customer.role === "owner" && customer.assignedLots.length > 1
           ? `/${customer.customerId}/owner-dashboard`
@@ -58,13 +57,10 @@ const Login = () => {
       setError("Invalid username or password");
     }
   };
-  
-  
 
   const handleSetupAccount = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Validate lotId and temporary password
     const customer = customersData.find(
       (c) => c.assignedLots.includes(lotId) && c.password === tempPassword && c.role === "temp"
     );
@@ -104,11 +100,11 @@ const Login = () => {
           const newUser = updatedCustomers[customerIndex];
           localStorage.setItem("authToken", JSON.stringify(newUser));
 
-          if (newUser.assignedLots.length > 1) {
-            navigate(`/${newUser.customerId}/owner-dashboard`);
-          } else {
-            navigate(`/${newUser.customerId}/${newUser.assignedLots[0]}/revenue-dashboard`);
-          }
+          navigate(
+            newUser.assignedLots.length > 1
+              ? `/${newUser.customerId}/owner-dashboard`
+              : `/${newUser.customerId}/${newUser.assignedLots[0]}/revenue-dashboard`
+          );
         } else {
           setError("Failed to update account. Please try again.");
         }
