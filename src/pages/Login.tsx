@@ -37,24 +37,28 @@ const Login = () => {
     if (customer) {
       setError("");
   
+      // Clear any old session to prevent conflicts
+      localStorage.removeItem("authToken");
+  
       // Set a fresh session token valid for 30 minutes
       const sessionData = {
         ...customer,
-        expiresAt: Date.now() + 30 * 60 * 1000, // Set expiration time
+        expiresAt: Date.now() + 30 * 60 * 1000, // 30-minute session expiration
       };
   
       localStorage.setItem("authToken", JSON.stringify(sessionData));
   
-      // Redirect based on role
-      if (customer.role === "owner" && customer.assignedLots.length > 1) {
-        navigate(`/${customer.customerId}/owner-dashboard`);
-      } else {
-        navigate(`/${customer.customerId}/${customer.assignedLots[0]}/revenue-dashboard`);
-      }
+      // Redirect based on role (without removing old code)
+      navigate(
+        customer.role === "owner" && customer.assignedLots.length > 1
+          ? `/${customer.customerId}/owner-dashboard`
+          : `/${customer.customerId}/${customer.assignedLots[0]}/revenue-dashboard`
+      );
     } else {
       setError("Invalid username or password");
     }
   };
+  
   
 
   const handleSetupAccount = (event: React.FormEvent<HTMLFormElement>) => {

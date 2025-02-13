@@ -7,7 +7,7 @@ import { getSession } from "./utils/auth";
 import "./App.css";
 
 const ProtectedRoute = ({ element, requiresLot }: { element: ReactElement; requiresLot?: boolean }) => {
-  const user = getSession(); // Get stored session data
+  const user = getSession(); // Fetch stored session data
 
   if (!user) {
     return <Navigate to="/login" />; // Redirect if no valid session
