@@ -119,6 +119,10 @@ const Login = () => {
         {setupMode ? (
           creatingAccount ? (
             <form onSubmit={handleCreateAccount} autoComplete="off">
+              {/* Fake Hidden Fields to Stop Autofill */}
+              <input type="text" name="fakeuser" style={{ display: "none" }} />
+              <input type="password" name="fakepassword" style={{ display: "none" }} />
+
               <div className="info-tooltip">
                 <img src="/assets/info_login.svg" alt="Info" />
                 <p>Please choose an email and password, you will use these credentials to log in.</p>
@@ -129,6 +133,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="off"
+                name="new-email"
               />
               <input
                 type="password"
@@ -136,17 +141,23 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
+                name="new-password"
               />
               <button type="submit" className="login-button">Create Account</button>
             </form>
           ) : (
             <form onSubmit={handleSetupAccount} autoComplete="off">
+              {/* Fake Hidden Fields to Stop Autofill */}
+              <input type="text" name="fakeuser" style={{ display: "none" }} />
+              <input type="password" name="fakepassword" style={{ display: "none" }} />
+
               <input
                 type="text"
                 placeholder="LotID"
                 value={lotId}
                 onChange={(e) => setLotId(e.target.value)}
                 autoComplete="off"
+                name="lot-id"
               />
               <input
                 type="password"
@@ -154,6 +165,7 @@ const Login = () => {
                 value={tempPassword}
                 onChange={(e) => setTempPassword(e.target.value)}
                 autoComplete="new-password"
+                name="temp-password"
               />
               <button type="submit" className="login-button">Setup Account</button>
               {error && <p className="error">{error}</p>}
@@ -165,12 +177,17 @@ const Login = () => {
           )
         ) : (
           <form onSubmit={handleLogin} autoComplete="off">
+            {/* Fake Hidden Fields to Stop Autofill */}
+            <input type="text" name="fakeuser" style={{ display: "none" }} />
+            <input type="password" name="fakepassword" style={{ display: "none" }} />
+
             <input
               type="text"
               placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="off"
+              name="email-input"
             />
             <input
               type="password"
@@ -178,6 +195,7 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              name="password-input"
             />
             <button type="submit" className="login-button">Login</button>
             {error && <p className="error">{error}</p>}
