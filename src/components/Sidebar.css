@@ -1,0 +1,122 @@
+.sidebar {
+  width: 310px;
+  min-width: 310px;
+  background: #F7F7F7;
+  border-right: 1px solid #E5E5E5;
+  padding: 40px 79px;
+  box-sizing: border-box;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  align-items: left
+}
+
+.sidebar-header {
+  text-align: center;
+}
+
+.logo {
+  width: 150px;
+  height: auto;
+  margin-bottom: 2px;
+}
+
+.lot-box {
+  width: 150px;
+  padding: 0px 0px; /* Reduced padding */
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1px solid #ebebeb;
+  background: #efefef;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.2; /* Reducing line-height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centers text vertically */
+  align-items: center;
+  height: auto;
+}
+
+.change-lot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #6D6D6D;
+  text-decoration: none;
+  font-weight: 400;
+  margin-bottom: 10px;
+}
+
+.change-lot:hover {
+  color: black;
+  text-decoration: underline;
+  transition: 0.3s, color 0.3s;
+}
+
+.change-lot:hover .back-icon {
+  filter: brightness(0); /* Makes it black */
+  transition: 0.3s, color 0.3s;
+}
+
+.back-icon {
+  width: 8px;
+  margin-right: 10px;
+}
+
+.sidebar-menu,
+.sidebar-footer {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 15px 25px; /* Keeping your exact padding */
+  color: #7D7D7D;
+  text-decoration: none;
+  transition: 0.3s;
+  border-radius: 40px;
+  width: fit-content; /* Keeps width only as big as necessary */
+  min-width: max-content; /* Prevents unintended stretching */
+  gap: 12px; /* Keeps icons spaced evenly */
+  margin-bottom: 10px;
+  position: relative;
+  margin-left: -15px;
+}
+
+.sidebar-item:hover {
+  background: #efefef;
+  padding: 15px 30px; /* Keeping your exact padding */
+}
+
+.sidebar-item.active {
+  background: #E5ECFF; /* Light blue */
+  color: #007bff; /* Blue text */
+}
+
+.sidebar-item img {
+  width: 13px;
+}
+
+.sidebar-item.active img {
+  filter: brightness(0) saturate(100%) invert(36%) sepia(95%) saturate(2400%) hue-rotate(210deg) brightness(100%) contrast(105%);
+}
+
+.active-text {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+}

@@ -42,10 +42,10 @@
   {
     "customerId": "4",
     "name": "Temp Owner",
-    "email": "",
+    "email": "julioliolio.com",
     "phoneNo": "",
-    "role": "temp",
-    "password": "temporary",
+    "role": "owner",
+    "password": "passwordiliolio",
     "assignedLots": [
       "0000-0004"
     ],
