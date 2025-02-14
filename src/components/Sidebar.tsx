@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { getSession } from "../utils/auth"; // Import session
+import lots from "../data/lots_master.json"; // Import lot data
 import "./Sidebar.css";
 
 const Sidebar = () => {
@@ -8,15 +9,23 @@ const Sidebar = () => {
   const user = getSession(); // Get current user session
 
   if (!customerId || !lotId) return null; // Prevent rendering if params are missing
+
   const userLots = user?.assignedLots || []; // Get assigned lots or empty array
   const hasMultipleLots = userLots.length > 1; // Check if multiple lots exist
+
+  // Find the lot name based on lotId
+  const lot = lots.find((lot) => lot.lotId === lotId);
+  const lotName = lot ? lot.lotName : "Unknown Lot";
+
+  // Truncate lot name if it exceeds 36 characters
+  const truncatedLotName = lotName.length > 36 ? lotName.substring(0, 36) + "..." : lotName;
 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
         <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo" />
         <div className="lot-box">
-          <p className="lot-id">{lotId} Insert name here instead</p>
+          <p className="lot-id">{truncatedLotName}</p> {/* Display lot name */}
         </div>
         {/* Only show Change Lot if the user has more than one lot */}
         {hasMultipleLots && (

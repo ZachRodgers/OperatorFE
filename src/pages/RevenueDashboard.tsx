@@ -1,23 +1,21 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { clearSession } from "../utils/auth"; // Import logout function
+import { useParams } from "react-router-dom";
+import lots from "../data/lots_master.json"; // Import lot data
+import "./RevenueDashboard.css"; // Ensure proper styling
 
 const RevenueDashboard = () => {
   const { customerId, lotId } = useParams();
-  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    clearSession();
-    navigate("/login");
-  };
+  // Find the corresponding lot
+  const lot = lots.find((l) => l.lotId === lotId);
+  const lotName = lot ? (lot.lotName.length > 50 ? lot.lotName.substring(0, 50) + "..." : lot.lotName) : "Unknown Lot";
 
   return (
     <div className="content">
-      <h1>Revenue Dashboard</h1>
+      <h1>
+        Dashboard  <span className="lot-name"> {lotName}</span>
+      </h1>
       <p>Lot {lotId}.</p>
-
-      {/* Logout Button */}
-      <button onClick={handleLogout} className="logout-button">Logout</button>
     </div>
   );
 };
