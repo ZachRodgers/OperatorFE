@@ -1,11 +1,15 @@
 import React from "react";
 import { NavLink, useParams } from "react-router-dom";
+import { getSession } from "../utils/auth"; // Import session
 import "./Sidebar.css";
 
 const Sidebar = () => {
   const { customerId, lotId } = useParams();
+  const user = getSession(); // Get current user session
 
   if (!customerId || !lotId) return null; // Prevent rendering if params are missing
+  const userLots = user?.assignedLots || []; // Get assigned lots or empty array
+  const hasMultipleLots = userLots.length > 1; // Check if multiple lots exist
 
   return (
     <div className="sidebar">
@@ -14,10 +18,13 @@ const Sidebar = () => {
         <div className="lot-box">
           <p className="lot-id">{lotId} Insert name here instead</p>
         </div>
-        <NavLink to={`/${customerId}/change-lot`} className="change-lot">
-          <img src="/assets/BackIcon.svg" alt="Back" className="back-icon" />
-          Change Lot
-        </NavLink>
+        {/* Only show Change Lot if the user has more than one lot */}
+        {hasMultipleLots && (
+          <NavLink to={`/${customerId}/owner-dashboard`} className="change-lot">
+            <img src="/assets/BackIcon.svg" alt="Back" className="back-icon" />
+            Change Lot
+          </NavLink>
+        )}
       </div>
       <nav className="sidebar-menu">
         <NavLink to={`/${customerId}/${lotId}/revenue-dashboard`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
