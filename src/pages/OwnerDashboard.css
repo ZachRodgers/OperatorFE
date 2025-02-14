@@ -56,6 +56,17 @@
     color: #ffffff;
 }
 
+/* Ensure Account icon switches properly */
+.header-actions .icon-button img {
+    width: 20px;
+    height: 20px;
+    transition: filter 0.2s;
+}
+
+.header-actions .icon-button:hover img {
+    filter: brightness(10);
+}
+
 .header-actions .icon-button img {
     width: 20px;
     height: 20px;
@@ -98,12 +109,14 @@
     max-width: 1280px;
     margin: 0 auto;
     border-collapse: collapse;
+    transition: 0.2s;
 }
 
 .dashboard-table th {
     text-align: left;
     padding: 15px;
     background-color: #ffffff;
+    color:#000000;
     cursor: pointer;
 }
 
@@ -125,7 +138,12 @@
 }
 
 .dashboard-table tr:hover {
-    background-color: #E5ECFF;
+    background-color: #007AFF;
+    color: #ffffff;
+}
+
+.dashboard-table tr:hover td {
+    color: #ffffff;
 }
 
 /* SORT ARROWS */
