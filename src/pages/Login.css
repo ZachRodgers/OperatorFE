@@ -38,6 +38,7 @@
     caret-color: #1782ff;
     box-sizing: border-box;
     outline: none;
+    transition: 0.2s;
   }
   
   input::placeholder {
