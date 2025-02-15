@@ -116,9 +116,9 @@ const RevenueDashboard: React.FC = () => {
         {[
           { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
           { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 },
-          { title: "Avg. Occupancy", value: avgOccupancy, prefix: "%", change: occupancyChange, prevValue: previousOccupancy, decimals: 1 },
-          { title: "Uptime", value: avgUptime, prefix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
-        ].map(({ title, value, prefix, change, prevValue, decimals }) => {
+          { title: "Avg. Occupancy", value: avgOccupancy, prefix: "", suffix: "%", change: occupancyChange, prevValue: previousOccupancy, decimals: 1 },
+          { title: "Uptime", value: avgUptime, prefix: "", suffix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
+        ].map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
           const animatedValue = useAnimatedNumber(value, decimals);
           const animatedPrevValue = useAnimatedNumber(prevValue, decimals);
           const animatedChange = useAnimatedNumber(change, 2);
@@ -127,6 +127,7 @@ const RevenueDashboard: React.FC = () => {
               <span className="metric-value">
                 {prefix}
                 <motion.span>{animatedValue}</motion.span>
+                {suffix}
               </span>
               <span className="metric-title">{title}</span>
               <div className="trend-container">
@@ -142,7 +143,8 @@ const RevenueDashboard: React.FC = () => {
               </div>
               <span className="previous-cycle">
                 {prefix}
-                <motion.span>{animatedPrevValue}</motion.span> {previousLabel}
+                <motion.span>{animatedPrevValue}</motion.span>
+                {suffix} {previousLabel}
               </span>
             </div>
           );
@@ -153,6 +155,7 @@ const RevenueDashboard: React.FC = () => {
 };
 
 export default RevenueDashboard;
+
 
 // Utility functions for date operations
 const formatDate = (date: Date): string => date.toISOString().split("T")[0];
