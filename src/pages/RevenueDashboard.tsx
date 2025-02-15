@@ -96,7 +96,6 @@ const RevenueDashboard: React.FC = () => {
   const pendingRevenue = filteredData.length > 0 ? filteredData[filteredData.length - 1].pendingRevenue : 0;
 
   const trendArrow = (change: number) => (change >= 0 ? "/assets/DataUp.svg" : "/assets/DataDown.svg");
-  const formatChange = (change: number) => (change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`);
   const previousLabel = timeframe === "day" ? "Yesterday" : timeframe === "week" ? "Last Week" : timeframe === "month" ? "Last Month" : "Last Year";
 
   const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
@@ -121,6 +120,8 @@ const RevenueDashboard: React.FC = () => {
           { title: "Uptime", value: avgUptime, prefix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
         ].map(({ title, value, prefix, change, prevValue, decimals }) => {
           const animatedValue = useAnimatedNumber(value, decimals);
+          const animatedPrevValue = useAnimatedNumber(prevValue, decimals);
+          const animatedChange = useAnimatedNumber(change, 2);
           return (
             <div className="metric" key={title}>
               <span className="metric-value">
@@ -129,11 +130,19 @@ const RevenueDashboard: React.FC = () => {
               </span>
               <span className="metric-title">{title}</span>
               <div className="trend-container">
-                <img src={trendArrow(change)} alt="trend" className="trend-arrow" />
-                <span className={getTrendTextClass(change)}>{formatChange(change)}</span>
+                <motion.img
+                  src={trendArrow(change)}
+                  alt="trend"
+                  className="trend-arrow"
+                  animate={{ rotate: change < 0 ? 180 : 0 }} // ✅ Arrow flips
+                />
+                <span className={getTrendTextClass(change)}>
+                  <motion.span>{animatedChange}</motion.span>%
+                </span>
               </div>
               <span className="previous-cycle">
-                {prefix}{prevValue.toFixed(decimals)} {previousLabel}
+                {prefix}
+                <motion.span>{animatedPrevValue}</motion.span> {previousLabel}
               </span>
             </div>
           );
@@ -144,11 +153,6 @@ const RevenueDashboard: React.FC = () => {
 };
 
 export default RevenueDashboard;
-
-
-
-
-
 
 // Utility functions for date operations
 const formatDate = (date: Date): string => date.toISOString().split("T")[0];
