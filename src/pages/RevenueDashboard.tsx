@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { motion, useSpring } from "framer-motion"; // ✅ Animation library
 import lots from "../data/lots_master.json";
 import lotData from "../data/lot_daily_data.json";
 import "./RevenueDashboard.css";
@@ -14,6 +14,25 @@ interface LotEntry {
   totalRevenue: number;
   pendingRevenue: number;
 }
+
+// ✅ Hook for animated numbers
+const useAnimatedNumber = (value: number, decimals: number) => {
+  const animatedValue = useSpring(value, { stiffness: 100, damping: 20 });
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    const unsubscribe = animatedValue.onChange((latest) => {
+      setDisplayValue(parseFloat(latest.toFixed(decimals)));
+    });
+    return () => unsubscribe();
+  }, [animatedValue, decimals]);
+
+  useEffect(() => {
+    animatedValue.set(value);
+  }, [value, animatedValue]);
+
+  return displayValue;
+};
 
 const RevenueDashboard: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
@@ -52,8 +71,8 @@ const RevenueDashboard: React.FC = () => {
   const calculateSum = (data: LotEntry[], key: keyof LotEntry) =>
     data.reduce((sum, entry) => sum + Number(entry[key]), 0);
 
-  const calculateAvg = (data: LotEntry[], key: keyof LotEntry) =>
-    data.length > 0 ? (calculateSum(data, key) / data.length).toFixed(1) : "N/A";
+  const calculateAvg = (data: LotEntry[], key: keyof LotEntry): number =>
+    data.length > 0 ? parseFloat((calculateSum(data, key) / data.length).toFixed(1)) : 0;
 
   const calculateChange = (current: number, previous: number) =>
     previous > 0 ? ((current - previous) / previous) * 100 : 0;
@@ -68,11 +87,11 @@ const RevenueDashboard: React.FC = () => {
 
   const avgOccupancy = calculateAvg(filteredData, "averageOccupancy");
   const previousOccupancy = calculateAvg(previousData, "averageOccupancy");
-  const occupancyChange = calculateChange(parseFloat(avgOccupancy), parseFloat(previousOccupancy));
+  const occupancyChange = calculateChange(avgOccupancy, previousOccupancy);
 
   const avgUptime = calculateAvg(filteredData, "upTime");
   const previousUptime = calculateAvg(previousData, "upTime");
-  const uptimeChange = calculateChange(parseFloat(avgUptime), parseFloat(previousUptime));
+  const uptimeChange = calculateChange(avgUptime, previousUptime);
 
   const pendingRevenue = filteredData.length > 0 ? filteredData[filteredData.length - 1].pendingRevenue : 0;
 
@@ -96,27 +115,36 @@ const RevenueDashboard: React.FC = () => {
 
       <div className="metrics-container">
         {[
-          { title: "Revenue", value: `$${totalRevenue.toFixed(2)}`, change: revenueChange, prevValue: `$${previousRevenue.toFixed(2)}` },
-          { title: "Parked Cars", value: totalVehicles.toString(), change: vehiclesChange, prevValue: previousVehicles.toString() },
-          { title: "Avg. Occupancy", value: `${avgOccupancy}%`, change: occupancyChange, prevValue: `${previousOccupancy}%` },
-          { title: "Uptime", value: `${avgUptime}%`, change: uptimeChange, prevValue: `${previousUptime}%` },
-        ].map(({ title, value, change, prevValue }) => (
-          <div className="metric" key={title}>
-            <span className="metric-value">{value}</span>
-            <span className="metric-title">{title}</span>
-            <div className="trend-container">
-              <img src={trendArrow(change)} alt="trend" className="trend-arrow" />
-              <span className={getTrendTextClass(change)}>{formatChange(change)}</span>
+          { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
+          { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 },
+          { title: "Avg. Occupancy", value: avgOccupancy, prefix: "%", change: occupancyChange, prevValue: previousOccupancy, decimals: 1 },
+          { title: "Uptime", value: avgUptime, prefix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
+        ].map(({ title, value, prefix, change, prevValue, decimals }) => {
+          const animatedValue = useAnimatedNumber(value, decimals);
+          return (
+            <div className="metric" key={title}>
+              <span className="metric-value">
+                {prefix}
+                <motion.span>{animatedValue}</motion.span>
+              </span>
+              <span className="metric-title">{title}</span>
+              <div className="trend-container">
+                <img src={trendArrow(change)} alt="trend" className="trend-arrow" />
+                <span className={getTrendTextClass(change)}>{formatChange(change)}</span>
+              </div>
+              <span className="previous-cycle">
+                {prefix}{prevValue.toFixed(decimals)} {previousLabel}
+              </span>
             </div>
-            <span className="previous-cycle">{prevValue} {previousLabel}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 };
 
 export default RevenueDashboard;
+
 
 
 
