@@ -60,7 +60,7 @@
   }
   
   .metric:not(:first-child) {
-    width: 29%;
+    width: 23%;
     max-width: 29%;
   }
   
