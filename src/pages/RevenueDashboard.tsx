@@ -1,23 +1,180 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import lots from "../data/lots_master.json"; // Import lot data
-import "./RevenueDashboard.css"; // Ensure proper styling
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import lots from "../data/lots_master.json";
+import lotData from "../data/lot_daily_data.json";
+import "./RevenueDashboard.css";
 
-const RevenueDashboard = () => {
-  const { customerId, lotId } = useParams();
+interface LotEntry {
+  lotId: string;
+  date: string;
+  totalVehicles: string;
+  averageOccupancy: string;
+  upTime: string;
+  totalRevenue: number;
+  pendingRevenue: number;
+}
 
-  // Find the corresponding lot
+const RevenueDashboard: React.FC = () => {
+  const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
+  const [timeframe, setTimeframe] = useState<"day" | "week" | "month" | "year">("day");
+  const [filteredData, setFilteredData] = useState<LotEntry[]>([]);
+  const [previousData, setPreviousData] = useState<LotEntry[]>([]);
+
   const lot = lots.find((l) => l.lotId === lotId);
   const lotName = lot ? (lot.lotName.length > 50 ? lot.lotName.substring(0, 50) + "..." : lot.lotName) : "Unknown Lot";
 
+  useEffect(() => {
+    const today = new Date();
+    const lotEntries = lotData.filter((entry) => entry.lotId === lotId);
+
+    let filtered: LotEntry[] = [];
+    let previous: LotEntry[] = [];
+
+    if (timeframe === "day") {
+      filtered = filterByDate(today, lotEntries);
+      previous = filterByDate(getPreviousDate(today), lotEntries);
+    } else if (timeframe === "week") {
+      filtered = getWeekData(today, lotEntries);
+      previous = getWeekData(getPreviousWeek(today), lotEntries);
+    } else if (timeframe === "month") {
+      filtered = getMonthData(today, lotEntries);
+      previous = getMonthData(getPreviousMonth(today), lotEntries);
+    } else if (timeframe === "year") {
+      filtered = getYearData(today, lotEntries);
+      previous = getYearData(getPreviousYear(today), lotEntries);
+    }
+
+    setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
+    setPreviousData(previous);
+  }, [lotId, timeframe]);
+
+  const calculateSum = (data: LotEntry[], key: keyof LotEntry) =>
+    data.reduce((sum, entry) => sum + Number(entry[key]), 0);
+
+  const calculateAvg = (data: LotEntry[], key: keyof LotEntry) =>
+    data.length > 0 ? (calculateSum(data, key) / data.length).toFixed(1) : "N/A";
+
+  const calculateChange = (current: number, previous: number) =>
+    previous > 0 ? ((current - previous) / previous) * 100 : 0;
+
+  const totalRevenue = calculateSum(filteredData, "totalRevenue");
+  const previousRevenue = calculateSum(previousData, "totalRevenue");
+  const revenueChange = calculateChange(totalRevenue, previousRevenue);
+
+  const totalVehicles = calculateSum(filteredData, "totalVehicles");
+  const previousVehicles = calculateSum(previousData, "totalVehicles");
+  const vehiclesChange = calculateChange(totalVehicles, previousVehicles);
+
+  const avgOccupancy = calculateAvg(filteredData, "averageOccupancy");
+  const previousOccupancy = calculateAvg(previousData, "averageOccupancy");
+  const occupancyChange = calculateChange(parseFloat(avgOccupancy), parseFloat(previousOccupancy));
+
+  const avgUptime = calculateAvg(filteredData, "upTime");
+  const previousUptime = calculateAvg(previousData, "upTime");
+  const uptimeChange = calculateChange(parseFloat(avgUptime), parseFloat(previousUptime));
+
+  const pendingRevenue = filteredData.length > 0 ? filteredData[filteredData.length - 1].pendingRevenue : 0;
+
+  const trendArrow = (change: number) => (change >= 0 ? "/assets/DataUp.svg" : "/assets/DataDown.svg");
+  const formatChange = (change: number) => (change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`);
+  const previousLabel = timeframe === "day" ? "Yesterday" : timeframe === "week" ? "Last Week" : timeframe === "month" ? "Last Month" : "Last Year";
+
+  const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
+
   return (
     <div className="content">
-      <h1>
-        Dashboard  <span className="lot-name"> {lotName}</span>
-      </h1>
-      <p>Lot {lotId}.</p>
+      <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
+
+      <div className="timeframe-selector">
+        {["day", "week", "month", "year"].map((t) => (
+          <button key={t} className={timeframe === t ? "active" : ""} onClick={() => setTimeframe(t as any)}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <div className="metrics-container">
+        {[
+          { title: "Revenue", value: `$${totalRevenue.toFixed(2)}`, change: revenueChange, prevValue: `$${previousRevenue.toFixed(2)}` },
+          { title: "Parked Cars", value: totalVehicles.toString(), change: vehiclesChange, prevValue: previousVehicles.toString() },
+          { title: "Avg. Occupancy", value: `${avgOccupancy}%`, change: occupancyChange, prevValue: `${previousOccupancy}%` },
+          { title: "Uptime", value: `${avgUptime}%`, change: uptimeChange, prevValue: `${previousUptime}%` },
+        ].map(({ title, value, change, prevValue }) => (
+          <div className="metric" key={title}>
+            <span className="metric-value">{value}</span>
+            <span className="metric-title">{title}</span>
+            <div className="trend-container">
+              <img src={trendArrow(change)} alt="trend" className="trend-arrow" />
+              <span className={getTrendTextClass(change)}>{formatChange(change)}</span>
+            </div>
+            <span className="previous-cycle">{prevValue} {previousLabel}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
 export default RevenueDashboard;
+
+
+
+
+
+// Utility functions for date operations
+const formatDate = (date: Date): string => date.toISOString().split("T")[0];
+
+const getPreviousDate = (date: Date): Date => {
+  const prev = new Date(date);
+  prev.setDate(prev.getDate() - 1);
+  return prev;
+};
+
+const getPreviousWeek = (date: Date): Date => {
+  const prev = new Date(date);
+  prev.setDate(prev.getDate() - 7);
+  return prev;
+};
+
+const getPreviousMonth = (date: Date): Date => {
+  const prev = new Date(date);
+  prev.setMonth(prev.getMonth() - 1);
+  return prev;
+};
+
+const getPreviousYear = (date: Date): Date => {
+  const prev = new Date(date);
+  prev.setFullYear(prev.getFullYear() - 1);
+  return prev;
+};
+
+const filterByDate = (date: Date, data: LotEntry[]): LotEntry[] => {
+  const dateStr = formatDate(date);
+  return data.filter(entry => entry.date === dateStr);
+};
+
+const getWeekData = (date: Date, data: LotEntry[]): LotEntry[] => {
+  const start = getPreviousWeek(date);
+  return data.filter(entry => new Date(entry.date) >= start && new Date(entry.date) <= date);
+};
+
+const getMonthData = (date: Date, data: LotEntry[]): LotEntry[] => {
+  const yearMonth = formatDate(date).slice(0, 7);
+  return data.filter(entry => entry.date.startsWith(yearMonth));
+};
+
+const getYearData = (date: Date, data: LotEntry[]): LotEntry[] => {
+  const year = formatDate(date).slice(0, 4);
+  return data.filter(entry => entry.date.startsWith(year));
+};
+
+const getEmptyDayData = (date: Date): LotEntry[] => [{
+  date: formatDate(date),
+  lotId: "0000-0001",
+  totalVehicles: "0",
+  averageOccupancy: "N/A",
+  upTime: "N/A",
+  totalRevenue: 0,
+  pendingRevenue: 0,
+}];
