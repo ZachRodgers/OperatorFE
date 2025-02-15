@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { motion, useSpring } from "framer-motion"; // ✅ Animation library
+import { motion, useSpring } from "framer-motion";
 import lots from "../data/lots_master.json";
 import lotData from "../data/lot_daily_data.json";
 import "./RevenueDashboard.css";
@@ -15,7 +15,6 @@ interface LotEntry {
   pendingRevenue: number;
 }
 
-// ✅ Hook for animated numbers
 const useAnimatedNumber = (value: number, decimals: number) => {
   const animatedValue = useSpring(value, { stiffness: 100, damping: 20 });
   const [displayValue, setDisplayValue] = useState(value);
@@ -141,7 +140,7 @@ const RevenueDashboard: React.FC = () => {
                   src={trendArrow(change)}
                   alt="trend"
                   className="trend-arrow"
-                  animate={{ rotate: change < 0 ? 180 : 0 }} // ✅ Arrow flips
+                  animate={{ rotate: change < 0 ? 180 : 0 }}
                 />
                 <span className={getTrendTextClass(change)}>
                   <motion.span>{animatedChange}</motion.span>%
