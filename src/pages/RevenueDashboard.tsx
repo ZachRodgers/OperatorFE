@@ -104,13 +104,19 @@ const RevenueDashboard: React.FC = () => {
     <div className="content">
       <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
 
-      <div className="timeframe-selector">
-        {["day", "week", "month", "year"].map((t) => (
-          <button key={t} className={timeframe === t ? "active" : ""} onClick={() => setTimeframe(t as any)}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+      <div className="timeframe-selector" data-active={timeframe}>
+  <div className="active-pill"></div>
+  {["day", "week", "month", "year"].map((t) => (
+    <button
+      key={t}
+      className={timeframe === t ? "active" : ""}
+      onClick={() => setTimeframe(t as any)}
+    >
+      {t.charAt(0).toUpperCase() + t.slice(1)}
+    </button>
+  ))}
+</div>
+
 
       <div className="metrics-container">
         {[
