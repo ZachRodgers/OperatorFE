@@ -16,7 +16,7 @@ interface LotEntry {
 }
 
 const useAnimatedNumber = (value: number, decimals: number) => {
-  const animatedValue = useSpring(value, { stiffness: 100, damping: 20 });
+  const animatedValue = useSpring(value, { stiffness: 10000, damping: 40 });
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {

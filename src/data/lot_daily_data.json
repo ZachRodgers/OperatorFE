@@ -446,5 +446,19 @@
         "subscriberRevenue": 0,
         "lostRevenue": 0,
         "violationCount": "2"
+    },
+    {
+        "lotId": "0000-0001",
+        "date": "2025-02-16",
+        "totalVehicles": "530",
+        "averageOccupancy": "28",
+        "upTime": "100",
+        "averageDuration": 2.44,
+        "peakHour": "16:00",
+        "totalRevenue": 322.20,
+        "pendingRevenue": 0,
+        "subscriberRevenue": 0,
+        "lostRevenue": 0,
+        "violationCount": "2"
     }
 ]
