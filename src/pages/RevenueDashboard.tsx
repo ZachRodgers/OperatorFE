@@ -4,6 +4,8 @@ import { motion, useSpring } from "framer-motion";
 import lots from "../data/lots_master.json";
 import lotData from "../data/lot_daily_data.json";
 import "./RevenueDashboard.css";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+
 
 interface LotEntry {
   lotId: string;
@@ -99,10 +101,14 @@ const RevenueDashboard: React.FC = () => {
 
   const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
 
+  const [graphData, setGraphData] = useState<any[]>([]);
+  const [hoveredData, setHoveredData] = useState<any | null>(null);
+  
+
   return (
     <div className="content">
       <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
-
+  
       <div className="header-controls">
         <div className="timeframe-selector" data-active={timeframe}>
           <div className="active-pill"></div>
@@ -116,12 +122,12 @@ const RevenueDashboard: React.FC = () => {
             </button>
           ))}
         </div>
-
+  
         <button className="setup-button" onClick={() => alert("In development.")}>
           + Setup New Camera
         </button>
       </div>
-
+  
       <div className="metrics-container">
         {[
           { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
@@ -130,17 +136,19 @@ const RevenueDashboard: React.FC = () => {
           { title: "Uptime", value: avgUptime, prefix: "", suffix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
         ].map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
           const animatedValue = useAnimatedNumber(value, decimals);
+          const animatedPrevValue = useAnimatedNumber(prevValue, decimals);
+          const animatedChange = useAnimatedNumber(change, 2);
           return (
             <div className="metric" key={title}>
               <span className="metric-value">
                 {prefix}
-                {decimals === 2 ? (
-                  <>
-                    {Math.floor(animatedValue)}
-                    <span className="decimal">.{animatedValue.toFixed(2).split(".")[1]}</span>
-                  </>
-                ) : (
-                  animatedValue.toFixed(decimals)
+                <motion.span>
+                  {decimals === 2
+                    ? `${Math.floor(animatedValue)}`
+                    : animatedValue.toFixed(decimals)}
+                </motion.span>
+                {decimals === 2 && (
+                  <motion.span className="decimal">.{animatedValue.toFixed(2).split(".")[1]}</motion.span>
                 )}
                 {suffix}
               </span>
@@ -148,18 +156,57 @@ const RevenueDashboard: React.FC = () => {
               <div className="trend-container">
                 <motion.img src={trendArrow(change)} alt="trend" className="trend-arrow" animate={{ rotate: change < 0 ? 180 : 0 }} />
                 <span className={getTrendTextClass(change)}>
-                  {change.toFixed(2)}%
+                <motion.span>{animatedChange}</motion.span>%
                 </span>
               </div>
               <span className="previous-cycle">
-                {prefix}{prevValue.toFixed(decimals)}{suffix} {previousLabel}
+              {prefix}
+                <motion.span>{animatedPrevValue}</motion.span>
+                {suffix} {previousLabel}
               </span>
             </div>
           );
         })}
       </div>
+  
+      {/* Graph Container - Below Metrics */}
+      <div className="graph-wrapper">
+        <div className="graph-section">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={graphData}
+              onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
+              onMouseLeave={() => setHoveredData(null)}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="revenue" stroke="#007bff" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="pendingRevenue" stroke="#ffa500" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="subscriptions" stroke="#28a745" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+  
+        {/* Live-updating metrics */}
+        <div className="graph-metrics">
+          {["Revenue", "Pending Revenue", "Subscriptions"].map((title, index) => {
+            const key = index === 0 ? "revenue" : index === 1 ? "pendingRevenue" : "subscriptions";
+            return (
+              <div className="metric" key={title}>
+                <span className="metric-value">
+                  ${hoveredData ? hoveredData[key].toFixed(2) : graphData.length > 0 ? graphData[graphData.length - 1][key].toFixed(2) : "0.00"}
+                </span>
+                <span className="metric-title">{title}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
+  
 };
 
 export default RevenueDashboard;
