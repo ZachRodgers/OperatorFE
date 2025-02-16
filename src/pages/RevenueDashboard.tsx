@@ -15,6 +15,7 @@ interface LotEntry {
   upTime: string;
   totalRevenue: number;
   pendingRevenue: number;
+  subscriberRevenue: number;
 }
 
 const useAnimatedNumber = (value: number, decimals: number) => {
@@ -47,10 +48,10 @@ const RevenueDashboard: React.FC = () => {
   useEffect(() => {
     const today = new Date();
     const lotEntries = lotData.filter((entry) => entry.lotId === lotId);
-
+  
     let filtered: LotEntry[] = [];
     let previous: LotEntry[] = [];
-
+  
     if (timeframe === "day") {
       filtered = filterByDate(today, lotEntries);
       previous = filterByDate(getPreviousDate(today), lotEntries);
@@ -64,9 +65,17 @@ const RevenueDashboard: React.FC = () => {
       filtered = getYearData(today, lotEntries);
       previous = getYearData(getPreviousYear(today), lotEntries);
     }
-
+  
     setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
     setPreviousData(previous);
+  
+    // Set up graph data
+    setGraphData(filtered.map((entry) => ({
+      date: entry.date,
+      revenue: entry.totalRevenue,
+      pendingRevenue: entry.pendingRevenue,
+      subscriptions: entry.subscriberRevenue || 0, // Ensure subscriberRevenue is included
+    })));
   }, [lotId, timeframe]);
 
   const calculateSum = (data: LotEntry[], key: keyof LotEntry) =>
@@ -263,10 +272,11 @@ const getYearData = (date: Date, data: LotEntry[]): LotEntry[] => {
 
 const getEmptyDayData = (date: Date): LotEntry[] => [{
   date: formatDate(date),
-  lotId: "0000-0001",
+  lotId: "0000-0000",
   totalVehicles: "0",
   averageOccupancy: "N/A",
   upTime: "N/A",
   totalRevenue: 0,
   pendingRevenue: 0,
+  subscriberRevenue: 0,
 }];
