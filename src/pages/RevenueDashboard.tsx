@@ -91,6 +91,8 @@ const RevenueDashboard: React.FC = () => {
   const previousRevenue = calculateSum(previousData, "totalRevenue");
   const revenueChange = calculateChange(totalRevenue, previousRevenue);
 
+  const totalSubscriberRevenue = calculateSum(filteredData, "subscriberRevenue");
+
   const totalVehicles = calculateSum(filteredData, "totalVehicles");
   const previousVehicles = calculateSum(previousData, "totalVehicles");
   const vehiclesChange = calculateChange(totalVehicles, previousVehicles);
@@ -111,7 +113,7 @@ const RevenueDashboard: React.FC = () => {
   const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
 
   const [graphData, setGraphData] = useState<any[]>([]);
-  const [hoveredData, setHoveredData] = useState<any | null>(null);
+  const [hoveredData, setHoveredData] = useState<LotEntry | null>(null);
   
 
   return (
@@ -182,11 +184,12 @@ const RevenueDashboard: React.FC = () => {
       <div className="graph-wrapper">
         <div className="graph-section">
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={graphData}
-              onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
-              onMouseLeave={() => setHoveredData(null)}
-            >
+          <LineChart
+  data={graphData}
+  onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
+  onMouseLeave={() => setHoveredData(null)}
+>
+
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
@@ -198,20 +201,40 @@ const RevenueDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
   
-        {/* Live-updating metrics */}
-        <div className="graph-metrics">
-          {["Revenue", "Pending Revenue", "Subscriptions"].map((title, index) => {
-            const key = index === 0 ? "revenue" : index === 1 ? "pendingRevenue" : "subscriptions";
-            return (
-              <div className="metric" key={title}>
-                <span className="metric-value">
-                  ${hoveredData ? hoveredData[key].toFixed(2) : graphData.length > 0 ? graphData[graphData.length - 1][key].toFixed(2) : "0.00"}
-                </span>
-                <span className="metric-title">{title}</span>
-              </div>
-            );
-          })}
-        </div>
+{/* Live-updating metrics */}
+{/* Live-updating metrics */}
+<div className="graph-metrics">
+  {[
+    { title: "Revenue", key: "revenue", isCumulative: true, totalValue: totalRevenue },
+    { title: "Pending Revenue", key: "pendingRevenue", isCumulative: false, totalValue: pendingRevenue },
+    { title: "Subscriptions", key: "subscriptions", isCumulative: true, totalValue: totalSubscriberRevenue }, // FIXED HERE: Changed key to "subscriptions"
+  ].map(({ title, key, isCumulative, totalValue }) => {
+    
+    const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
+    const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
+
+    // 🔹 Ensure hovered data is valid
+    const hoveredValue = hoveredData && key in hoveredData 
+      ? Number(hoveredData[key as keyof typeof hoveredData]) || 0 
+      : null;
+
+    // 🔹 Display Value: Use hovered value if hovering, otherwise use totalValue
+    const displayValue = hoveredValue !== null && !isNaN(hoveredValue)
+      ? hoveredValue.toFixed(2)  // Show hovered datapoint when hovering
+      : totalValue.toFixed(2);    // Default to total when not hovering
+
+    return (
+      <div className="metric" key={title}>
+        <span className="metric-value">${displayValue}</span>
+        <span className="metric-title">{title}</span>
+      </div>
+    );
+  })}
+</div>
+
+
+
+
       </div>
     </div>
   );

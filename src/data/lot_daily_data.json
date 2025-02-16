@@ -456,7 +456,7 @@
         "averageDuration": 2.44,
         "peakHour": "16:00",
         "totalRevenue": 322.20,
-        "pendingRevenue": 0,
+        "pendingRevenue": 20,
         "subscriberRevenue": 0,
         "lostRevenue": 0,
         "violationCount": "2"
