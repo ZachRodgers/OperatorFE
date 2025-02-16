@@ -109,6 +109,11 @@
 
   }
   
+  .decimal {
+    font-size: 70%; /* Adjust this value as needed */
+    color: #92C4FF;
+  }  
+
   .metric-title {
     font-size: 16px;
     font-weight: 600;

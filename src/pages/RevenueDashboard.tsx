@@ -16,7 +16,7 @@ interface LotEntry {
 }
 
 const useAnimatedNumber = (value: number, decimals: number) => {
-  const animatedValue = useSpring(value, { stiffness: 10000, damping: 40 });
+  const animatedValue = useSpring(value, { stiffness: 10000, damping: 600 });
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
@@ -104,23 +104,22 @@ const RevenueDashboard: React.FC = () => {
       <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
 
       <div className="timeframe-selector" data-active={timeframe}>
-  <div className="active-pill"></div>
-  {["day", "week", "month", "year"].map((t) => (
-    <button
-      key={t}
-      className={timeframe === t ? "active" : ""}
-      onClick={() => setTimeframe(t as any)}
-    >
-      {t.charAt(0).toUpperCase() + t.slice(1)}
-    </button>
-  ))}
-</div>
-
+        <div className="active-pill"></div>
+        {["day", "week", "month", "year"].map((t) => (
+          <button
+            key={t}
+            className={timeframe === t ? "active" : ""}
+            onClick={() => setTimeframe(t as any)}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
 
       <div className="metrics-container">
         {[
           { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
-          { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 },
+          { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 }, 
           { title: "Avg. Occupancy", value: avgOccupancy, prefix: "", suffix: "%", change: occupancyChange, prevValue: previousOccupancy, decimals: 1 },
           { title: "Uptime", value: avgUptime, prefix: "", suffix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
         ].map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
@@ -131,7 +130,14 @@ const RevenueDashboard: React.FC = () => {
             <div className="metric" key={title}>
               <span className="metric-value">
                 {prefix}
-                <motion.span>{animatedValue}</motion.span>
+                <motion.span>
+                  {decimals === 2
+                    ? `${Math.floor(animatedValue)}`
+                    : animatedValue.toFixed(decimals)}
+                </motion.span>
+                {decimals === 2 && (
+                  <motion.span className="decimal">.{animatedValue.toFixed(2).split(".")[1]}</motion.span>
+                )}
                 {suffix}
               </span>
               <span className="metric-title">{title}</span>
@@ -160,6 +166,7 @@ const RevenueDashboard: React.FC = () => {
 };
 
 export default RevenueDashboard;
+
 
 
 // Utility functions for date operations
