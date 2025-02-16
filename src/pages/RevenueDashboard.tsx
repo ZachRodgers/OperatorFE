@@ -103,59 +103,56 @@ const RevenueDashboard: React.FC = () => {
     <div className="content">
       <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
 
-      <div className="timeframe-selector" data-active={timeframe}>
-        <div className="active-pill"></div>
-        {["day", "week", "month", "year"].map((t) => (
-          <button
-            key={t}
-            className={timeframe === t ? "active" : ""}
-            onClick={() => setTimeframe(t as any)}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+      <div className="header-controls">
+        <div className="timeframe-selector" data-active={timeframe}>
+          <div className="active-pill"></div>
+          {["day", "week", "month", "year"].map((t) => (
+            <button
+              key={t}
+              className={timeframe === t ? "active" : ""}
+              onClick={() => setTimeframe(t as any)}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <button className="setup-button" onClick={() => alert("In development.")}>
+          + Setup New Camera
+        </button>
       </div>
 
       <div className="metrics-container">
         {[
           { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
-          { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 }, 
+          { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 },
           { title: "Avg. Occupancy", value: avgOccupancy, prefix: "", suffix: "%", change: occupancyChange, prevValue: previousOccupancy, decimals: 1 },
           { title: "Uptime", value: avgUptime, prefix: "", suffix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
         ].map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
           const animatedValue = useAnimatedNumber(value, decimals);
-          const animatedPrevValue = useAnimatedNumber(prevValue, decimals);
-          const animatedChange = useAnimatedNumber(change, 2);
           return (
             <div className="metric" key={title}>
               <span className="metric-value">
                 {prefix}
-                <motion.span>
-                  {decimals === 2
-                    ? `${Math.floor(animatedValue)}`
-                    : animatedValue.toFixed(decimals)}
-                </motion.span>
-                {decimals === 2 && (
-                  <motion.span className="decimal">.{animatedValue.toFixed(2).split(".")[1]}</motion.span>
+                {decimals === 2 ? (
+                  <>
+                    {Math.floor(animatedValue)}
+                    <span className="decimal">.{animatedValue.toFixed(2).split(".")[1]}</span>
+                  </>
+                ) : (
+                  animatedValue.toFixed(decimals)
                 )}
                 {suffix}
               </span>
               <span className="metric-title">{title}</span>
               <div className="trend-container">
-                <motion.img
-                  src={trendArrow(change)}
-                  alt="trend"
-                  className="trend-arrow"
-                  animate={{ rotate: change < 0 ? 180 : 0 }}
-                />
+                <motion.img src={trendArrow(change)} alt="trend" className="trend-arrow" animate={{ rotate: change < 0 ? 180 : 0 }} />
                 <span className={getTrendTextClass(change)}>
-                  <motion.span>{animatedChange}</motion.span>%
+                  {change.toFixed(2)}%
                 </span>
               </div>
               <span className="previous-cycle">
-                {prefix}
-                <motion.span>{animatedPrevValue}</motion.span>
-                {suffix} {previousLabel}
+                {prefix}{prevValue.toFixed(decimals)}{suffix} {previousLabel}
               </span>
             </div>
           );
@@ -166,6 +163,7 @@ const RevenueDashboard: React.FC = () => {
 };
 
 export default RevenueDashboard;
+
 
 
 
