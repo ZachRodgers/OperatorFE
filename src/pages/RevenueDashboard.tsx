@@ -205,7 +205,7 @@ const RevenueDashboard: React.FC = () => {
         <ResponsiveContainer width="100%" height={300}>
   <AreaChart
     data={graphData}
-    margin={{ top: 0, left: -60, right: 0}} // ✅ Removes left/right margins
+    margin={{ top: 0, left: -60, right: 0, bottom: 5}}
     onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
     onMouseLeave={() => setHoveredData(null)}
   >
@@ -226,30 +226,38 @@ const RevenueDashboard: React.FC = () => {
 
     <CartesianGrid strokeDasharray="3 3" />
     <XAxis
-      dataKey="date"
-      orientation="top"
-      tickMargin={10}
-      interval={0} // ✅ Ensures proper label spacing
-      padding={{ left: 0, right: 0 }} // ✅ Forces labels to the edges
-      tickFormatter={(tick, index) => {
-        if (timeframe === "day") {
-          if (index === 1) {
-            const date = new Date(tick);
-            return date.toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            });
-          }
-          return "";
-        }
-        if (timeframe === "week") return formatDayOfWeek(tick);
-        if (timeframe === "month") return formatMonthWeeks(tick, index);
-        if (timeframe === "year") return formatMonthAbbreviation(tick, index);
-        return tick;
-      }}
-    />
+  dataKey="date"
+  orientation="top"
+  tickMargin={10}
+  interval={0}
+  tick={(props) => {
+    const { x, y, payload, index } = props;
+    const dx = index === 0 ? 40 : index === graphData.length - 1 ? -40 : 0; // ✅ Move only first and last label
+
+    return (
+      <text x={x + dx} y={y} textAnchor="middle" fill="#666">
+        {timeframe === "day"
+          ? index === 1
+            ? new Date(payload.value).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })
+            : ""
+          : timeframe === "week"
+          ? formatDayOfWeek(payload.value)
+          : timeframe === "month"
+          ? formatMonthWeeks(payload.value, index)
+          : timeframe === "year"
+          ? formatMonthAbbreviation(payload.value, index)
+          : payload.value}
+      </text>
+    );
+  }}
+/>
+
+
 
     <YAxis tick={false} axisLine={false} />
     <Tooltip content={() => null} />
