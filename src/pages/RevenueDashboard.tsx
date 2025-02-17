@@ -202,7 +202,7 @@ const RevenueDashboard: React.FC = () => {
       {/* Graph Container - Below Metrics */}
       <div className="graph-wrapper">
         <div className="graph-section">
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={350}>
         <AreaChart
   data={graphData}
   margin={{ top: 0, left: -60, right: 0, bottom: 5 }}
@@ -224,7 +224,7 @@ const RevenueDashboard: React.FC = () => {
     </linearGradient>
   </defs>
 
-  <CartesianGrid strokeDasharray="5 8" />
+  <CartesianGrid stroke="rgba(0, 0, 0, 0.07)" strokeDasharray="0" />
 
   <XAxis
     dataKey="date"
@@ -261,18 +261,10 @@ const RevenueDashboard: React.FC = () => {
   />
 
   <YAxis tick={false} axisLine={false} />
-  <Tooltip content={() => null} cursor={{ stroke: "#1782FF", strokeWidth: 2 }} />
+  <Tooltip content={() => null} cursor={{ stroke: "#767676", strokeWidth: 1, strokeDasharray: "5 5" }} />
 
 
   {/* ✅ Hover Line & Dot */}
-  <Line
-    type="monotone"
-    dataKey="revenue"
-    stroke="rgba(0, 0, 0, 0.8)"
-    strokeWidth={2} 
-    dot={false}
-    activeDot={{ r: 20, strokeWidth: 5, stroke: "#007bff", fill: "white" }} // Larger on hover
-  />
 
   <Area
     type="monotone"
@@ -282,6 +274,8 @@ const RevenueDashboard: React.FC = () => {
     fill="url(#revenueGradient)"
     fillOpacity={1}
     animationDuration={500}
+    activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#007bff" }}
+
   />
 
   <Area
@@ -292,6 +286,7 @@ const RevenueDashboard: React.FC = () => {
     fill="url(#pendingGradient)"
     fillOpacity={1}
     animationDuration={500}
+    activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#ffbc3f" }}
   />
 
   <Area
@@ -302,6 +297,7 @@ const RevenueDashboard: React.FC = () => {
     fill="url(#subscriptionsGradient)"
     fillOpacity={1}
     animationDuration={500}
+    activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#00CFB7" }}
   />
 </AreaChart>
 
