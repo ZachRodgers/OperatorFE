@@ -303,7 +303,19 @@ const RevenueDashboard: React.FC = () => {
 
 </ResponsiveContainer>
         </div>
-<div className="graph-metrics">
+        <div className="graph-metrics">
+  {/* ✅ Add this new div for the date display */}
+  <div className="graph-metrics-header">
+    <span className="metric-date">
+      {hoveredData ? new Date(hoveredData.date).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }) : "Total"}
+    </span>
+  </div>
+
   {[
     { title: "Revenue", key: "revenue", totalValue: totalRevenue, className: "" },
     { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue, className: "pending-revenue" },
@@ -313,25 +325,18 @@ const RevenueDashboard: React.FC = () => {
     const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
     const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
 
-    // Get hovered data if available
     const hoveredValue = hoveredData && key in hoveredData
       ? Number(hoveredData[key as keyof typeof hoveredData]) || 0
       : null;
 
-    // Use a separate animated state that updates after the new timeframe is applied
     const [animatedTotal, setAnimatedTotal] = useState(totalValue);
     const animatedValue = useAnimatedNumber(animatedTotal, 2);
 
     useEffect(() => {
-      setAnimatedTotal(totalValue); // Ensure animations use the latest value immediately
+      setAnimatedTotal(totalValue);
     }, [totalValue]);
 
-    // Ensure correct value is displayed:
-    // - Use hovered value if hovering
-    // - Otherwise, show animated value
     const displayNumber = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue.toFixed(2);
-    
-    // Ensure always showing 2 decimals
     const [wholePart, decimalPart] = displayNumber.includes(".") ? displayNumber.split(".") : [displayNumber, "00"];
 
     return (
@@ -345,6 +350,7 @@ const RevenueDashboard: React.FC = () => {
     );
   })}
 </div>
+
       </div>
     </div>
   );
