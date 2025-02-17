@@ -208,7 +208,6 @@ const RevenueDashboard: React.FC = () => {
     onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
     onMouseLeave={() => setHoveredData(null)}
   >
-    {/* ✅ Define Gradients */}
     <defs>
       <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
@@ -228,26 +227,29 @@ const RevenueDashboard: React.FC = () => {
 
     <CartesianGrid strokeDasharray="3 3" />
     <XAxis
-      dataKey="date"
-      tickFormatter={(tick, index) => {
-        if (timeframe === "day") {
-          if (index === 1) {
-            const date = new Date(tick);
-            return date.toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            });
-          }
-          return "";
-        }
-        if (timeframe === "week") return formatDayOfWeek(tick);
-        if (timeframe === "month") return formatMonthWeeks(tick, index);
-        if (timeframe === "year") return formatMonthAbbreviation(tick, index);
-        return tick;
-      }}
-    />
+  dataKey="date"
+  orientation="top"
+  tickMargin={10}
+  tickFormatter={(tick, index) => {
+    if (timeframe === "day") {
+      if (index === 1) {
+        const date = new Date(tick);
+        return date.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+      }
+      return "";
+    }
+    if (timeframe === "week") return formatDayOfWeek(tick);
+    if (timeframe === "month") return formatMonthWeeks(tick, index);
+    if (timeframe === "year") return formatMonthAbbreviation(tick, index);
+    return tick;
+  }}
+/>
+
     <YAxis tick={false} axisLine={false} />
     <Tooltip content={() => null} />
 
