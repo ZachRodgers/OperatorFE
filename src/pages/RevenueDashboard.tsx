@@ -4,7 +4,7 @@ import { motion, useSpring } from "framer-motion";
 import lots from "../data/lots_master.json";
 import lotData from "../data/lot_daily_data.json";
 import "./RevenueDashboard.css";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, LineChart, AreaChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 
 interface LotEntry {
@@ -72,19 +72,28 @@ const RevenueDashboard: React.FC = () => {
     setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
     setPreviousData(previous);
   
-    setGraphData(
-      filtered.map((entry) => ({
-        date: entry.date,
-        revenue: entry.totalRevenue,
-        pendingRevenue: entry.pendingRevenue,
-        subscriptions: entry.subscriberRevenue || 0,
-      }))
-    );
+    // ✅ Ensure a horizontal line when only one data point exists
+    let graphData = filtered.map((entry) => ({
+      date: entry.date,
+      revenue: entry.totalRevenue,
+      pendingRevenue: entry.pendingRevenue,
+      subscriptions: entry.subscriberRevenue || 0,
+    }));
   
-    // ✅ Update previous timeframe for animation control
+    if (timeframe === "day" && graphData.length === 1) {
+      const singlePoint = graphData[0];
+      graphData = [
+        { ...singlePoint, date: formatDateOffset(singlePoint.date, -1) },
+        singlePoint,
+        { ...singlePoint, date: formatDateOffset(singlePoint.date, +1) },
+      ];
+    }
+  
+    setGraphData(graphData);
+  
     setPrevTimeframe(timeframe);
-  
   }, [lotId, timeframe]);
+  
   
   
 
@@ -193,31 +202,88 @@ const RevenueDashboard: React.FC = () => {
       {/* Graph Container - Below Metrics */}
       <div className="graph-wrapper">
         <div className="graph-section">
-          <ResponsiveContainer width="100%" height={300}>
-          <LineChart
-  data={graphData}
-  onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
-  onMouseLeave={() => setHoveredData(null)}
->
+        <ResponsiveContainer width="100%" height={300}>
+  <AreaChart
+    data={graphData}
+    onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
+    onMouseLeave={() => setHoveredData(null)}
+  >
+    {/* ✅ Define Gradients */}
+    <defs>
+      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
+        <stop offset="70%" stopColor="#007bff" stopOpacity={0} />
+      </linearGradient>
 
-              <CartesianGrid strokeDasharray="0" />
-              <XAxis
-  dataKey="date"
-  tickFormatter={(tick, index) => {
-    if (timeframe === "week") return formatDayOfWeek(tick);
-    if (timeframe === "month") return formatMonthWeeks(tick, index);
-    if (timeframe === "year") return formatMonthAbbreviation(tick, index);
-    return tick;
-  }}
-/>
+      <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#ffbc3f" stopOpacity={0.25} />
+        <stop offset="90%" stopColor="#ffbc3f" stopOpacity={0} />
+      </linearGradient>
 
-              <YAxis tick={false} axisLine={false} />
-              <Tooltip content={() => null} />
-              <Line type="monotone" dataKey="revenue" stroke="#007bff" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="pendingRevenue" stroke="#ffbc3f" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="subscriptions" stroke="#00CFB7" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+      <linearGradient id="subscriptionsGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#00CFB7" stopOpacity={0.25} />
+        <stop offset="90%" stopColor="#00CFB7" stopOpacity={0} />
+      </linearGradient>
+    </defs>
+
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis
+      dataKey="date"
+      tickFormatter={(tick, index) => {
+        if (timeframe === "day") {
+          if (index === 1) {
+            const date = new Date(tick);
+            return date.toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            });
+          }
+          return "";
+        }
+        if (timeframe === "week") return formatDayOfWeek(tick);
+        if (timeframe === "month") return formatMonthWeeks(tick, index);
+        if (timeframe === "year") return formatMonthAbbreviation(tick, index);
+        return tick;
+      }}
+    />
+    <YAxis tick={false} axisLine={false} />
+    <Tooltip content={() => null} />
+
+    {/* ✅ Gradient Fill Areas */}
+    <Area
+      type="monotone"
+      dataKey="revenue"
+      stroke="#007bff"
+      strokeWidth={2}
+      fill="url(#revenueGradient)"
+      fillOpacity={1}
+      animationDuration={500}
+    />
+
+    <Area
+      type="monotone"
+      dataKey="pendingRevenue"
+      stroke="#ffbc3f"
+      strokeWidth={2}
+      fill="url(#pendingGradient)"
+      fillOpacity={1}
+      animationDuration={500}
+    />
+
+    <Area
+      type="monotone"
+      dataKey="subscriptions"
+      stroke="#00CFB7"
+      strokeWidth={2}
+      fill="url(#subscriptionsGradient)"
+      fillOpacity={1}
+      animationDuration={500}
+    />
+  </AreaChart>
+</ResponsiveContainer>
+
         </div>
 
 <div className="graph-metrics">
@@ -352,6 +418,13 @@ const getYearData = (date: Date, data: LotEntry[]): LotEntry[] => {
   const year = formatDate(date).slice(0, 4);
   return data.filter(entry => entry.date.startsWith(year));
 };
+
+const formatDateOffset = (dateString: string, offsetDays: number) => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString().split("T")[0]; // Returns in YYYY-MM-DD format
+};
+
 
 const getEmptyDayData = (date: Date): LotEntry[] => [{
   date: formatDate(date),
