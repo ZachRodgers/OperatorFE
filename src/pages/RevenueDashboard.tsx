@@ -200,13 +200,22 @@ const RevenueDashboard: React.FC = () => {
   onMouseLeave={() => setHoveredData(null)}
 >
 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis/>
+              <CartesianGrid strokeDasharray="0" />
+              <XAxis
+  dataKey="date"
+  tickFormatter={(tick, index) => {
+    if (timeframe === "week") return formatDayOfWeek(tick);
+    if (timeframe === "month") return formatMonthWeeks(tick, index);
+    if (timeframe === "year") return formatMonthAbbreviation(tick, index);
+    return tick;
+  }}
+/>
+
+              <YAxis tick={false} axisLine={false} />
               <Tooltip content={() => null} />
-              <Line type="monotone" dataKey="revenue" stroke="#007bff" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="pendingRevenue" stroke="#ffbc3f" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="subscriptions" stroke="#00CFB7" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="revenue" stroke="#007bff" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="pendingRevenue" stroke="#ffbc3f" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="subscriptions" stroke="#00CFB7" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -258,6 +267,41 @@ const RevenueDashboard: React.FC = () => {
   );
   
 };
+
+// Converts a date to the weekday abbreviation (Mon, Tue, etc.)
+const formatDayOfWeek = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", { weekday: "short" }); // "Mon", "Tue", etc.
+};
+
+const formatMonthWeeks = (() => {
+  return (dateString: string, index: number) => {
+    // Calculate the current week number based on index
+    const weekNumber = Math.floor(index / 7) + 1;
+
+    // Show only the first instance of each week
+    if (index % 7 === 0) {
+      return `Week ${weekNumber}`;
+    }
+    return "";
+  };
+})();
+
+const formatMonthAbbreviation = (() => {
+  let lastMonth = "";
+
+  return (dateString: string, index: number) => {
+    const date = new Date(dateString);
+    const monthLabel = date.toLocaleDateString("en-US", { month: "short" });
+
+    if (index === 0 || monthLabel !== lastMonth) {
+      lastMonth = monthLabel;
+      return monthLabel;
+    }
+    return "";
+  };
+})();
+
 
 export default RevenueDashboard;
 
