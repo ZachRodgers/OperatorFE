@@ -154,6 +154,7 @@
     display: block;
     margin-top: -3px;
     margin-bottom: 15px;
+    white-space: nowrap;
   }
   
   .trend-container {
