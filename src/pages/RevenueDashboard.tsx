@@ -205,8 +205,8 @@ const RevenueDashboard: React.FC = () => {
               <YAxis />
               <Tooltip />
               <Line type="monotone" dataKey="revenue" stroke="#007bff" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="pendingRevenue" stroke="#ffa500" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="subscriptions" stroke="#28a745" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="pendingRevenue" stroke="#ffbc3f" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="subscriptions" stroke="#00CFB7" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
