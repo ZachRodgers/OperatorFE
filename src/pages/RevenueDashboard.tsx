@@ -72,7 +72,7 @@ const RevenueDashboard: React.FC = () => {
     setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
     setPreviousData(previous);
   
-    // ✅ Ensure a horizontal line when only one data point exists
+    // Ensure a horizontal line when only one data point exists
     let graphData = filtered.map((entry) => ({
       date: entry.date,
       revenue: entry.totalRevenue,
@@ -230,6 +230,8 @@ const RevenueDashboard: React.FC = () => {
   orientation="top"
   tickMargin={10}
   interval={0}
+  axisLine={false} // ✅ Removes the X-axis line
+  tickLine={false} // ✅ Removes the small tick marks
   tick={(props) => {
     const { x, y, payload, index } = props;
     const dx = index === 0 ? 40 : index === graphData.length - 1 ? -40 : 0; // ✅ Move only first and last label
@@ -256,6 +258,7 @@ const RevenueDashboard: React.FC = () => {
     );
   }}
 />
+
 
 
 
