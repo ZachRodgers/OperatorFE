@@ -200,40 +200,45 @@ const RevenueDashboard: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-  
-{/* Live-updating metrics */}
-{/* Live-updating metrics */}
+{/* Live-updating metrics with animation */}
 <div className="graph-metrics">
   {[
     { title: "Revenue", key: "revenue", isCumulative: true, totalValue: totalRevenue },
     { title: "Pending Revenue", key: "pendingRevenue", isCumulative: false, totalValue: pendingRevenue },
-    { title: "Subscriptions", key: "subscriptions", isCumulative: true, totalValue: totalSubscriberRevenue }, // FIXED HERE: Changed key to "subscriptions"
+    { title: "Subscriptions", key: "subscriptions", isCumulative: true, totalValue: totalSubscriberRevenue },
   ].map(({ title, key, isCumulative, totalValue }) => {
     
     const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
     const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
 
-    // 🔹 Ensure hovered data is valid
     const hoveredValue = hoveredData && key in hoveredData 
       ? Number(hoveredData[key as keyof typeof hoveredData]) || 0 
       : null;
 
-    // 🔹 Display Value: Use hovered value if hovering, otherwise use totalValue
     const displayValue = hoveredValue !== null && !isNaN(hoveredValue)
-      ? hoveredValue.toFixed(2)  // Show hovered datapoint when hovering
-      : totalValue.toFixed(2);    // Default to total when not hovering
+      ? hoveredValue 
+      : totalValue;
+
+    const animatedDisplayValue = useAnimatedNumber(displayValue, 2);
 
     return (
       <div className="metric" key={title}>
-        <span className="metric-value">${displayValue}</span>
+        <span className="metric-value">
+          $
+          <motion.span 
+            key={displayValue} 
+            animate={{ opacity: 1, y: 0 }} 
+            initial={{ opacity: 0, y: -5 }} 
+            transition={{ duration: 0.3 }}
+          >
+            {animatedDisplayValue.toFixed(2)}
+          </motion.span>
+        </span>
         <span className="metric-title">{title}</span>
       </div>
     );
   })}
 </div>
-
-
-
 
       </div>
     </div>
