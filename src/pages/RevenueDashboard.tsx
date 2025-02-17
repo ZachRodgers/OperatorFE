@@ -203,98 +203,108 @@ const RevenueDashboard: React.FC = () => {
       <div className="graph-wrapper">
         <div className="graph-section">
         <ResponsiveContainer width="100%" height={300}>
-  <AreaChart
-    data={graphData}
-    margin={{ top: 0, left: -60, right: 0, bottom: 5}}
-    onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
-    onMouseLeave={() => setHoveredData(null)}
-  >
-    <defs>
-      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
-        <stop offset="70%" stopColor="#007bff" stopOpacity={0} />
-      </linearGradient>
-      <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#ffbc3f" stopOpacity={0.25} />
-        <stop offset="90%" stopColor="#ffbc3f" stopOpacity={0} />
-      </linearGradient>
-      <linearGradient id="subscriptionsGradient" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#00CFB7" stopOpacity={0.25} />
-        <stop offset="90%" stopColor="#00CFB7" stopOpacity={0} />
-      </linearGradient>
-    </defs>
+        <AreaChart
+  data={graphData}
+  margin={{ top: 0, left: -60, right: 0, bottom: 5 }}
+  onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
+  onMouseLeave={() => setHoveredData(null)}
+>
+  <defs>
+    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
+      <stop offset="70%" stopColor="#007bff" stopOpacity={0} />
+    </linearGradient>
+    <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#ffbc3f" stopOpacity={0.25} />
+      <stop offset="90%" stopColor="#ffbc3f" stopOpacity={0} />
+    </linearGradient>
+    <linearGradient id="subscriptionsGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#00CFB7" stopOpacity={0.25} />
+      <stop offset="90%" stopColor="#00CFB7" stopOpacity={0} />
+    </linearGradient>
+  </defs>
 
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis
-  dataKey="date"
-  orientation="top"
-  tickMargin={10}
-  interval={0}
-  axisLine={false} // ✅ Removes the X-axis line
-  tickLine={false} // ✅ Removes the small tick marks
-  tick={(props) => {
-    const { x, y, payload, index } = props;
-    const dx = index === 0 ? 40 : index === graphData.length - 1 ? -40 : 0; // ✅ Move only first and last label
+  <CartesianGrid strokeDasharray="5 8" />
 
-    return (
-      <text x={x + dx} y={y} textAnchor="middle" fill="#666">
-        {timeframe === "day"
-          ? index === 1
-            ? new Date(payload.value).toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })
-            : ""
-          : timeframe === "week"
-          ? formatDayOfWeek(payload.value)
-          : timeframe === "month"
-          ? formatMonthWeeks(payload.value, index)
-          : timeframe === "year"
-          ? formatMonthAbbreviation(payload.value, index)
-          : payload.value}
-      </text>
-    );
-  }}
-/>
+  <XAxis
+    dataKey="date"
+    orientation="top"
+    tickMargin={10}
+    interval={0}
+    axisLine={false}
+    tickLine={false}
+    tick={(props) => {
+      const { x, y, payload, index } = props;
+      const dx = index === 0 ? 40 : index === graphData.length - 1 ? -40 : 0;
+
+      return (
+        <text x={x + dx} y={y} textAnchor="middle" fill="#666">
+          {timeframe === "day"
+            ? index === 1
+              ? new Date(payload.value).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : ""
+            : timeframe === "week"
+            ? formatDayOfWeek(payload.value)
+            : timeframe === "month"
+            ? formatMonthWeeks(payload.value, index)
+            : timeframe === "year"
+            ? formatMonthAbbreviation(payload.value, index)
+            : payload.value}
+        </text>
+      );
+    }}
+  />
+
+  <YAxis tick={false} axisLine={false} />
+  <Tooltip content={() => null} cursor={{ stroke: "#1782FF", strokeWidth: 2 }} />
 
 
+  {/* ✅ Hover Line & Dot */}
+  <Line
+    type="monotone"
+    dataKey="revenue"
+    stroke="rgba(0, 0, 0, 0.8)"
+    strokeWidth={2} 
+    dot={false}
+    activeDot={{ r: 20, strokeWidth: 5, stroke: "#007bff", fill: "white" }} // Larger on hover
+  />
 
+  <Area
+    type="monotone"
+    dataKey="revenue"
+    stroke="#007bff"
+    strokeWidth={2}
+    fill="url(#revenueGradient)"
+    fillOpacity={1}
+    animationDuration={500}
+  />
 
-    <YAxis tick={false} axisLine={false} />
-    <Tooltip content={() => null} />
+  <Area
+    type="monotone"
+    dataKey="pendingRevenue"
+    stroke="#ffbc3f"
+    strokeWidth={2}
+    fill="url(#pendingGradient)"
+    fillOpacity={1}
+    animationDuration={500}
+  />
 
-    <Area
-      type="monotone"
-      dataKey="revenue"
-      stroke="#007bff"
-      strokeWidth={2}
-      fill="url(#revenueGradient)"
-      fillOpacity={1}
-      animationDuration={500}
-    />
+  <Area
+    type="monotone"
+    dataKey="subscriptions"
+    stroke="#00CFB7"
+    strokeWidth={2}
+    fill="url(#subscriptionsGradient)"
+    fillOpacity={1}
+    animationDuration={500}
+  />
+</AreaChart>
 
-    <Area
-      type="monotone"
-      dataKey="pendingRevenue"
-      stroke="#ffbc3f"
-      strokeWidth={2}
-      fill="url(#pendingGradient)"
-      fillOpacity={1}
-      animationDuration={500}
-    />
-
-    <Area
-      type="monotone"
-      dataKey="subscriptions"
-      stroke="#00CFB7"
-      strokeWidth={2}
-      fill="url(#subscriptionsGradient)"
-      fillOpacity={1}
-      animationDuration={500}
-    />
-  </AreaChart>
 </ResponsiveContainer>
         </div>
 <div className="graph-metrics">
