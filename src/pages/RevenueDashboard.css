@@ -136,10 +136,19 @@
 
   }
   
-  .decimal {
-    font-size: 70%; /* Adjust this value as needed */
-    color: #92C4FF;
-  }  
+  .metric-value .decimal {
+    font-size: 70%;
+    opacity: 0.40;
+  }
+
+  .metric-value.pending-revenue {
+    color: #ffbc3f; /* Yellow */
+  }
+  
+  .metric-value.subscriber-revenue {
+    color: #00CFB7; /* Teal */
+  }
+  
 
   .metric-title {
     font-size: 16px;

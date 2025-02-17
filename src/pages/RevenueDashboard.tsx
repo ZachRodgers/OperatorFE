@@ -210,13 +210,13 @@ const RevenueDashboard: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-{/* Live-updating metrics */}
+
 <div className="graph-metrics">
   {[
-    { title: "Revenue", key: "revenue", totalValue: totalRevenue },
-    { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue },
-    { title: "Subscriptions", key: "subscriptions", totalValue: totalSubscriberRevenue },
-  ].map(({ title, key, totalValue }) => {
+    { title: "Revenue", key: "revenue", totalValue: totalRevenue, className: "" },
+    { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue, className: "pending-revenue" },
+    { title: "Subscriptions", key: "subscriptions", totalValue: totalSubscriberRevenue, className: "subscriber-revenue" },
+  ].map(({ title, key, totalValue, className }) => {
 
     const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
     const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
@@ -234,21 +234,25 @@ const RevenueDashboard: React.FC = () => {
       setAnimatedTotal(totalValue); // Ensure animations use the latest value immediately
     }, [totalValue]);
 
-    // Ensure correct value is displayed: 
+    // Ensure correct value is displayed:
     // - Use hovered value if hovering
     // - Otherwise, show animated value
-    const animatedDisplayValue = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue;
+    const displayNumber = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue.toFixed(2);
+    
+    // Ensure always showing 2 decimals
+    const [wholePart, decimalPart] = displayNumber.includes(".") ? displayNumber.split(".") : [displayNumber, "00"];
 
     return (
       <div className="metric" key={title}>
-        <span className="metric-value">${animatedDisplayValue}</span>
+        <span className={`metric-value ${className}`}>
+          ${wholePart}
+          <span className="decimal">.{decimalPart}</span>
+        </span>
         <span className="metric-title">{title}</span>
       </div>
     );
   })}
 </div>
-
-
       </div>
     </div>
   );
@@ -256,8 +260,6 @@ const RevenueDashboard: React.FC = () => {
 };
 
 export default RevenueDashboard;
-
-
 
 
 // Utility functions for date operations
