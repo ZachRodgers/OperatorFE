@@ -44,6 +44,9 @@ const RevenueDashboard: React.FC = () => {
 
   const lot = lots.find((l) => l.lotId === lotId);
   const lotName = lot ? (lot.lotName.length > 50 ? lot.lotName.substring(0, 50) + "..." : lot.lotName) : "Unknown Lot";
+  const [prevTimeframe, setPrevTimeframe] = useState(timeframe);
+
+
 
   useEffect(() => {
     const today = new Date();
@@ -69,14 +72,21 @@ const RevenueDashboard: React.FC = () => {
     setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
     setPreviousData(previous);
   
-    // Set up graph data
-    setGraphData(filtered.map((entry) => ({
-      date: entry.date,
-      revenue: entry.totalRevenue,
-      pendingRevenue: entry.pendingRevenue,
-      subscriptions: entry.subscriberRevenue || 0, // Ensure subscriberRevenue is included
-    })));
+    setGraphData(
+      filtered.map((entry) => ({
+        date: entry.date,
+        revenue: entry.totalRevenue,
+        pendingRevenue: entry.pendingRevenue,
+        subscriptions: entry.subscriberRevenue || 0,
+      }))
+    );
+  
+    // ✅ Update previous timeframe for animation control
+    setPrevTimeframe(timeframe);
+  
   }, [lotId, timeframe]);
+  
+  
 
   const calculateSum = (data: LotEntry[], key: keyof LotEntry) =>
     data.reduce((sum, entry) => sum + Number(entry[key]), 0);
@@ -200,45 +210,44 @@ const RevenueDashboard: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-{/* Live-updating metrics with animation */}
+{/* Live-updating metrics */}
 <div className="graph-metrics">
   {[
-    { title: "Revenue", key: "revenue", isCumulative: true, totalValue: totalRevenue },
-    { title: "Pending Revenue", key: "pendingRevenue", isCumulative: false, totalValue: pendingRevenue },
-    { title: "Subscriptions", key: "subscriptions", isCumulative: true, totalValue: totalSubscriberRevenue },
-  ].map(({ title, key, isCumulative, totalValue }) => {
-    
+    { title: "Revenue", key: "revenue", totalValue: totalRevenue },
+    { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue },
+    { title: "Subscriptions", key: "subscriptions", totalValue: totalSubscriberRevenue },
+  ].map(({ title, key, totalValue }) => {
+
     const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
     const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
 
-    const hoveredValue = hoveredData && key in hoveredData 
-      ? Number(hoveredData[key as keyof typeof hoveredData]) || 0 
+    // Get hovered data if available
+    const hoveredValue = hoveredData && key in hoveredData
+      ? Number(hoveredData[key as keyof typeof hoveredData]) || 0
       : null;
 
-    const displayValue = hoveredValue !== null && !isNaN(hoveredValue)
-      ? hoveredValue 
-      : totalValue;
+    // Use a separate animated state that updates after the new timeframe is applied
+    const [animatedTotal, setAnimatedTotal] = useState(totalValue);
+    const animatedValue = useAnimatedNumber(animatedTotal, 2);
 
-    const animatedDisplayValue = useAnimatedNumber(displayValue, 2);
+    useEffect(() => {
+      setAnimatedTotal(totalValue); // Ensure animations use the latest value immediately
+    }, [totalValue]);
+
+    // Ensure correct value is displayed: 
+    // - Use hovered value if hovering
+    // - Otherwise, show animated value
+    const animatedDisplayValue = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue;
 
     return (
       <div className="metric" key={title}>
-        <span className="metric-value">
-          $
-          <motion.span 
-            key={displayValue} 
-            animate={{ opacity: 1, y: 0 }} 
-            initial={{ opacity: 0, y: -5 }} 
-            transition={{ duration: 0.3 }}
-          >
-            {animatedDisplayValue.toFixed(2)}
-          </motion.span>
-        </span>
+        <span className="metric-value">${animatedDisplayValue}</span>
         <span className="metric-title">{title}</span>
       </div>
     );
   })}
 </div>
+
 
       </div>
     </div>
