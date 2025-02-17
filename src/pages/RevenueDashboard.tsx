@@ -202,8 +202,8 @@ const RevenueDashboard: React.FC = () => {
 
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
+              <YAxis/>
+              <Tooltip content={() => null} />
               <Line type="monotone" dataKey="revenue" stroke="#007bff" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="pendingRevenue" stroke="#ffbc3f" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="subscriptions" stroke="#00CFB7" strokeWidth={2} dot={{ r: 3 }} />
@@ -243,7 +243,7 @@ const RevenueDashboard: React.FC = () => {
     const [wholePart, decimalPart] = displayNumber.includes(".") ? displayNumber.split(".") : [displayNumber, "00"];
 
     return (
-      <div className="metric" key={title}>
+      <div className="metric graph-metric" key={title}>
         <span className={`metric-value ${className}`}>
           ${wholePart}
           <span className="decimal">.{decimalPart}</span>

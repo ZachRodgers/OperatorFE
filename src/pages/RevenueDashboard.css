@@ -29,7 +29,6 @@
     color: #fff;
     font-weight: 600;
   }
-  
 
   .timeframe-selector {
     display: flex;
@@ -86,7 +85,6 @@
     transform: translateX(295%);
   }
   
-  
   .content {
     max-width: 1280px;
     margin: 0 auto; /* Ensures it's centered */
@@ -126,7 +124,6 @@
     width: 25%;
     max-width: 29%;
   }
-  
   
   .metric-value {
     font-size: 42px;
@@ -190,31 +187,36 @@
     vertical-align: middle;
     margin-left: 5px;
   }
-  
 
   .graph-wrapper {
     display: flex;
-    gap: 16px;
     width: 100%;
     margin-top: 20px;
   }
   
   .graph-section {
-    width: 75%;
-    background: #fff;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    width: 76%;
+    background: #FCFCFC;
+    border: 1px solid #E5E5E5;
+    border-radius: 8px 0px 0px 8px;
   }
   
+  .graph-metric {
+    background: transparent; /* Remove background */
+    border: none; /* Remove border */
+    padding: 10px; /* Remove extra padding */
+  }  
+
   .graph-metrics {
-    width: 25%;
+    width: calc(25% - 40px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 15px;
     background: #fcfcfc;
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
+    border-right: 1px solid #e5e5e5;
+    border-top: 1px solid #e5e5e5;
+    border-bottom: 1px solid #e5e5e5;
+    border-radius: 0px 8px 8px 0px;
   }
   
