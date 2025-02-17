@@ -205,6 +205,7 @@ const RevenueDashboard: React.FC = () => {
         <ResponsiveContainer width="100%" height={300}>
   <AreaChart
     data={graphData}
+    margin={{ top: 0, left: -60, right: 0}} // ✅ Removes left/right margins
     onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
     onMouseLeave={() => setHoveredData(null)}
   >
@@ -213,12 +214,10 @@ const RevenueDashboard: React.FC = () => {
         <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
         <stop offset="70%" stopColor="#007bff" stopOpacity={0} />
       </linearGradient>
-
       <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#ffbc3f" stopOpacity={0.25} />
         <stop offset="90%" stopColor="#ffbc3f" stopOpacity={0} />
       </linearGradient>
-
       <linearGradient id="subscriptionsGradient" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#00CFB7" stopOpacity={0.25} />
         <stop offset="90%" stopColor="#00CFB7" stopOpacity={0} />
@@ -227,33 +226,34 @@ const RevenueDashboard: React.FC = () => {
 
     <CartesianGrid strokeDasharray="3 3" />
     <XAxis
-  dataKey="date"
-  orientation="top"
-  tickMargin={10}
-  tickFormatter={(tick, index) => {
-    if (timeframe === "day") {
-      if (index === 1) {
-        const date = new Date(tick);
-        return date.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        });
-      }
-      return "";
-    }
-    if (timeframe === "week") return formatDayOfWeek(tick);
-    if (timeframe === "month") return formatMonthWeeks(tick, index);
-    if (timeframe === "year") return formatMonthAbbreviation(tick, index);
-    return tick;
-  }}
-/>
+      dataKey="date"
+      orientation="top"
+      tickMargin={10}
+      interval={0} // ✅ Ensures proper label spacing
+      padding={{ left: 0, right: 0 }} // ✅ Forces labels to the edges
+      tickFormatter={(tick, index) => {
+        if (timeframe === "day") {
+          if (index === 1) {
+            const date = new Date(tick);
+            return date.toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            });
+          }
+          return "";
+        }
+        if (timeframe === "week") return formatDayOfWeek(tick);
+        if (timeframe === "month") return formatMonthWeeks(tick, index);
+        if (timeframe === "year") return formatMonthAbbreviation(tick, index);
+        return tick;
+      }}
+    />
 
     <YAxis tick={false} axisLine={false} />
     <Tooltip content={() => null} />
 
-    {/* ✅ Gradient Fill Areas */}
     <Area
       type="monotone"
       dataKey="revenue"
@@ -285,9 +285,7 @@ const RevenueDashboard: React.FC = () => {
     />
   </AreaChart>
 </ResponsiveContainer>
-
         </div>
-
 <div className="graph-metrics">
   {[
     { title: "Revenue", key: "revenue", totalValue: totalRevenue, className: "" },
