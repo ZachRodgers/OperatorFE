@@ -1,8 +1,8 @@
 .slider-container {
     position: relative;
     display: inline-block;
-    width: 42px;
-    height: 24px;
+    width: 40px;
+    height: 20px;
   }
   
   .slider-container input {
@@ -14,11 +14,11 @@
   .slider-track {
     position: absolute;
     cursor: pointer;
-    top: 0;
+    top: 2px;
     left: 0;
     right: 0;
-    bottom: 0;
-    background-color: #ccc;
+    bottom: 2px;
+    background-color: #E5E5E5;
     border-radius: 12px;
     transition: 0.3s;
   }
@@ -27,20 +27,21 @@
     position: absolute;
     width: 20px;
     height: 20px;
-    background-color: white;
+    background-color: #8A8B8B;
     border-radius: 50%;
     top: 50%;
-    left: 2px;
+    left: 0px;
     transform: translateY(-50%);
     transition: 0.3s;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
   
   .slider-container input:checked + .slider-track {
-    background-color: #007bff;
+    background-color: hsl(216, 100%, 94%); 
   }
-  
+
   .slider-container input:checked + .slider-track .slider-thumb {
     left: 20px;
+    background-color: #1782FF;
   }
   

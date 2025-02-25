@@ -93,8 +93,14 @@ const Settings: React.FC = () => {
               src="/assets/Edit.svg"
               alt="Edit"
               className="edit-icon"
-              onClick={() => openEditPopup(field, value)}
-            />
+              onClick={() => {
+                if (freeParking) {
+                  setModalType("freeParking");
+                } else {
+                  openEditPopup(field, value);
+                }
+              }}
+                          />
           </div>
         ))}
       </div>
@@ -102,7 +108,7 @@ const Settings: React.FC = () => {
       <h1>Pricing Settings</h1>
       <p>Basic settings to calculate the amount to bill guests.</p>
 
-      <div className={`pricing-grid ${freeParking ? "disabled" : ""}`}>
+      <div className="pricing-grid" style={{ opacity: freeParking ? 0.5 : 1 }}>
       {[
   { label: "Hourly Price", value: hourlyPrice, setValue: setHourlyPrice, unit: "$ / hour" },
   { label: "Daily Maximum Price", value: dailyMaxPrice, setValue: setDailyMaxPrice, unit: "$ / day" },
@@ -131,10 +137,14 @@ const Settings: React.FC = () => {
 
       <div className="toggle-container">
   {[
-    { label: "Free Parking", value: freeParking, setValue: setFreeParking },
-    { label: "Allow Validation", value: allowValidation, setValue: setAllowValidation },
-  ].map(({ label, value, setValue }) => (
-    <div className="toggle-group" key={label}>
+    { label: "Free Parking", value: freeParking, setValue: setFreeParking, disableOnFreeParking: false },
+    { label: "Allow Validation", value: allowValidation, setValue: setAllowValidation, disableOnFreeParking: true },
+  ].map(({ label, value, setValue, disableOnFreeParking }) => (
+    <div 
+      className="toggle-group" 
+      key={label} 
+      style={{ opacity: freeParking && disableOnFreeParking ? 0.5 : 1, pointerEvents: freeParking && disableOnFreeParking ? "none" : "auto" }}
+    >
       <span className="settings-label">{label}</span>
       <Slider
         checked={value}
@@ -146,6 +156,7 @@ const Settings: React.FC = () => {
     </div>
   ))}
 </div>
+
 
 
       <div className="button-group">
@@ -176,7 +187,7 @@ const Settings: React.FC = () => {
       {modalType === "confirmSave" && (
         <Modal
           isOpen={true}
-          title="Please confirm you want to make these changes now."
+          title="Confirm Changes"
           description="By continuing, you acknowledge that this change is being recorded in case of disputes."
           confirmText="Update Settings"
           cancelText="Return"
@@ -210,9 +221,9 @@ const Settings: React.FC = () => {
 {modalType === "confirmFreeParking" && (
   <Modal
     isOpen={true}
-    title="Please confirm you want to make these changes now."
+    title="Free Parking is Enabled"
     description="You are in free parking mode. Parked cars will not be billed."
-    confirmText="Update Settings"
+    confirmText="Confirm Settings"
     cancelText="Return"
     onConfirm={() => {
       setModalType(null);
