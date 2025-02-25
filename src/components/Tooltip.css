@@ -96,3 +96,14 @@
     border-color: transparent transparent transparent white;
   }
   
+  .tooltip-box.error {
+    background: #ffe6e6; /* Light red */
+    border: 1px solid #ff4d4d; /* Red border */
+    color: #ff4d4d; /* Red text */
+    font-weight: bold;
+  }
+  
+  .tooltip-box.error .tooltip-arrow {
+    border-color: #ff4d4d transparent transparent transparent;
+  }
+  

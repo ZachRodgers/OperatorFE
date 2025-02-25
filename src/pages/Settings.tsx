@@ -37,6 +37,8 @@ const Settings: React.FC = () => {
 
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
+  const [gracePeriodError, setGracePeriodError] = useState(false);
+const [maxTimeError, setMaxTimeError] = useState(false);
 
   useEffect(() => {
     setSaveButtonOpacity(isDirty ? 1 : 0.3);
@@ -67,8 +69,8 @@ const Settings: React.FC = () => {
   // Handle navigation attempts with unsaved changes
   const handleNavigation = (path: string) => {
     if (isDirty) {
-      setPendingAction(() => () => navigate(path)); // ✅ Store action
-      setModalType("unsavedChanges"); // ✅ Show unsaved changes modal
+      setPendingAction(() => () => navigate(path)); 
+      setModalType("unsavedChanges"); 
     } else {
       navigate(path);
     }
@@ -113,7 +115,14 @@ const Settings: React.FC = () => {
   {[
     { label: "Hourly Price", value: hourlyPrice, setValue: setHourlyPrice, unit: "$ / hour" },
     { label: "Daily Maximum Price", value: dailyMaxPrice, setValue: setDailyMaxPrice, unit: "$ / day" },
-    { label: "Grace Period", value: gracePeriod, setValue: setGracePeriod, unit: "mins", tooltip: "Time in lot before a car is charged. Minimum: 10 minutes." },
+    { 
+      label: "Grace Period", 
+      value: gracePeriod, 
+      setValue: setGracePeriod, 
+      unit: "mins", 
+      tooltip: "Time in lot before a car is charged. Minimum: 10 minutes.",
+      placeholder: "10"
+    },
     {
       label: "Maximum Time",
       value: maxTime,
@@ -123,7 +132,8 @@ const Settings: React.FC = () => {
         setIsDirty(true);
       },
       unit: "hours",
-      tooltip: "Time before issuing a ticket or alerting management. Minimum: 1 hour."
+      tooltip: "Time before issuing a ticket or alerting management. Minimum: 1 hour.",
+      placeholder: "none"
     },
     {
       label: "Ticket Amount",
@@ -132,7 +142,7 @@ const Settings: React.FC = () => {
       unit: "$",
       tooltip: "Once a vehicle exceeds Maximum Time, a ticket is automatically issued."
     }
-  ].map(({ label, value, setValue, unit, tooltip }) => {
+  ].map(({ label, value, setValue, unit, tooltip, placeholder }) => {
     
     // Compute disabled state for Ticket Amount based on Maximum Time
     const disabled = label === "Ticket Amount" && maxTime === "";
@@ -143,26 +153,40 @@ const Settings: React.FC = () => {
           {label} {tooltip && <Tooltip text={tooltip} />}
         </label>
         <div className="input-wrapper">
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => {
-              if (!disabled) {
-                setValue(e.target.value);
-                setIsDirty(true);
-              }
-            }}
-            placeholder={label === "Maximum Time" ? "none" : "0"}
-            disabled={disabled}
-          />
+        <input
+  type="number" 
+  min="0"
+  value={value}
+  onChange={(e) => {
+    const value = e.target.value.replace(/[^0-9]/g, ""); //  Allow only numbers
+
+    if (label === "Grace Period") {
+        setGracePeriod(value);
+        setGracePeriodError(parseInt(value) < 10); //  Show error if less than 10
+    } else if (label === "Maximum Time") {
+        setMaxTime(value);
+        setMaxTimeError(parseInt(value) < 1); //  Show error if less than 1
+    } else {
+        setValue(value); //  Allow editing for other fields
+    }
+
+    setIsDirty(true);
+}}
+
+  onInput={(e) => {
+    const target = e.target as HTMLInputElement; 
+    target.value = target.value.replace(/[^0-9]/g, ''); 
+  }}
+  placeholder={placeholder || "0"}
+  disabled={disabled}
+/>
+
           <span className="input-unit">{unit}</span>
         </div>
       </div>
     );
   })}
 </div>
-
-
 
 <div className="toggle-container">
   {[
@@ -188,24 +212,31 @@ const Settings: React.FC = () => {
   ))}
 </div>
 
-
+{/*  Place the message outside of the toggle-container to appear below */}
+{freeParking && (
+  <p className="free-parking-message">
+    <em>When free parking is turned on, the cameras will still record data and be running; however, billing will be disabled for your lot until turned back on.</em>
+  </p>
+)}
 
 
       <div className="button-group">
       <button
   className="button primary"
-  style={{ opacity: saveButtonOpacity }}
-  disabled={!isDirty}
+  style={{ opacity: !gracePeriodError && !maxTimeError && isDirty ? 1 : 0.3 }}
+  disabled={gracePeriodError || maxTimeError || !isDirty} // ✅ Disable if error exists
   onClick={() => {
     if (freeParking) {
-      setModalType("confirmFreeParking"); // ✅ Trigger the free parking modal
+      setModalType("confirmFreeParking");
     } else {
-      setModalType("confirmSave"); // ✅ Normal save confirmation
+      setModalType("confirmSave");
     }
   }}
 >
   Save
 </button>
+
+
 
         <button className="button secondary" onClick={() => handleNavigation(`/${customerId}/${lotId}/advanced`)}>
           Advanced Settings
@@ -214,6 +245,13 @@ const Settings: React.FC = () => {
           Plate Registry
         </button>
       </div>
+      {(gracePeriodError || maxTimeError) && (
+  <p className="error-message">
+    {gracePeriodError && "Grace Period must be greater than 10 minutes."}
+    {maxTimeError && <br />} {/* Line break if both errors exist */}
+    {maxTimeError && "Maximum time must be at least 1 hour."}
+  </p>
+)}
 
       {/* Modals */}
       {modalType === "confirmSave" && (
@@ -241,8 +279,8 @@ const Settings: React.FC = () => {
           onConfirm={() => setModalType(null)}
           onCancel={() => {
             if (pendingAction) {
-              pendingAction(); // ✅ Execute stored action
-              setPendingAction(null); // ✅ Clear the stored action
+              pendingAction(); //  Execute stored action
+              setPendingAction(null); //  Clear the stored action
             }
             setModalType(null);
           }}

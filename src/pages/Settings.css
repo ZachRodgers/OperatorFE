@@ -194,3 +194,32 @@
     background: #e0e0e0;
     color: #333;
 }
+
+.free-parking-message {
+    font-size: 12px;
+    font-style: italic;
+    color: #666;
+    margin-top: 10px; /* Ensures spacing between toggles and message */
+    display: block; /* Ensures it stays below */
+  }
+  
+  .error-message {
+    color: #ff4d4d; /* Red text */
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 10px;
+    text-align: left;
+  }
+  
+
+  /* Remove number input spinners */
+input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+  }
+  
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none; /* Chrome, Safari, Edge */
+    margin: 0;
+  }
+  
