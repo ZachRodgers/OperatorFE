@@ -53,10 +53,10 @@
   
   /* Right Arrow Stroke */
   .tooltip-box.right .tooltip-arrow-border {
-    left: -13px;
+    left: -9px;
     top: 50%;
     transform: translateY(-50%);
-    border-width: 7px 13px 7px 0;
+    border-width: 6px 9px 6px 0;
     border-color: transparent #ccc transparent transparent;
   }
   
@@ -80,10 +80,10 @@
   
   /* Right Arrow Fill */
   .tooltip-box.right .tooltip-arrow {
-    left: -11px;
+    left: -6.9px;
     top: 50%;
     transform: translateY(-50%);
-    border-width: 6px 11px 6px 0;
+    border-width: 6px 9px 6px 0;
     border-color: transparent white transparent transparent;
   }
   
