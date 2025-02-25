@@ -309,8 +309,8 @@ const [maxTimeError, setMaxTimeError] = useState(false);
   <Modal
     isOpen={true}
     title={`Edit ${editingField}`}
-    description=""
-    confirmText="Save"
+    description="Please confirm you would like to update this setting, once completed this action cannot be undone."
+    confirmText="Update Settings"
     cancelText="Cancel"
     onConfirm={saveEditPopup}
     onCancel={() => setEditingField(null)}
