@@ -1,42 +1,26 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import "./Tooltip.css";
 
 interface TooltipProps {
   text: string;
+  position?: "left" | "right";
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ text }) => {
+const Tooltip: React.FC<TooltipProps> = ({ text, position = "right" }) => {
   const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState<"right" | "left">("right");
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (visible && tooltipRef.current && containerRef.current) {
-      const tooltipRect = tooltipRef.current.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
-
-      // Check if there's enough space to the right, else move left
-      if (tooltipRect.right > window.innerWidth) {
-        setPosition("left");
-      } else {
-        setPosition("right");
-      }
-    }
-  }, [visible]);
 
   return (
     <div
       className="tooltip-container"
-      ref={containerRef}
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >
       <img src="/assets/info.svg" alt="Info" className="tooltip-icon" />
       {visible && (
-        <div className={`tooltip-box ${position}`} ref={tooltipRef}>
+        <div className={`tooltip-box ${position}`}>
+          <div className={`tooltip-arrow-border ${position}`}></div> {/* Outer stroke */}
+          <div className={`tooltip-arrow ${position}`}></div> {/* Inner fill */}
           {text}
-          <div className="tooltip-arrow"></div>
         </div>
       )}
     </div>
