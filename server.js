@@ -68,3 +68,42 @@ app.post("/update-lot", (req, res) => {
     res.status(500).json({ message: "Server error." });
   }
 });
+
+const PRICING_DATA_PATH = path.join(__dirname, "src/data/lot_pricing.json");
+
+// Endpoint to update lot_pricing.json
+app.post("/update-lot-pricing", (req, res) => {
+  try {
+    const { lotId, updatedData } = req.body;
+
+    // Read existing pricing data
+    fs.readFile(PRICING_DATA_PATH, "utf8", (err, data) => {
+      if (err) {
+        console.error("Error reading lot_pricing.json:", err);
+        return res.status(500).json({ message: "Failed to read data." });
+      }
+
+      let pricingData = JSON.parse(data);
+      const lotIndex = pricingData.findIndex((entry) => entry.lotId === lotId);
+
+      if (lotIndex !== -1) {
+        // Update existing entry
+        pricingData[lotIndex] = { ...pricingData[lotIndex], ...updatedData };
+      } else {
+        // Create new entry if not found
+        pricingData.push({ lotId, ...updatedData });
+      }
+
+      // Write back to JSON file
+      fs.writeFile(PRICING_DATA_PATH, JSON.stringify(pricingData, null, 2), "utf8", (writeErr) => {
+        if (writeErr) {
+          console.error("Error writing to lot_pricing.json:", writeErr);
+          return res.status(500).json({ message: "Failed to update pricing data." });
+        }
+        res.json({ message: "Lot pricing updated successfully." });
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error." });
+  }
+});

@@ -1,0 +1,43 @@
+[
+    {
+      "lotId": "0000-0001",
+      "hourlyRate": 12,
+      "maximumAmount":0,
+      "gracePeriod": "",
+      "maximumTime":1,
+      "ticketAmount": "",
+      "freeParking": false,
+      "allowValidation": true,
+      "availableSlots": 0,
+      "mondayPricing": [],
+      "tuesdayPricing": [],
+      "wednesdayPricing": [],
+      "thursdayPricing": [],
+      "fridayPricing": [],
+      "saturdayPricing": [],
+      "sundayPricing": [],
+      "modifiedBy": "",
+      "modifiedOn": ""
+    },
+    {
+      "lotId": "0000-0003",
+      "hourlyRate": "",
+      "maximumAmount": "",
+      "gracePeriod": 10,
+      "maximumTime": "",
+      "ticketAmount": "",
+      "freeParking": false,
+      "allowValidation": false,
+      "availableSlots": 0,
+      "mondayPricing": [],
+      "tuesdayPricing": [],
+      "wednesdayPricing": [],
+      "thursdayPricing": [],
+      "fridayPricing": [],
+      "saturdayPricing": [],
+      "sundayPricing": [],
+      "modifiedBy": "",
+      "modifiedOn": ""
+    }
+  ]
+  

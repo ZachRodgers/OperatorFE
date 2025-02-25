@@ -15,7 +15,6 @@
     "accountCreated": "01/01/2024",
     "lastActivity": "",
     "passwordChange": "",
-    "allowValidation": false,
     "registryOn": false
   },
   {
@@ -34,7 +33,6 @@
     "accountCreated": "01/01/2025",
     "lastActivity": "",
     "passwordChange": "",
-    "allowValidation": false,
     "registryOn": false
   },
   {
@@ -53,7 +51,6 @@
     "accountCreated": "01/01/2025",
     "lastActivity": "",
     "passwordChange": "",
-    "allowValidation": false,
     "registryOn": false
   }
 ]

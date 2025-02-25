@@ -5,6 +5,8 @@ import Slider from "../components/Slider";
 import Modal from "../components/Modal";
 import Tooltip from "../components/Tooltip";
 import lots from "../data/lots_master.json"; // Import lot data
+import lotPricing from "../data/lot_pricing.json"; // Import lot pricing data
+
 
 const Settings: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
@@ -12,6 +14,9 @@ const Settings: React.FC = () => {
 
 // Find the lot by lotId
 const lot = lots.find((lot) => lot.lotId === lotId);
+// Find the lot pricing entry for the current lotId
+const pricing = lotPricing.find((entry) => entry.lotId === lotId);
+
 
 // Default values from the JSON (fallback if undefined)
 const [lotName, setLotName] = useState(lot?.lotName || "Unknown Lot");
@@ -21,15 +26,28 @@ const [lotCapacity, setLotCapacity] = useState(String(lot?.lotCapacity ?? "0"));
 
 
   // Pricing settings
-  const [hourlyPrice, setHourlyPrice] = useState("");
-  const [dailyMaxPrice, setDailyMaxPrice] = useState("");
-  const [gracePeriod, setGracePeriod] = useState("");
-  const [maxTime, setMaxTime] = useState("");
-  const [ticketAmount, setTicketAmount] = useState("");
+  const [hourlyPrice, setHourlyPrice] = useState(
+    pricing?.hourlyRate !== undefined ? String(pricing.hourlyRate) : ""
+  );
+  const [dailyMaxPrice, setDailyMaxPrice] = useState(
+    pricing?.maximumAmount !== undefined ? String(pricing.maximumAmount) : ""
+  );
+  const [gracePeriod, setGracePeriod] = useState(
+    pricing?.gracePeriod !== undefined ? String(pricing.gracePeriod) : ""
+  );
+  const [maxTime, setMaxTime] = useState(
+    pricing?.maximumTime !== undefined ? String(pricing.maximumTime) : ""
+  );
+  const [ticketAmount, setTicketAmount] = useState(
+    pricing?.ticketAmount !== undefined ? String(pricing.ticketAmount) : ""
+  );
+  
 
+  
   // Toggles
-  const [freeParking, setFreeParking] = useState(false);
-  const [allowValidation, setAllowValidation] = useState(false);
+  const [freeParking, setFreeParking] = useState(pricing?.freeParking ?? false);
+  const [allowValidation, setAllowValidation] = useState(pricing?.allowValidation ?? false);
+  
 
   // State for modals
   const [modalType, setModalType] = useState<string | null>(null);
@@ -186,58 +204,59 @@ const [maxTimeError, setMaxTimeError] = useState(false);
   min="0"
   value={value}
   onChange={(e) => {
-    const value = e.target.value.replace(/[^0-9]/g, ""); //  Allow only numbers
-
+    const newValue = e.target.value.replace(/[^0-9]/g, ""); // Allow only numbers
+    
     if (label === "Grace Period") {
-        setGracePeriod(value);
-        setGracePeriodError(parseInt(value) < 10); //  Show error if less than 10
+      setGracePeriod(newValue);
+      setGracePeriodError(parseInt(newValue) < 10); // Show error if less than 10
     } else if (label === "Maximum Time") {
-        setMaxTime(value);
-        setMaxTimeError(parseInt(value) < 1); //  Show error if less than 1
+      setMaxTime(newValue);
+      setMaxTimeError(parseInt(newValue) < 1); // Show error if less than 1
     } else {
-        setValue(value); //  Allow editing for other fields
+      setValue(newValue); // Allow editing for other fields
     }
 
     setIsDirty(true);
-}}
-
+  }}
   onInput={(e) => {
     const target = e.target as HTMLInputElement; 
-    target.value = target.value.replace(/[^0-9]/g, ''); 
+    target.value = target.value.replace(/[^0-9]/g, ""); 
   }}
-  placeholder={placeholder || "0"}
+  placeholder={value === "" ? placeholder || "0" : ""} // ✅ Keeps 0 if it's in the JSON
   disabled={disabled}
 />
 
-          <span className="input-unit">{unit}</span>
+        <span className="input-unit">{unit}</span>
         </div>
       </div>
     );
   })}
 </div>
 
+
 <div className="toggle-container">
-  {[
-    { label: "Free Parking", value: freeParking, setValue: setFreeParking, disableOnFreeParking: false },
-    { label: "Allow Validation", value: allowValidation, setValue: setAllowValidation, disableOnFreeParking: true, tooltip: "Allows operators to validate vehicles manually and lets users request validation via the app." },
-  ].map(({ label, value, setValue, disableOnFreeParking, tooltip }) => (
-    <div 
-      className="toggle-group" 
-      key={label} 
-      style={{ opacity: freeParking && disableOnFreeParking ? 0.5 : 1, pointerEvents: freeParking && disableOnFreeParking ? "none" : "auto" }}
-    >
-      <span className="settings-label">
-        {label} {tooltip && <Tooltip text={tooltip} />}
-      </span>
-      <Slider
-        checked={value}
-        onChange={() => {
-          setValue(!value);
-          setIsDirty(true);
-        }}
-      />
-    </div>
-  ))}
+{[
+  { label: "Free Parking", value: freeParking, setValue: setFreeParking, disableOnFreeParking: false },
+  { label: "Allow Validation", value: allowValidation, setValue: setAllowValidation, disableOnFreeParking: true, tooltip: "Allows operators to validate vehicles manually and lets users request validation via the app." },
+].map(({ label, value, setValue, disableOnFreeParking, tooltip }) => (
+  <div 
+    className="toggle-group" 
+    key={label} 
+    style={{ opacity: freeParking && disableOnFreeParking ? 0.5 : 1, pointerEvents: freeParking && disableOnFreeParking ? "none" : "auto" }}
+  >
+    <span className="settings-label">
+      {label} {tooltip && <Tooltip text={tooltip} />}
+    </span>
+    <Slider
+      checked={value}
+      onChange={() => {
+        setValue(!value);
+        setIsDirty(true);
+      }}
+    />
+  </div>
+))}
+
 </div>
 
 {/*  Place the message outside of the toggle-container to appear below */}
