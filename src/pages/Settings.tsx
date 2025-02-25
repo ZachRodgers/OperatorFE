@@ -4,16 +4,21 @@ import "./Settings.css";
 import Slider from "../components/Slider";
 import Modal from "../components/Modal";
 import Tooltip from "../components/Tooltip";
+import lots from "../data/lots_master.json"; // Import lot data
 
 const Settings: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
   const navigate = useNavigate();
 
-  // Editable fields
-  const [lotName, setLotName] = useState("My Parking Lot");
-  const [companyName, setCompanyName] = useState("Parallel Parking Inc");
-  const [address, setAddress] = useState("123 My Street Name");
-  const [lotCapacity, setLotCapacity] = useState("43");
+// Find the lot by lotId
+const lot = lots.find((lot) => lot.lotId === lotId);
+
+// Default values from the JSON (fallback if undefined)
+const [lotName, setLotName] = useState(lot?.lotName || "Unknown Lot");
+const [companyName, setCompanyName] = useState(lot?.companyName || "Unknown Company");
+const [address, setAddress] = useState(lot?.address || "Unknown Address");
+const [lotCapacity, setLotCapacity] = useState(String(lot?.lotCapacity ?? "0"));
+
 
   // Pricing settings
   const [hourlyPrice, setHourlyPrice] = useState("");
@@ -55,15 +60,38 @@ const [maxTimeError, setMaxTimeError] = useState(false);
   };
 
   // Save popup input
-  const saveEditPopup = () => {
-    if (editingField) {
+  const saveEditPopup = async () => {
+    if (!editingField) return;
+  
+    const updatedField = { [editingField]: tempValue };
+  
+    try {
+      const response = await fetch("http://localhost:5000/update-lot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lotId,  // Send the current lot ID
+          updatedData: updatedField,  // Send the updated field
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update lot settings.");
+      }
+  
+      // Update local state after successful update
       if (editingField === "lotName") setLotName(tempValue);
       else if (editingField === "companyName") setCompanyName(tempValue);
       else if (editingField === "address") setAddress(tempValue);
       else if (editingField === "lotCapacity") setLotCapacity(tempValue);
+  
+      setEditingField(null);
+    } catch (error) {
+      console.error("Error updating lot:", error);
+      alert("Failed to update lot settings.");
     }
-    setEditingField(null); // Close modal after saving
   };
+  
   
 
   // Handle navigation attempts with unsaved changes
@@ -75,7 +103,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
       navigate(path);
     }
   };
-  
+
 
   return (
     <div className="content">
@@ -316,7 +344,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     onCancel={() => setEditingField(null)}
   >
 <input
-  type={editingField === "lotCapacity" ? "number" : "text"} // Only enforce numeric type for Lot Capacity
+  type={editingField === "lotCapacity" ? "number" : "text"}
   min="0"
   value={tempValue}
   onChange={(e) => {
@@ -330,6 +358,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
   }}
   className="popup-input"
 />
+
 
   </Modal>
 )}
