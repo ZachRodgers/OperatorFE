@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import "./Settings.css";
 import Slider from "../components/Slider";
 import Modal from "../components/Modal";
+import Tooltip from "../components/Tooltip";
 
 const Settings: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
@@ -109,53 +110,84 @@ const Settings: React.FC = () => {
       <p>Basic settings to calculate the amount to bill guests.</p>
 
       <div className="pricing-grid" style={{ opacity: freeParking ? 0.5 : 1 }}>
-      {[
-  { label: "Hourly Price", value: hourlyPrice, setValue: setHourlyPrice, unit: "$ / hour" },
-  { label: "Daily Maximum Price", value: dailyMaxPrice, setValue: setDailyMaxPrice, unit: "$ / day" },
-  { label: "Grace Period", value: gracePeriod, setValue: setGracePeriod, unit: "mins" },
-  { label: "Maximum Time", value: maxTime, setValue: setMaxTime, unit: "hours" },
-  { label: "Ticket Amount", value: ticketAmount, setValue: setTicketAmount, unit: "$" },
-].map(({ label, value, setValue, unit }) => (
-  <div className="input-group" key={label}>
-    <label className="settings-label">{label}</label>
-    <div className="input-wrapper">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setIsDirty(true); // ✅ Changes here now activate "Save"
-        }}
-        placeholder={label === "Maximum Time" ? "none" : "0"}
-      />
-      <span className="input-unit">{unit}</span>
-    </div>
-  </div>
-))}
+  {[
+    { label: "Hourly Price", value: hourlyPrice, setValue: setHourlyPrice, unit: "$ / hour" },
+    { label: "Daily Maximum Price", value: dailyMaxPrice, setValue: setDailyMaxPrice, unit: "$ / day" },
+    { label: "Grace Period", value: gracePeriod, setValue: setGracePeriod, unit: "mins", tooltip: "Time in lot before a car is charged. Minimum: 10 minutes." },
+    {
+      label: "Maximum Time",
+      value: maxTime,
+      setValue: (val: string) => {
+        const newValue = val === "0" || val.toLowerCase() === "none" ? "" : val;
+        setMaxTime(newValue);
+        setIsDirty(true);
+      },
+      unit: "hours",
+      tooltip: "Time before issuing a ticket or alerting management. Minimum: 1 hour."
+    },
+    {
+      label: "Ticket Amount",
+      value: ticketAmount,
+      setValue: setTicketAmount,
+      unit: "$",
+      tooltip: "Once a vehicle exceeds Maximum Time, a ticket is automatically issued."
+    }
+  ].map(({ label, value, setValue, unit, tooltip }) => {
+    
+    // Compute disabled state for Ticket Amount based on Maximum Time
+    const disabled = label === "Ticket Amount" && maxTime === "";
 
+    return (
+      <div className="input-group" key={label} style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
+        <label className="settings-label">
+          {label} {tooltip && <Tooltip text={tooltip} />}
+        </label>
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => {
+              if (!disabled) {
+                setValue(e.target.value);
+                setIsDirty(true);
+              }
+            }}
+            placeholder={label === "Maximum Time" ? "none" : "0"}
+            disabled={disabled}
+          />
+          <span className="input-unit">{unit}</span>
+        </div>
       </div>
+    );
+  })}
+</div>
 
-      <div className="toggle-container">
+
+
+<div className="toggle-container">
   {[
     { label: "Free Parking", value: freeParking, setValue: setFreeParking, disableOnFreeParking: false },
-    { label: "Allow Validation", value: allowValidation, setValue: setAllowValidation, disableOnFreeParking: true },
-  ].map(({ label, value, setValue, disableOnFreeParking }) => (
+    { label: "Allow Validation", value: allowValidation, setValue: setAllowValidation, disableOnFreeParking: true, tooltip: "Allows operators to validate vehicles manually and lets users request validation via the app." },
+  ].map(({ label, value, setValue, disableOnFreeParking, tooltip }) => (
     <div 
       className="toggle-group" 
       key={label} 
       style={{ opacity: freeParking && disableOnFreeParking ? 0.5 : 1, pointerEvents: freeParking && disableOnFreeParking ? "none" : "auto" }}
     >
-      <span className="settings-label">{label}</span>
+      <span className="settings-label">
+        {label} {tooltip && <Tooltip text={tooltip} />}
+      </span>
       <Slider
         checked={value}
         onChange={() => {
           setValue(!value);
-          setIsDirty(true); // ✅ Changing toggles now requires clicking "Save"
+          setIsDirty(true);
         }}
       />
     </div>
   ))}
 </div>
+
 
 
 

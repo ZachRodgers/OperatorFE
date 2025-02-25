@@ -1,0 +1,69 @@
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+  }
+  
+  .tooltip-icon {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+  }
+  
+  .tooltip-box {
+    position: absolute;
+    background: white;
+    color: black;
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    white-space: normal;
+    width: 180px;
+    z-index: 1000;
+    opacity: 1;
+    border: 1px solid #ccc; /* Adds a border stroke */
+  }
+  
+  /* Right-side default position */
+  .tooltip-box.right {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 12px;
+  }
+  
+  /* Left-side position when not enough space */
+  .tooltip-box.left {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 12px;
+  }
+  
+  /* Tooltip arrow */
+  .tooltip-box::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 8px;
+  }
+  
+  /* Right arrow (default) */
+  .tooltip-box.right::before {
+    left: -16px;
+    border-color: transparent transparent transparent white;
+    border-right: 8px solid #ccc; /* Matches border stroke */
+  }
+  
+  /* Left arrow */
+  .tooltip-box.left::before {
+    right: -16px;
+    border-color: transparent white transparent transparent;
+    border-left: 8px solid #ccc; /* Matches border stroke */
+  }
+  
