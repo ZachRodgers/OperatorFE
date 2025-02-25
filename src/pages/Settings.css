@@ -4,6 +4,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-top: 20px;
+    margin-bottom: 60px;
 }
 
 .setting-item {
@@ -45,6 +46,7 @@
     background: #f2f2f2;
     padding: 5px 10px;
     border-radius: 6px;
+    margin-top: 6px;
 }
 
 .input-wrapper input {
@@ -71,7 +73,7 @@
 .toggle-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
 }
 
 .switch {
@@ -102,7 +104,7 @@
 
 /* ✅ BUTTON STYLING */
 .button-group {
-    margin-top: 20px;
+    margin-top: 80px;
     display: flex;
     gap: 15px;
 }
@@ -116,6 +118,7 @@
     cursor: pointer;
     transition: 0.2s ease-in-out;
     text-align: center;
+    width: 200px;
 }
 
 .button.primary {
@@ -124,12 +127,13 @@
 }
 
 .button.primary:hover {
-    background: #0056b3;
+    background: #0d73df;
 }
 
 .button.secondary {
     background: #f2f2f2;
     color: #333;
+    font-weight: 500;
 }
 
 .button.secondary:hover {
@@ -224,3 +228,8 @@ input[type="number"] {
     margin: 0;
   }
   
+  /* Tooltip Positioning */
+.tooltip-icon {
+    margin-left: 4px; /* Add spacing between toggle label and tooltip */
+    margin-top: -4px;
+}
