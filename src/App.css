@@ -25,12 +25,13 @@ body {
 h1 {
     font-size: 30px;
     color: #000000;
-    margin-bottom: 10px;
+    font-weight: 600;
   }
   
   p {
     font-size: 16px;
     line-height: 1;
-    margin-bottom: 20px;
+    margin-top: -10px;
+    margin-bottom: 30px;
   }
   

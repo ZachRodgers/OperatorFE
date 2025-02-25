@@ -315,12 +315,22 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     onConfirm={saveEditPopup}
     onCancel={() => setEditingField(null)}
   >
-    <input
-      type="text"
-      value={tempValue}
-      onChange={(e) => setTempValue(e.target.value)}
-      className="popup-input"
-    />
+<input
+  type={editingField === "lotCapacity" ? "number" : "text"} // Only enforce numeric type for Lot Capacity
+  min="0"
+  value={tempValue}
+  onChange={(e) => {
+    let newValue = e.target.value;
+    
+    if (editingField === "lotCapacity") {
+      newValue = newValue.replace(/[^0-9]/g, ""); // Only allow numbers
+    }
+
+    setTempValue(newValue);
+  }}
+  className="popup-input"
+/>
+
   </Modal>
 )}
 
