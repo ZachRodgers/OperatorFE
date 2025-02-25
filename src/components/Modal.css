@@ -13,7 +13,7 @@
   
   .modal {
     background-color: #ffffff;
-    padding: 30px;
+    padding: 50px 40px;
     border-radius: 12px;
     text-align: center;
     max-width: 500px;
@@ -21,17 +21,10 @@
     box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
   }
   
-  .modal h2 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: #222;
-  }
-  
   .modal p {
     font-size: 14px;
     font-weight: 400;
-    margin-bottom: 20px;
+    margin-bottom: 35px;
     color: #555;
   }
   
@@ -43,22 +36,22 @@
   
   .modal-actions button {
     width: 48%;
-    padding: 12px;
+    padding: 15px;
     font-size: 14px;
     border: none;
-    border-radius: 6px;
+    border-radius: 100px;
     cursor: pointer;
   }
   
-  .modal-actions .confirm {
+.modal-actions .confirm { /* offline */
     background-color: #1782ff;
     color: white;
-    font-weight: 600;
-  }
+    font-weight: 700;
+}
   
-  .modal-actions .cancel {
+  .modal-actions .cancel { /* offline */
     background-color: #f0f0f0;
     color: #333;
-    font-weight: 400;
+    font-weight: 800;
   }
   

@@ -258,7 +258,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
         <Modal
           isOpen={true}
           title="Confirm Changes"
-          description="By continuing, you acknowledge that this change is being recorded in case of disputes."
+          description="By continuing, you acknowledge that you are not misinforming your customers of pricing and that this change is being recorded in case of disputes. Current parked vehicles will not be affected by these changes."
           confirmText="Update Settings"
           cancelText="Return"
           onConfirm={() => {

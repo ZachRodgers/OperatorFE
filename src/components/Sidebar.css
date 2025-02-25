@@ -25,6 +25,14 @@
   margin-bottom: 2px;
 }
 
+.lot-id {
+  font-size: 10px !important;
+  line-height: 1.2; /* Reducing line-height */
+  margin-bottom: 10px;
+  margin-top: 8px;
+}
+
+
 .lot-box {
   width: 130px;
   padding: 0px 10px; /* Reduced padding */
@@ -34,7 +42,7 @@
   background: #efefef;
   text-align: center;
   font-size: 10px;
-  line-height: 1.2; /* Reducing line-height */
+  line-height: 1; /* Reducing line-height */
   display: flex;
   flex-direction: column;
   justify-content: center; /* Centers text vertically */

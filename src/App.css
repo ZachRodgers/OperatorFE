@@ -19,3 +19,18 @@ body {
     margin: 0 auto;
     box-sizing: border-box;
 }
+
+/* App.css or index.css */
+
+h1 {
+    font-size: 30px;
+    color: #000000;
+    margin-bottom: 10px;
+  }
+  
+  p {
+    font-size: 16px;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+  

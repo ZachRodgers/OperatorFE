@@ -1,7 +1,9 @@
+
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    gap: 10px;
+    margin-top: 20px;
 }
 
 .setting-item {
@@ -119,7 +121,6 @@
 .button.primary {
     background: #007bff;
     color: white;
-    box-shadow: 0px 4px 6px rgba(0, 123, 255, 0.3);
 }
 
 .button.primary:hover {
