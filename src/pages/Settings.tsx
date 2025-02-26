@@ -83,45 +83,70 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     const updatedField = { [editingField]: tempValue };
   
     try {
+      console.log("📡 Sending update-lot request:", updatedField);
+  
+      // ✅ (1) Update local state first (ensures UI update)
+      switch (editingField) {
+        case "lotName":
+          setLotName(tempValue);
+          break;
+        case "companyName":
+          setCompanyName(tempValue);
+          break;
+        case "address":
+          setAddress(tempValue);
+          break;
+        case "lotCapacity":
+          setLotCapacity(tempValue);
+          break;
+        default:
+          break;
+      }
+  
       const response = await fetch("http://localhost:5000/update-lot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lotId, // Send the current lot ID
-          updatedData: updatedField, // Send the updated field
+          lotId,
+          updatedData: updatedField,
         }),
       });
   
       if (!response.ok) {
-        throw new Error("Failed to update lot settings.");
+        const errorMessage = await response.text();
+        throw new Error(`Failed to update: ${errorMessage}`);
       }
   
-      // ✅ Wait 0.5s, then reload the Lot Settings from customer_master.json
+      console.log("✅ Successfully updated, fetching latest data...");
+  
+      // ✅ (2) Fetch latest data after update
       setTimeout(async () => {
-        const updatedResponse = await fetch("http://localhost:5000/get-customer"); 
+        const updatedResponse = await fetch("http://localhost:5000/get-customer");
         const updatedCustomers = await updatedResponse.json();
-        
-        // ✅ Fix: Explicitly define lot type inside find()
+  
         const updatedLot = updatedCustomers.find((lot: { lotId: string }) => lot.lotId === lotId);
   
         if (updatedLot) {
+          console.log("✅ Updated Lot Data from Backend:", updatedLot);
           setLotName(updatedLot.lotName);
           setCompanyName(updatedLot.companyName);
           setAddress(updatedLot.address);
           setLotCapacity(String(updatedLot.lotCapacity ?? "0"));
         }
-  
-      }, 500); // ✅ Ensures UI updates immediately after saving
+      }, 500); // ✅ Small delay to ensure backend writes data
   
       setEditingField(null);
       setModalType(null);
       setIsDirty(false);
-  
     } catch (error) {
-      console.error("Error updating lot:", error);
+      console.error("❌ Error updating lot:", error);
       alert("Failed to update lot settings.");
     }
   };
+  
+  
+  
+  
   
   const handleSaveSettings = async () => {
     const isMaxTimeEmpty = maxTime.trim() === ""; // Check if Max Time is blank

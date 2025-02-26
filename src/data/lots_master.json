@@ -3,7 +3,7 @@
     "lotId": "0000-0001",
     "companyName": "Parallel Parking Solutions Inc. ",
     "address": "128 Moore St, Lion's Head ON",
-    "lotName": "Parallel Development Lot TEST",
+    "lotName": "Parallel Development Lot",
     "ownerCustomerId": "1",
     "geoLocation": {
       "lat": "",
@@ -21,7 +21,7 @@
     "lotId": "0000-0002",
     "companyName": "Parallel Parking Solutions Inc.",
     "address": "Julian's Bedroom, Florida",
-    "lotName": "Juliolio Industries",
+    "lotName": "Juliolio Industries TE",
     "ownerCustomerId": "1",
     "geoLocation": {
       "lat": "",

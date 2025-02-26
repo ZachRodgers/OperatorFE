@@ -38,5 +38,25 @@
     "sundayPricing": [],
     "modifiedBy": "",
     "modifiedOn": ""
+  },
+  {
+    "lotId": "0000-0002",
+    "hourlyRate": "",
+    "maximumAmount": "",
+    "gracePeriod": "10",
+    "maximumTime": "",
+    "ticketAmount": "",
+    "freeParking": false,
+    "allowValidation": false,
+    "availableSlots": 0,
+    "mondayPricing": [],
+    "tuesdayPricing": [],
+    "wednesdayPricing": [],
+    "thursdayPricing": [],
+    "fridayPricing": [],
+    "saturdayPricing": [],
+    "sundayPricing": [],
+    "modifiedBy": "",
+    "modifiedOn": "2025-02-26T17:49:32.741Z"
   }
 ]
