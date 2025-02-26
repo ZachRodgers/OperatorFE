@@ -1,8 +1,8 @@
 [
   {
     "lotId": "0000-0001",
-    "hourlyRate": 12,
-    "maximumAmount": "",
+    "hourlyRate": 5,
+    "maximumAmount": 20,
     "gracePeriod": 10,
     "maximumTime": "",
     "ticketAmount": "",
@@ -17,7 +17,7 @@
     "saturdayPricing": [],
     "sundayPricing": [],
     "modifiedBy": "",
-    "modifiedOn": "2025-02-26T01:08:42.954Z"
+    "modifiedOn": "2025-02-26T23:29:54.337Z"
   },
   {
     "lotId": "0000-0003",
