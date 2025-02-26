@@ -77,7 +77,6 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     setTempValue(value);
   };
 
-  // Save popup input
   const saveEditPopup = async () => {
     if (!editingField) return;
   
@@ -88,8 +87,8 @@ const [maxTimeError, setMaxTimeError] = useState(false);
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lotId,  // Send the current lot ID
-          updatedData: updatedField,  // Send the updated field
+          lotId, // Send the current lot ID
+          updatedData: updatedField, // Send the updated field
         }),
       });
   
@@ -97,18 +96,77 @@ const [maxTimeError, setMaxTimeError] = useState(false);
         throw new Error("Failed to update lot settings.");
       }
   
-      // Update local state after successful update
-      if (editingField === "lotName") setLotName(tempValue);
-      else if (editingField === "companyName") setCompanyName(tempValue);
-      else if (editingField === "address") setAddress(tempValue);
-      else if (editingField === "lotCapacity") setLotCapacity(tempValue);
+      // ✅ Wait 0.5s, then reload the Lot Settings from customer_master.json
+      setTimeout(async () => {
+        const updatedResponse = await fetch("http://localhost:5000/get-customer"); 
+        const updatedCustomers = await updatedResponse.json();
+        
+        // ✅ Fix: Explicitly define lot type inside find()
+        const updatedLot = updatedCustomers.find((lot: { lotId: string }) => lot.lotId === lotId);
+  
+        if (updatedLot) {
+          setLotName(updatedLot.lotName);
+          setCompanyName(updatedLot.companyName);
+          setAddress(updatedLot.address);
+          setLotCapacity(String(updatedLot.lotCapacity ?? "0"));
+        }
+  
+      }, 500); // ✅ Ensures UI updates immediately after saving
   
       setEditingField(null);
+      setModalType(null);
+      setIsDirty(false);
+  
     } catch (error) {
       console.error("Error updating lot:", error);
       alert("Failed to update lot settings.");
     }
   };
+  
+  const handleSaveSettings = async () => {
+    const isMaxTimeEmpty = maxTime.trim() === ""; // Check if Max Time is blank
+  
+    const updatedPricing = {
+      lotId,
+      hourlyRate: hourlyPrice.trim() === "" ? "" : parseFloat(hourlyPrice) || "", 
+      maximumAmount: dailyMaxPrice.trim() === "" ? "" : parseFloat(dailyMaxPrice) || "", 
+      gracePeriod: gracePeriod.trim() === "" ? "10" : Math.max(parseInt(gracePeriod), 10), // Ensure minimum 10
+      maximumTime: isMaxTimeEmpty ? "" : Math.max(parseInt(maxTime), 1), // Ensure minimum 1, allow blank
+      ticketAmount: isMaxTimeEmpty ? "" : ticketAmount.trim() === "" ? "" : parseFloat(ticketAmount) || "", // ✅ Reset Ticket Amount if Max Time is blank
+      freeParking, // ✅ Always include toggle values
+      allowValidation, // ✅ Always include toggle values
+      availableSlots: 0,
+      mondayPricing: [],
+      tuesdayPricing: [],
+      wednesdayPricing: [],
+      thursdayPricing: [],
+      fridayPricing: [],
+      saturdayPricing: [],
+      sundayPricing: [],
+      modifiedBy: "", 
+      modifiedOn: new Date().toISOString(), 
+    };
+  
+    try {
+      const response = await fetch("http://localhost:5000/update-lot-pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedPricing),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update lot pricing.");
+      }
+  
+      setIsDirty(false);
+      alert("Lot pricing updated successfully.");
+    } catch (error) {
+      console.error("Error updating lot pricing:", error);
+      alert("Failed to update pricing settings.");
+    }
+  };
+  
+  
   
   
 
@@ -159,78 +217,74 @@ const [maxTimeError, setMaxTimeError] = useState(false);
 
       <div className="pricing-grid" style={{ opacity: freeParking ? 0.5 : 1 }}>
   {[
-    { label: "Hourly Price", value: hourlyPrice, setValue: setHourlyPrice, unit: "$ / hour" },
-    { label: "Daily Maximum Price", value: dailyMaxPrice, setValue: setDailyMaxPrice, unit: "$ / day" },
-    { 
-      label: "Grace Period", 
-      value: gracePeriod, 
-      setValue: setGracePeriod, 
-      unit: "mins", 
-      tooltip: "Time in lot before a car is charged. Minimum: 10 minutes.",
-      placeholder: "10"
-    },
-    {
-      label: "Maximum Time",
-      value: maxTime,
-      setValue: (val: string) => {
-        const newValue = val === "0" || val.toLowerCase() === "none" ? "" : val;
-        setMaxTime(newValue);
-        setIsDirty(true);
-      },
-      unit: "hours",
-      tooltip: "Time before issuing a ticket or alerting management. Minimum: 1 hour.",
-      placeholder: "none"
-    },
-    {
-      label: "Ticket Amount",
-      value: ticketAmount,
-      setValue: setTicketAmount,
-      unit: "$",
-      tooltip: "Once a vehicle exceeds Maximum Time, a ticket is automatically issued."
-    }
-  ].map(({ label, value, setValue, unit, tooltip, placeholder }) => {
-    
-    // Compute disabled state for Ticket Amount based on Maximum Time
-    const disabled = label === "Ticket Amount" && maxTime === "";
 
-    return (
-      <div className="input-group" key={label} style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
-        <label className="settings-label">
-          {label} {tooltip && <Tooltip text={tooltip} />}
-        </label>
-        <div className="input-wrapper">
-        <input
-  type="number" 
-  min="0"
-  value={value}
-  onChange={(e) => {
-    const newValue = e.target.value.replace(/[^0-9]/g, ""); // Allow only numbers
-    
-    if (label === "Grace Period") {
-      setGracePeriod(newValue);
-      setGracePeriodError(parseInt(newValue) < 10); // Show error if less than 10
-    } else if (label === "Maximum Time") {
+  { label: "Hourly Price", value: hourlyPrice, setValue: setHourlyPrice, unit: "$ / hour" },
+  { label: "Daily Maximum Price", value: dailyMaxPrice, setValue: setDailyMaxPrice, unit: "$ / day" },
+  { 
+    label: "Grace Period", 
+    value: gracePeriod, 
+    setValue: setGracePeriod, 
+    unit: "mins", 
+    tooltip: "Time in lot before a car is charged. Minimum: 10 minutes.",
+    placeholder: "10"
+  },
+  {
+    label: "Maximum Time",
+    value: maxTime,
+    setValue: (val: string) => {
+      const newValue = val === "0" || val.toLowerCase() === "none" ? "" : val;
       setMaxTime(newValue);
-      setMaxTimeError(parseInt(newValue) < 1); // Show error if less than 1
-    } else {
-      setValue(newValue); // Allow editing for other fields
-    }
+      setIsDirty(true);
+    },
+    unit: "hours",
+    tooltip: "Time before issuing a ticket or alerting management. Minimum: 1 hour.",
+    placeholder: "none"
+  },
+  {
+    label: "Ticket Amount",
+    value: ticketAmount,
+    setValue: setTicketAmount,
+    unit: "$",
+    tooltip: "Once a vehicle exceeds Maximum Time, a ticket is automatically issued.",
+    disabled: maxTime.trim() === "" // ✅ Disable if Max Time is blank
+  }
+].map(({ label, value, setValue, unit, tooltip, placeholder, disabled }) => (
+  <div className="input-group" key={label} style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
+    <label className="settings-label">
+      {label} {tooltip && <Tooltip text={tooltip} />}
+    </label>
+    <div className="input-wrapper">
+      <input
+        type="number"
+        min="0"
+        value={disabled ? "" : value} // ✅ Clear input when faded out
+        onChange={(e) => {
+          const newValue = e.target.value.replace(/[^0-9]/g, ""); // Allow only numbers
+          
+          if (label === "Grace Period") {
+            setGracePeriod(newValue);
+            setGracePeriodError(parseInt(newValue) < 10); // Show error if less than 10
+          } else if (label === "Maximum Time") {
+            setMaxTime(newValue);
+            setMaxTimeError(parseInt(newValue) < 1); // Show error if less than 1
+          } else if (!disabled) {
+            setValue(newValue); // ✅ Update field only if NOT disabled
+          }
 
-    setIsDirty(true);
-  }}
-  onInput={(e) => {
-    const target = e.target as HTMLInputElement; 
-    target.value = target.value.replace(/[^0-9]/g, ""); 
-  }}
-  placeholder={value === "" ? placeholder || "0" : ""} // ✅ Keeps 0 if it's in the JSON
-  disabled={disabled}
-/>
+          setIsDirty(true);
+        }}
+        onInput={(e) => {
+          const target = e.target as HTMLInputElement;
+          target.value = target.value.replace(/[^0-9]/g, ""); 
+        }}
+        placeholder={disabled ? "0" : value === "" ? placeholder || "0" : ""}
+        disabled={disabled} // ✅ Disable input if Ticket Amount is faded
+      />
+      <span className="input-unit">{unit}</span>
+    </div>
+  </div>
+))}
 
-        <span className="input-unit">{unit}</span>
-        </div>
-      </div>
-    );
-  })}
 </div>
 
 
@@ -309,9 +363,9 @@ const [maxTimeError, setMaxTimeError] = useState(false);
           confirmText="Update Settings"
           cancelText="Return"
           onConfirm={() => {
+            handleSaveSettings();
             setModalType(null);
-            setIsDirty(false);
-          }}
+          }}          
           onCancel={() => setModalType(null)}
         />
       )}
@@ -343,9 +397,9 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     confirmText="Confirm Settings"
     cancelText="Return"
     onConfirm={() => {
+      handleSaveSettings();
       setModalType(null);
-      setIsDirty(false);
-    }}
+    }}            
     onCancel={() => setModalType(null)}
   />
 )}
@@ -359,28 +413,30 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     description="Please confirm you would like to update this setting, once completed this action cannot be undone."
     confirmText="Update Settings"
     cancelText="Cancel"
-    onConfirm={saveEditPopup}
+    onConfirm={() => {
+      saveEditPopup(); 
+      setEditingField(null); // ✅ Ensure modal closes
+    }}
     onCancel={() => setEditingField(null)}
   >
-<input
-  type={editingField === "lotCapacity" ? "number" : "text"}
-  min="0"
-  value={tempValue}
-  onChange={(e) => {
-    let newValue = e.target.value;
-    
-    if (editingField === "lotCapacity") {
-      newValue = newValue.replace(/[^0-9]/g, ""); // Only allow numbers
-    }
+    <input
+      type={editingField === "lotCapacity" ? "number" : "text"}
+      min="0"
+      value={tempValue}
+      onChange={(e) => {
+        let newValue = e.target.value;
 
-    setTempValue(newValue);
-  }}
-  className="popup-input"
-/>
+        if (editingField === "lotCapacity") {
+          newValue = newValue.replace(/[^0-9]/g, ""); // Only allow numbers
+        }
 
-
+        setTempValue(newValue);
+      }}
+      className="popup-input"
+    />
   </Modal>
 )}
+
 
 
     </div>
