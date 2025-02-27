@@ -54,6 +54,7 @@ function parseDayPricing(
         customMax: entry.maximumAmount || "",
       });
     } else {
+      // If no start/end => either "default" or "allDay"
       if (entry.isDefault) {
         blocks.push({
           mode: "default",
@@ -181,68 +182,62 @@ const AdvancedSettings: React.FC = () => {
     }
   };
 
-// "Yes, disable advanced settings"
-const confirmDisableAdvanced = async () => {
-  try {
-    // 1) Locally reset each day's blocks
-    dayStates.forEach((day) => {
-      day.setter([
-        { mode: "default", customRate: globalRate, customMax: globalMax },
-        { mode: "newBlock" },
-        { mode: "newBlock" },
-      ]);
-    });
+  // "Yes, disable advanced settings"
+  const confirmDisableAdvanced = async () => {
+    try {
+      // 1) Locally reset each day's blocks
+      dayStates.forEach((day) => {
+        day.setter([
+          { mode: "default", customRate: globalRate, customMax: globalMax },
+          { mode: "newBlock" },
+          { mode: "newBlock" },
+        ]);
+      });
 
-    // 2) Flip slider OFF so it visually shows "disabled" and hides the grid
-    setAdvancedEnabled(false);
+      // 2) Flip slider OFF so it visually shows "disabled" and hides the grid
+      setAdvancedEnabled(false);
 
-    // 3) Build a pricing object with empty arrays to POST
-    const updatedPricing = {
-      lotId,
-      hourlyRate: pricing?.hourlyRate ?? "",
-      maximumAmount: pricing?.maximumAmount ?? "",
-      gracePeriod: pricing?.gracePeriod ?? "",
-      maximumTime: pricing?.maximumTime ?? "",
-      ticketAmount: pricing?.ticketAmount ?? "",
-      freeParking: pricing?.freeParking ?? false,
-      allowValidation: pricing?.allowValidation ?? false,
-      availableSlots: pricing?.availableSlots ?? 0,
-      modifiedBy: "",
-      modifiedOn: new Date().toISOString(),
-      mondayPricing: [],
-      tuesdayPricing: [],
-      wednesdayPricing: [],
-      thursdayPricing: [],
-      fridayPricing: [],
-      saturdayPricing: [],
-      sundayPricing: [],
-    };
+      // 3) Build a pricing object with empty arrays to POST
+      const updatedPricing = {
+        lotId,
+        hourlyRate: pricing?.hourlyRate ?? "",
+        maximumAmount: pricing?.maximumAmount ?? "",
+        gracePeriod: pricing?.gracePeriod ?? "",
+        maximumTime: pricing?.maximumTime ?? "",
+        ticketAmount: pricing?.ticketAmount ?? "",
+        freeParking: pricing?.freeParking ?? false,
+        allowValidation: pricing?.allowValidation ?? false,
+        availableSlots: pricing?.availableSlots ?? 0,
+        modifiedBy: "",
+        modifiedOn: new Date().toISOString(),
+        mondayPricing: [],
+        tuesdayPricing: [],
+        wednesdayPricing: [],
+        thursdayPricing: [],
+        fridayPricing: [],
+        saturdayPricing: [],
+        sundayPricing: [],
+      };
 
-    // 4) Immediately POST to server so it's cleared out in lot_pricing.json
-    const resp = await fetch("http://localhost:5000/update-lot-pricing", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedPricing),
-    });
+      // 4) Immediately POST to server
+      const resp = await fetch("http://localhost:5000/update-lot-pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedPricing),
+      });
 
-    if (!resp.ok) {
-      throw new Error("Failed to disable advanced settings on server.");
+      if (!resp.ok) {
+        throw new Error("Failed to disable advanced settings on server.");
+      }
+
+      // 5) Mark as not dirty
+      setIsDirty(false);
+
+    } catch (error) {
+      console.error("Error disabling advanced settings:", error);
+      alert("Failed to disable advanced settings.");
     }
-
-    // 5) Mark as not dirty
-    setIsDirty(false);
-
-    // 6) Optionally close the modal here,
-    //    or do it in the onConfirm arrow in your Modal's JSX.
-    // setModalType(null);
-
-  } catch (error) {
-    console.error("Error disabling advanced settings:", error);
-    alert("Failed to disable advanced settings.");
-    // setModalType(null);
-  }
-};
-
+  };
 
   // "Save" => show confirm modal
   const handleSaveClick = () => {
@@ -311,6 +306,14 @@ const confirmDisableAdvanced = async () => {
 
   // ---------------- RENDER HELPERS ----------------
 
+  // We’ll rename the dropdown labels to "Default", "All Day", "Set Time"
+  const modeLabelMap: Record<BlockMode, string> = {
+    default: "Default",
+    allDay: "All Day",
+    setTime: "Set Time",
+    newBlock: "New Time Block", // not used in the dropdown
+  };
+
   const renderBlockDropdown = (
     block: Block,
     rowIndex: number,
@@ -321,6 +324,8 @@ const confirmDisableAdvanced = async () => {
       return null;
     }
 
+    // If it's top row => "default", "allDay", "setTime"
+    // Lower rows => "default", "setTime"
     const options: BlockMode[] =
       rowIndex === 0 ? ["default", "allDay", "setTime"] : ["default", "setTime"];
 
@@ -355,13 +360,18 @@ const confirmDisableAdvanced = async () => {
       >
         {options.map((opt) => (
           <option key={opt} value={opt}>
-            {opt}
+            {modeLabelMap[opt]}
           </option>
         ))}
       </select>
     );
   };
 
+  // Lay out each state in a fixed “box” style:
+  // default -> top 50% = dropdown, bottom 50% = read-only rates
+  // allDay  -> top 50% = dropdown, bottom 50% = editable rates
+  // setTime -> top 25% = dropdown, middle 25% = start/end, bottom 50% = rates
+  // newBlock -> dashed placeholder
   const renderBlockContent = (
     block: Block,
     rowIndex: number,
@@ -369,17 +379,26 @@ const confirmDisableAdvanced = async () => {
     setBlocks: React.Dispatch<React.SetStateAction<DayData>>
   ) => {
     if (block.mode === "newBlock") {
-      return <div className="block-label new-block">New Time Block</div>;
+      return (
+        <div className="fixed-box new-block-mode">
+          <div className="new-block">New Time Block</div>
+        </div>
+      );
     }
 
     if (block.mode === "default") {
+      // read-only
       return (
-        <>
-          <div className="block-label">All Day (Default)</div>
-          <div className="block-pricing">
-            Hourly: {globalRate || "--"} | Max: {globalMax || "--"}
+        <div className="fixed-box default-mode">
+          {/* top half: the dropdown is already rendered above, so no extra text here */}
+          {/* bottom half: read-only rates */}
+          <div className="default-bottom">
+            <div>All Day (Default)</div>
+            <div>
+              Hourly: {block.customRate || "--"} | Max: {block.customMax || "--"}
+            </div>
           </div>
-        </>
+        </div>
       );
     }
 
@@ -398,27 +417,33 @@ const confirmDisableAdvanced = async () => {
       };
 
       return (
-        <>
-          <div className="block-label">All Day</div>
-          <div className="block-pricing">
-            <input
-              type="number"
-              placeholder="Rate"
-              value={block.customRate ?? ""}
-              onChange={(e) => handleRateChange(e.target.value)}
-              className="block-input"
-            />
-            <span className="block-unit">$/hr</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={block.customMax ?? ""}
-              onChange={(e) => handleMaxChange(e.target.value)}
-              className="block-input"
-            />
-            <span className="block-unit">$ Max</span>
+        <div className="fixed-box allDay-mode">
+          {/* top half: dropdown already in place, no extra text */}
+          {/* bottom half: two inputs for rate & max */}
+          <div className="allDay-bottom">
+            <label className="small-label">All Day</label>
+            <div className="price-row">
+              <input
+                type="number"
+                className="block-input"
+                placeholder="Rate"
+                value={block.customRate ?? ""}
+                onChange={(e) => handleRateChange(e.target.value)}
+              />
+              <span className="block-unit">$/hr</span>
+            </div>
+            <div className="price-row">
+              <input
+                type="number"
+                className="block-input"
+                placeholder="Max"
+                value={block.customMax ?? ""}
+                onChange={(e) => handleMaxChange(e.target.value)}
+              />
+              <span className="block-unit">$ Max</span>
+            </div>
           </div>
-        </>
+        </div>
       );
     }
 
@@ -449,47 +474,54 @@ const confirmDisableAdvanced = async () => {
       };
 
       return (
-        <>
-          <div className="block-label">Set Time</div>
-          <div className="time-inputs">
-            <label>
-              Start:
+        <div className="fixed-box setTime-mode">
+          {/* top 25% = dropdown is outside. 
+              next 25% = start/end 
+              bottom 50% = rate + max 
+          */}
+          <div className="setTime-middle">
+            <div className="time-row">
+              <label>Start:</label>
               <input
                 type="time"
                 value={block.startTime ?? ""}
                 onChange={(e) => handleStartChange(e.target.value)}
                 className="block-input"
               />
-            </label>
-            <label>
-              End:
+            </div>
+            <div className="time-row">
+              <label>End:</label>
               <input
                 type="time"
                 value={block.endTime ?? ""}
                 onChange={(e) => handleEndChange(e.target.value)}
                 className="block-input"
               />
-            </label>
+            </div>
           </div>
-          <div className="block-pricing">
-            <input
-              type="number"
-              placeholder="Rate"
-              value={block.customRate ?? ""}
-              onChange={(e) => handleRateChange(e.target.value)}
-              className="block-input"
-            />
-            <span className="block-unit">$/hr</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={block.customMax ?? ""}
-              onChange={(e) => handleMaxChange(e.target.value)}
-              className="block-input"
-            />
-            <span className="block-unit">$ Max</span>
+          <div className="setTime-bottom">
+            <div className="price-row">
+              <input
+                type="number"
+                placeholder="Rate"
+                value={block.customRate ?? ""}
+                onChange={(e) => handleRateChange(e.target.value)}
+                className="block-input"
+              />
+              <span className="block-unit">$/hr</span>
+            </div>
+            <div className="price-row">
+              <input
+                type="number"
+                placeholder="Max"
+                value={block.customMax ?? ""}
+                onChange={(e) => handleMaxChange(e.target.value)}
+                className="block-input"
+              />
+              <span className="block-unit">$ Max</span>
+            </div>
           </div>
-        </>
+        </div>
       );
     }
 
@@ -532,7 +564,9 @@ const confirmDisableAdvanced = async () => {
                 const block = blocks[rowIndex];
                 return (
                   <div className="cell" key={label + rowIndex}>
+                    {/* The "top portion" or "top row" is basically the dropdown */}
                     {renderBlockDropdown(block, rowIndex, blocks, setter)}
+                    {/* Then the content (bottom portion, or middle + bottom for setTime) */}
                     {renderBlockContent(block, rowIndex, blocks, setter)}
                   </div>
                 );
@@ -554,53 +588,52 @@ const confirmDisableAdvanced = async () => {
 
       {/* ---------- MODALS ---------- */}
       {modalType === "disableAdvanced" && (
-  <Modal
-    isOpen={true}
-    title="Disable Advanced Settings?"
-    description="This will remove any custom day/time pricing and revert these fields to empty on the server. Vehicles will be billed at General Settings rates only."
-    confirmText="Disable"
-    cancelText="Cancel"
-    onConfirm={() => {
-      confirmDisableAdvanced();  // <-- calls function that resets arrays, flips slider off
-      setModalType(null);        // <-- closes the modal immediately
-    }}
-    onCancel={() => setModalType(null)}
-  />
-)}
+        <Modal
+          isOpen={true}
+          title="Disable Advanced Settings?"
+          description="This will remove any custom day/time pricing and revert these fields to empty on the server. Vehicles will be billed at General Settings rates only."
+          confirmText="Disable"
+          cancelText="Cancel"
+          onConfirm={() => {
+            confirmDisableAdvanced();
+            setModalType(null);
+          }}
+          onCancel={() => setModalType(null)}
+        />
+      )}
 
-{modalType === "confirmSave" && (
-  <Modal
-    isOpen={true}
-    title="Confirm Changes"
-    description="You're about to update the advanced pricing data. This change will be recorded in case of disputes."
-    confirmText="Update Settings"
-    cancelText="Return"
-    onConfirm={() => {
-      doSave();         // <-- calls function that sends updated settings
-      setModalType(null); // <-- closes the modal immediately
-    }}
-    onCancel={() => setModalType(null)}
-  />
-)}
+      {modalType === "confirmSave" && (
+        <Modal
+          isOpen={true}
+          title="Confirm Changes"
+          description="You're about to update the advanced pricing data. This change will be recorded in case of disputes."
+          confirmText="Update Settings"
+          cancelText="Return"
+          onConfirm={() => {
+            doSave();
+            setModalType(null);
+          }}
+          onCancel={() => setModalType(null)}
+        />
+      )}
 
-{modalType === "unsavedChanges" && (
-  <Modal
-    isOpen={true}
-    title="You have unsaved changes!"
-    description="The changes you made will not be applied unless you save before switching to another page."
-    confirmText="Take me back!"
-    cancelText="Continue Anyway"
-    onConfirm={() => setModalType(null)}
-    onCancel={() => {
-      if (pendingAction) {
-        pendingAction();
-        setPendingAction(null);
-      }
-      setModalType(null);
-    }}
-  />
-)}
-
+      {modalType === "unsavedChanges" && (
+        <Modal
+          isOpen={true}
+          title="You have unsaved changes!"
+          description="The changes you made will not be applied unless you save before switching to another page."
+          confirmText="Take me back!"
+          cancelText="Continue Anyway"
+          onConfirm={() => setModalType(null)}
+          onCancel={() => {
+            if (pendingAction) {
+              pendingAction();
+              setPendingAction(null);
+            }
+            setModalType(null);
+          }}
+        />
+      )}
     </div>
   );
 };

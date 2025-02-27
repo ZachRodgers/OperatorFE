@@ -9,15 +9,70 @@
     "freeParking": false,
     "allowValidation": true,
     "availableSlots": 0,
-    "mondayPricing": [],
-    "tuesdayPricing": [],
-    "wednesdayPricing": [],
-    "thursdayPricing": [],
-    "fridayPricing": [],
-    "saturdayPricing": [],
-    "sundayPricing": [],
+    "mondayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "10",
+        "maximumAmount": "20"
+      }
+    ],
+    "tuesdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "wednesdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "thursdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "fridayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "saturdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "sundayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
     "modifiedBy": "",
-    "modifiedOn": "2025-02-27T00:38:36.991Z"
+    "modifiedOn": "2025-02-27T21:27:32.927Z"
   },
   {
     "lotId": "0000-0003",

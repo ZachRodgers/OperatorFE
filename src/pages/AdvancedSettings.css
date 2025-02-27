@@ -6,17 +6,11 @@
     align-items: center;
   }
   
-  /* Slight spacing to the slider */
   .slider-wrapper {
-    margin-top: 4px;
     margin-left: 20px;
   }
   
-  /* 
-    7-column grid with 4 total rows:
-    - Row 1: Day labels (fixed height ~40px)
-    - Rows 2,3,4: 140px each for the 3 “states” cells
-  */
+  /* Grid: 7 columns × 4 rows */
   .advanced-grid {
     display: grid;
     grid-template-columns: repeat(7, 140px);
@@ -29,60 +23,149 @@
     text-align: center;
     font-weight: 600;
     line-height: 40px;
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
     font-size: 0.95rem;
   }
   
-  /* Each cell in rows 2-4 */
+  /* Each cell is 140×140, no extra padding. We place the dropdown at the top, the rest of the content is forcibly arranged. */
   .cell {
+    width: 140px;
+    height: 140px;
+    background-color: #F1F1F1;
+    border: px solid #F1F1F1;
+    font-size: 0.9rem;
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Left-align content inside each cell */
     justify-content: flex-start;
-    padding: 8px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    font-size: 0.9rem;
-    text-align: left;
+    align-items: stretch;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden
   }
   
-  /* For the dropdown that selects block mode */
+  /* The dropdown sits on top; the rest is laid out by .fixed-box below */
   .block-mode-dropdown {
     width: 100%;
-    margin-bottom: 6px;
+    height: 70px;  /* for default/allDay, it's half. For setTime, we'll handle differently in .setTime-mode */
+    box-sizing: border-box;
     font-size: 0.9rem;
-    padding: 4px;
+    text-align: center;
+    background-color: #F9F9F9;
+    border: 1px solid #F1F1F1;
+    border-radius: 10px 10px 0 0;
+    outline: none;
   }
   
-  /* The label inside each block (e.g. "All Day (Default)" or "Set Time") */
-  .block-label {
+  /* We create a container for the “bottom half” or “bottom + middle” content. */
+  .fixed-box {
+    flex: 1; /* fills remaining space */
+    width: 100%;
+    height: 50%;
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* default-mode => top 50% is dropdown, bottom 50% is read-only text. We place that text in .default-bottom */
+  .default-mode .default-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 50%;
+    width: 100%;
+  }
+  
+  /* allDay-mode => top 50% is dropdown, bottom 50% is input fields */
+  .allDay-mode .allDay-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    width: 100%;
+  }
+  
+  .allDay-mode .small-label {
+    font-size: 8px;
+    margin-top: -24px;
+    margin-bottom: 8px;
+  }
+  
+  .price-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0px;
+    height: 35px;
+  }
+  
+  /* setTime-mode => top 25% is dropdown, next 25% is start/end, bottom 50% is rate. We'll split it with 2 child divs: .setTime-middle, .setTime-bottom */
+  .setTime-mode {
+    /* The dropdown is already half the cell by default, so we override that with a smaller height in code or we forcibly style it. */
+  }
+  
+  /* Middle 25% for start/end inputs */
+  .setTime-middle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 40%; /* ~ 25% of total minus some overhead from the dropdown. Adjust as needed */
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  
+  /* row for each time input */
+  .time-row {
+    margin: 2px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* bottom 50% for rate + max */
+  .setTime-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60%; /* the rest of the space */
+    width: 100%;
+  }
+  
+  /* new-block */
+  .new-block-mode .new-block {
+    width: 140x;
+    height: 140px;
+    border: 2px dashed #F2F2F2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C4C5C5;
+    background-color: #FCFCFC;
+    font-size: 1rem;
     font-weight: 500;
-    margin-bottom: 4px;
+    text-align: center;
+    border-radius: 10px;
+    padding: 10px;
   }
   
-  /* For pricing inputs or displayed text (e.g. "Hourly: 12 | Max: 20") */
-  .block-pricing {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 4px;
-  }
-  
-  /* Time input row (start/end) */
-  .time-inputs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 4px;
-  }
-  
+  /* The block inputs */
   .block-input {
-    width: 60px;
-    padding: 4px;
-    font-size: 0.9rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    width: 50%;
+    text-align: center;
+    height: 35px;
+    gap: 0px;
+    margin: auto;
+    background-color: #F9F9F9;
+    border-radius: 0px;
+    border: 1px solid #F1F1F1;
   }
   
   .block-input:focus {
@@ -90,61 +173,19 @@
   }
   
   .block-unit {
-    align-self: center;
     font-size: 0.8rem;
     color: #666;
+    background-color: #F1F1F1;
+    width: 50%;
+    height: 35px;
+    margin-top: 12px;
   }
   
-  /* Special style for "New Time Block" cells (dashed border, centered text, etc.) */
-  .new-block {
-    width: 100%;
-    height: 100%;
-    border: 2px dashed #ddd;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #bbb;
-    font-size: 1rem;
-    text-transform: uppercase;
-    font-weight: 500;
-    text-align: center;
-  }
-  
-  /* Row of buttons at the bottom */
+  /* Buttons row */
   .advanced-settings-buttons {
     margin-top: 2rem;
     display: flex;
     gap: 1rem;
   }
   
-  /* Example button styling (assuming you have .button already) */
-  .button.primary {
-    background-color: #1782ff;
-    color: #fff;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-  }
-  
-  .button.primary:hover {
-    background-color: #0f6adc;
-  }
-  
-  .button.secondary {
-    background-color: #f5f5f5;
-    color: #333;
-    border: 1px solid #ccc;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-  }
-  
-  .button.secondary:hover {
-    background-color: #eaeaea;
-  }
   
