@@ -9,7 +9,7 @@ interface ModalProps {
   cancelText: string;
   onConfirm: () => void;
   onCancel: () => void;
-  children?: React.ReactNode; // ✅ Allows the modal to display child elements
+  children?: React.ReactNode; // Allows the modal to display child elements
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, title, description, confirmText, cancelText, onConfirm, onCancel, children }) => {

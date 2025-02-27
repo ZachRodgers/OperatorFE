@@ -85,7 +85,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     try {
       console.log("📡 Sending update-lot request:", updatedField);
   
-      // ✅ (1) Update local state first (ensures UI update)
+      // Update local state first (ensures UI update)
       switch (editingField) {
         case "lotName":
           setLotName(tempValue);
@@ -117,9 +117,9 @@ const [maxTimeError, setMaxTimeError] = useState(false);
         throw new Error(`Failed to update: ${errorMessage}`);
       }
   
-      console.log("✅ Successfully updated, fetching latest data...");
+      console.log("Successfully updated, fetching latest data...");
   
-      // ✅ (2) Fetch latest data after update
+      // Fetch latest data after update
       setTimeout(async () => {
         const updatedResponse = await fetch("http://localhost:5000/get-customer");
         const updatedCustomers = await updatedResponse.json();
@@ -127,13 +127,13 @@ const [maxTimeError, setMaxTimeError] = useState(false);
         const updatedLot = updatedCustomers.find((lot: { lotId: string }) => lot.lotId === lotId);
   
         if (updatedLot) {
-          console.log("✅ Updated Lot Data from Backend:", updatedLot);
+          console.log("Updated Lot Data from Backend:", updatedLot);
           setLotName(updatedLot.lotName);
           setCompanyName(updatedLot.companyName);
           setAddress(updatedLot.address);
           setLotCapacity(String(updatedLot.lotCapacity ?? "0"));
         }
-      }, 500); // ✅ Small delay to ensure backend writes data
+      }, 500); // Small delay to ensure backend writes data
   
       setEditingField(null);
       setModalType(null);
@@ -271,7 +271,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     setValue: setTicketAmount,
     unit: "$",
     tooltip: "Once a vehicle exceeds Maximum Time, a ticket is automatically issued.",
-    disabled: maxTime.trim() === "" // ✅ Disable if Max Time is blank
+    disabled: maxTime.trim() === "" // Disable if Max Time is blank
   }
 ].map(({ label, value, setValue, unit, tooltip, placeholder, disabled }) => (
   <div className="input-group" key={label} style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
@@ -282,7 +282,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
       <input
         type="number"
         min="0"
-        value={disabled ? "" : value} // ✅ Clear input when faded out
+        value={disabled ? "" : value} // Clear input when faded out
         onChange={(e) => {
           const newValue = e.target.value.replace(/[^0-9]/g, ""); // Allow only numbers
           
@@ -293,7 +293,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
             setMaxTime(newValue);
             setMaxTimeError(parseInt(newValue) < 1); // Show error if less than 1
           } else if (!disabled) {
-            setValue(newValue); // ✅ Update field only if NOT disabled
+            setValue(newValue); // Update field only if NOT disabled
           }
 
           setIsDirty(true);
@@ -303,7 +303,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
           target.value = target.value.replace(/[^0-9]/g, ""); 
         }}
         placeholder={disabled ? "0" : value === "" ? placeholder || "0" : ""}
-        disabled={disabled} // ✅ Disable input if Ticket Amount is faded
+        disabled={disabled} // Disable input if Ticket Amount is faded
       />
       <span className="input-unit">{unit}</span>
     </div>
@@ -350,7 +350,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
       <button
   className="button primary"
   style={{ opacity: !gracePeriodError && !maxTimeError && isDirty ? 1 : 0.3 }}
-  disabled={gracePeriodError || maxTimeError || !isDirty} // ✅ Disable if error exists
+  disabled={gracePeriodError || maxTimeError || !isDirty} //  Disable if error exists
   onClick={() => {
     if (freeParking) {
       setModalType("confirmFreeParking");
@@ -440,7 +440,7 @@ const [maxTimeError, setMaxTimeError] = useState(false);
     cancelText="Cancel"
     onConfirm={() => {
       saveEditPopup(); 
-      setEditingField(null); // ✅ Ensure modal closes
+      setEditingField(null); // Ensure modal closes
     }}
     onCancel={() => setEditingField(null)}
   >

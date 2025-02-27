@@ -11,7 +11,7 @@ const CUSTOMER_DATA_PATH = path.join(__dirname, "src/data/customer_master.json")
 const LOTS_DATA_PATH = path.join(__dirname, "src/data/lots_master.json");
 const PRICING_DATA_PATH = path.join(__dirname, "src/data/lot_pricing.json");
 
-// ✅ Endpoint to update customer_master.json
+// Endpoint to update customer_master.json
 app.post("/update-customer", (req, res) => {
   try {
     const updatedCustomers = req.body;
@@ -26,7 +26,7 @@ app.post("/update-customer", (req, res) => {
   }
 });
 
-// ✅ Endpoint to update lots_master.json
+// Endpoint to update lots_master.json
 app.post("/update-lot", (req, res) => {
   try {
     const { lotId, updatedData } = req.body;
@@ -59,7 +59,7 @@ app.post("/update-lot", (req, res) => {
   }
 });
 
-// ✅ Endpoint to update or add lot pricing
+// Endpoint to update or add lot pricing
 app.post("/update-lot-pricing", (req, res) => {
   try {
     const newPricing = req.body;
@@ -96,11 +96,11 @@ app.post("/update-lot-pricing", (req, res) => {
   }
 });
 
-// ✅ Ensure the server only listens once
+// Ensure the server only listens once
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
-// ✅ Endpoint to fetch customer data (Lot Settings)
+// Endpoint to fetch customer data (Lot Settings)
 app.get("/get-customer", (req, res) => {
   try {
     fs.readFile(CUSTOMER_DATA_PATH, "utf8", (err, data) => {
