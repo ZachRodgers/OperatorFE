@@ -368,10 +368,6 @@ const AdvancedSettings: React.FC = () => {
   };
 
   // Lay out each state in a fixed “box” style:
-  // default -> top 50% = dropdown, bottom 50% = read-only rates
-  // allDay  -> top 50% = dropdown, bottom 50% = editable rates
-  // setTime -> top 25% = dropdown, middle 25% = start/end, bottom 50% = rates
-  // newBlock -> dashed placeholder
   const renderBlockContent = (
     block: Block,
     rowIndex: number,
@@ -387,20 +383,40 @@ const AdvancedSettings: React.FC = () => {
     }
 
     if (block.mode === "default") {
-      // read-only
+      // EXACT same layout as allDay, but inputs are disabled and show a small label like "All Day" or "00:00-00:00".
+      const handleRateChange = () => {}; // no-op for default
+      const handleMaxChange = () => {};  // no-op
+    
+      // For the small label, decide if you always want "All Day" 
+      // or "00:00-00:00" logic. Let's just do "All Day" for now:
       return (
-        <div className="fixed-box default-mode">
-          {/* top half: the dropdown is already rendered above, so no extra text here */}
-          {/* bottom half: read-only rates */}
-          <div className="default-bottom">
-            <div>All Day (Default)</div>
-            <div>
-              Hourly: {block.customRate || "--"} | Max: {block.customMax || "--"}
+        <div className="fixed-box allDay-mode"> 
+          {/* same container as allDay */}
+          <div className="allDay-bottom">
+            <label className="small-label">All Day</label>
+            <div className="price-row">
+              <input
+                type="number"
+                className="block-input"
+                value={block.customRate ?? ""}
+                disabled
+              />
+              <span className="block-unit">$/hr</span>
+            </div>
+            <div className="price-row">
+              <input
+                type="number"
+                className="block-input"
+                value={block.customMax ?? ""}
+                disabled
+              />
+              <span className="block-unit">$ Max</span>
             </div>
           </div>
         </div>
       );
     }
+    
 
     if (block.mode === "allDay") {
       const handleRateChange = (val: string) => {
@@ -421,7 +437,6 @@ const AdvancedSettings: React.FC = () => {
           {/* top half: dropdown already in place, no extra text */}
           {/* bottom half: two inputs for rate & max */}
           <div className="allDay-bottom">
-            <label className="small-label">All Day</label>
             <div className="price-row">
               <input
                 type="number"
@@ -481,7 +496,6 @@ const AdvancedSettings: React.FC = () => {
           */}
           <div className="setTime-middle">
             <div className="time-row">
-              <label>Start:</label>
               <input
                 type="time"
                 value={block.startTime ?? ""}
@@ -490,7 +504,6 @@ const AdvancedSettings: React.FC = () => {
               />
             </div>
             <div className="time-row">
-              <label>End:</label>
               <input
                 type="time"
                 value={block.endTime ?? ""}

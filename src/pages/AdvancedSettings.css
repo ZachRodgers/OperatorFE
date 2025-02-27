@@ -112,18 +112,18 @@
   /* Middle 25% for start/end inputs */
   .setTime-middle {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    height: 40%; /* ~ 25% of total minus some overhead from the dropdown. Adjust as needed */
-    width: 100%;
+    height: 35px; 
+    width: 140px;
     text-align: center;
     box-sizing: border-box;
   }
   
   /* row for each time input */
   .time-row {
-    margin: 2px 0;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -135,7 +135,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 60%; /* the rest of the space */
+    height: 50%; /* the rest of the space */
     width: 100%;
   }
   
