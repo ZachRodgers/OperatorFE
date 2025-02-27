@@ -493,22 +493,18 @@ const AdvancedSettings: React.FC = () => {
               bottom 50% = rate + max 
           */}
           <div className="setTime-middle">
-            <div className="time-row">
               <input
                 type="time"
                 value={block.startTime ?? ""}
                 onChange={(e) => handleStartChange(e.target.value)}
                 className="block-input"
               />
-            </div>
-            <div className="time-row">
               <input
                 type="time"
                 value={block.endTime ?? ""}
                 onChange={(e) => handleEndChange(e.target.value)}
                 className="block-input"
               />
-            </div>
           </div>
           <div className="setTime-bottom">
             <div className="price-row">

@@ -117,20 +117,14 @@
     height: 35px;
   }
   
-  /* setTime-mode => top 25% is dropdown, next 25% is start/end, bottom 50% is rate. We'll split it with 2 child divs: .setTime-middle, .setTime-bottom */
-  .setTime-mode {
-    /* The dropdown is already half the cell by default, so we override that with a smaller height in code or we forcibly style it. */
-  }
-  
   /* Middle 25% for start/end inputs */
 .setTime-middle {
     display: flex;
     flex-direction: row; /* horizontally */
     align-items: center;
     justify-content: center;
-    width: 100%;
+    width: 140px;
     height: 35px;
-    gap: 4px; /* small gap between them */
     box-sizing: border-box;
   }
   
@@ -140,17 +134,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 70px;
   }
   
-  /* bottom 50% for rate + max */
-  .setTime-bottom {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 50%; /* the rest of the space */
-    width: 100%;
-  }
   
   /* new-block */
   .new-block-mode .new-block {
