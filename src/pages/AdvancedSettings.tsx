@@ -497,13 +497,13 @@ const AdvancedSettings: React.FC = () => {
                 type="time"
                 value={block.startTime ?? ""}
                 onChange={(e) => handleStartChange(e.target.value)}
-                className="block-input"
+                className="time-input"
               />
               <input
                 type="time"
                 value={block.endTime ?? ""}
                 onChange={(e) => handleEndChange(e.target.value)}
-                className="block-input"
+                className="time-input"
               />
           </div>
           <div className="setTime-bottom">
@@ -554,7 +554,7 @@ const AdvancedSettings: React.FC = () => {
         <>
           <p>
             These settings allow for more customized billing periods, including day-of-week or
-            time-of-day pricing.
+            time-of-day pricing. Time must be in 24 hour format.
           </p>
 
           <div className="advanced-grid">

@@ -117,6 +117,8 @@
     height: 35px;
   }
   
+
+
   /* Middle 25% for start/end inputs */
 .setTime-middle {
     display: flex;
@@ -137,6 +139,28 @@
     width: 70px;
   }
   
+  .time-input {
+    width: 70px;
+    text-align: center;
+    height: 35px;
+    gap: 0px;
+    margin: auto;
+    background-color: #F9F9F9;
+    border-radius: 0px;
+    border: 1px solid #F1F1F1;
+    font-size: 14px; /*why wont you shrink?!!!*/
+    padding: 0px;
+  }
+  
+  .time-input:disabled {
+    color: rgba(0, 0, 0, 0.4);
+  }
+  
+
+  .time-input:focus {
+    outline: 2px solid #cce2ff;
+  }
+
   
   /* new-block */
   .new-block-mode .new-block {
