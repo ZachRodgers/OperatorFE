@@ -354,7 +354,9 @@ const AdvancedSettings: React.FC = () => {
 
     return (
       <select
-        className="block-mode-dropdown"
+      className={
+        "block-mode-dropdown" + (block.mode === "setTime" ? " settime-dropdown" : "")
+      }
         value={block.mode}
         onChange={(e) => handleModeChange(e.target.value as BlockMode)}
       >
@@ -383,17 +385,12 @@ const AdvancedSettings: React.FC = () => {
     }
 
     if (block.mode === "default") {
-      // EXACT same layout as allDay, but inputs are disabled and show a small label like "All Day" or "00:00-00:00".
-      const handleRateChange = () => {}; // no-op for default
-      const handleMaxChange = () => {};  // no-op
+      const labelText = rowIndex === 0 ? "All Day" : "Remainder";
     
-      // For the small label, decide if you always want "All Day" 
-      // or "00:00-00:00" logic. Let's just do "All Day" for now:
       return (
-        <div className="fixed-box allDay-mode"> 
-          {/* same container as allDay */}
+        <div className="fixed-box allDay-mode">
           <div className="allDay-bottom">
-            <label className="small-label">All Day</label>
+            <label className="small-label">{labelText}</label>
             <div className="price-row">
               <input
                 type="number"
@@ -416,6 +413,7 @@ const AdvancedSettings: React.FC = () => {
         </div>
       );
     }
+    
     
 
     if (block.mode === "allDay") {

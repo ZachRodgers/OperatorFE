@@ -55,6 +55,17 @@
     outline: none;
   }
   
+  .block-mode-dropdown:hover{
+    background-color:#f6f6f6;
+    color: #1782FF;
+    transition: 0.2s;
+  }
+
+  .settime-dropdown {
+    height: 35px !important;
+  }
+  
+
   /* We create a container for the “bottom half” or “bottom + middle” content. */
   .fixed-box {
     flex: 1; /* fills remaining space */
@@ -94,6 +105,8 @@
     font-size: 8px;
     margin-top: -24px;
     margin-bottom: 8px;
+    color: #888;
+
   }
   
   .price-row {
@@ -110,14 +123,14 @@
   }
   
   /* Middle 25% for start/end inputs */
-  .setTime-middle {
+.setTime-middle {
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* horizontally */
     align-items: center;
     justify-content: center;
-    height: 35px; 
-    width: 140px;
-    text-align: center;
+    width: 100%;
+    height: 35px;
+    gap: 4px; /* small gap between them */
     box-sizing: border-box;
   }
   
@@ -168,6 +181,11 @@
     border: 1px solid #F1F1F1;
   }
   
+  .block-input:disabled {
+    color: rgba(0, 0, 0, 0.4);
+  }
+  
+
   .block-input:focus {
     outline: 2px solid #cce2ff;
   }
