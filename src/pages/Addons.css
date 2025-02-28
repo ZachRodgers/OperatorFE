@@ -1,0 +1,38 @@
+.addons-box {
+    background: #FCFCFC;
+    border-radius: 8px;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    max-width: 1280px;
+    height: 60vh;
+    margin: 40px auto;
+    border: 1px solid #F1F1F1;
+  }
+  
+  .addons-box h2 {
+    font-size: 22px;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  
+  .addons-box p {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 15px;
+  }
+  
+  .addons-box a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .addons-box a:hover {
+    text-decoration: underline;
+  }
+  
