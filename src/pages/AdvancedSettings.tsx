@@ -5,6 +5,19 @@ import Slider from "../components/Slider";
 import Modal from "../components/Modal";
 import lotPricingData from "../data/lot_pricing.json";
 
+/** 
+ * Helper: parse "HH:MM" into a total minutes integer (0..1439).
+ * If invalid or blank, returns 0.
+ */
+function parseTime(str: string): number {
+  if (!str || !str.includes(":")) return 0;
+  const [hh, mm] = str.split(":").map(Number);
+  // Basic clamp
+  const hSafe = isNaN(hh) ? 0 : Math.min(Math.max(hh, 0), 23);
+  const mSafe = isNaN(mm) ? 0 : Math.min(Math.max(mm, 0), 59);
+  return hSafe * 60 + mSafe;
+}
+
 type BlockMode = "default" | "allDay" | "setTime" | "newBlock";
 
 interface Block {
@@ -314,27 +327,55 @@ const AdvancedSettings: React.FC = () => {
     newBlock: "New Time Block", // not used in the dropdown
   };
 
+  /**
+   * Check if top 2 blocks in a column fully cover 24 hours.
+   * If so, forcibly set the 3rd block to newBlock (disabling "remainder").
+   */
+  function maybeDisableThirdRow(blocks: DayData) {
+    const top = blocks[0];
+    const mid = blocks[1];
+
+    // Both must be setTime to check coverage
+    if (top.mode !== "setTime" || mid.mode !== "setTime") return; 
+    // Parse durations
+    const startA = parseTime(top.startTime ?? "00:00");
+    const endA   = parseTime(top.endTime   ?? "00:00");
+    const startB = parseTime(mid.startTime ?? "00:00");
+    const endB   = parseTime(mid.endTime   ?? "00:00");
+
+    // Duration calc ignoring crossing midnight complexities
+    const durA = (endA - startA + 1440) % 1440;
+    const durB = (endB - startB + 1440) % 1440;
+    if (durA + durB === 1440) {
+      // covers full day => set 3rd row to newBlock
+      blocks[2] = { mode: "newBlock" };
+    }
+  }
+
   const renderBlockDropdown = (
     block: Block,
     rowIndex: number,
     blocks: DayData,
     setBlocks: React.Dispatch<React.SetStateAction<DayData>>
   ) => {
+    // 1) Hide entirely if newBlock
     if (block.mode === "newBlock") {
       return null;
     }
+    // 2) Hide if it's the 3rd row (rowIndex=2) AND block.mode=default => no dropdown
+    if (rowIndex === 2 && block.mode === "default") {
+      return null;
+    }
 
-    // If it's top row => "default", "allDay", "setTime"
-    // Lower rows => "default", "setTime"
+    // If top row => "default", "allDay", "setTime"
+    // If second/third => "default", "setTime"
     const options: BlockMode[] =
       rowIndex === 0 ? ["default", "allDay", "setTime"] : ["default", "setTime"];
 
     const handleModeChange = (newMode: BlockMode) => {
       const newBlocks = [...blocks] as DayData;
-      const currentBlock = { ...newBlocks[rowIndex] };
-      currentBlock.mode = newMode;
-      newBlocks[rowIndex] = currentBlock;
-
+      newBlocks[rowIndex] = { ...newBlocks[rowIndex], mode: newMode };
+      
       // Force logic for below blocks
       if (rowIndex === 0 && newMode === "setTime") {
         newBlocks[1] = { mode: "default", customRate: globalRate, customMax: globalMax };
@@ -354,9 +395,9 @@ const AdvancedSettings: React.FC = () => {
 
     return (
       <select
-      className={
-        "block-mode-dropdown" + (block.mode === "setTime" ? " settime-dropdown" : "")
-      }
+        className={
+          "block-mode-dropdown" + (block.mode === "setTime" ? " settime-dropdown" : "")
+        }
         value={block.mode}
         onChange={(e) => handleModeChange(e.target.value as BlockMode)}
       >
@@ -369,7 +410,6 @@ const AdvancedSettings: React.FC = () => {
     );
   };
 
-  // Lay out each state in a fixed “box” style:
   const renderBlockContent = (
     block: Block,
     rowIndex: number,
@@ -386,7 +426,6 @@ const AdvancedSettings: React.FC = () => {
 
     if (block.mode === "default") {
       const labelText = rowIndex === 0 ? "All Day" : "Remainder";
-    
       return (
         <div className="fixed-box allDay-mode">
           <div className="allDay-bottom">
@@ -413,8 +452,6 @@ const AdvancedSettings: React.FC = () => {
         </div>
       );
     }
-    
-    
 
     if (block.mode === "allDay") {
       const handleRateChange = (val: string) => {
@@ -432,8 +469,6 @@ const AdvancedSettings: React.FC = () => {
 
       return (
         <div className="fixed-box allDay-mode">
-          {/* top half: dropdown already in place, no extra text */}
-          {/* bottom half: two inputs for rate & max */}
           <div className="allDay-bottom">
             <div className="price-row">
               <input
@@ -488,23 +523,22 @@ const AdvancedSettings: React.FC = () => {
 
       return (
         <div className="fixed-box setTime-mode">
-          {/* top 25% = dropdown is outside. 
-              next 25% = start/end 
-              bottom 50% = rate + max 
-          */}
+          {/* top row is the dropdown, next row is start/end, bottom row is rate */}
           <div className="setTime-middle">
-              <input
-                type="time"
-                value={block.startTime ?? ""}
-                onChange={(e) => handleStartChange(e.target.value)}
-                className="time-input"
-              />
-              <input
-                type="time"
-                value={block.endTime ?? ""}
-                onChange={(e) => handleEndChange(e.target.value)}
-                className="time-input"
-              />
+            <input
+              type="time"
+              step="60"              // <--- ensures 24-hour format increments by 1 minute, no AM/PM
+              value={block.startTime ?? ""}
+              onChange={(e) => handleStartChange(e.target.value)}
+              className="time-input"
+            />
+            <input
+              type="time"
+              step="60"
+              value={block.endTime ?? ""}
+              onChange={(e) => handleEndChange(e.target.value)}
+              className="time-input"
+            />
           </div>
           <div className="setTime-bottom">
             <div className="price-row">
@@ -535,10 +569,8 @@ const AdvancedSettings: React.FC = () => {
     return null;
   };
 
-  // --------------- RENDER ---------------
   return (
     <div className="content">
-      {/* Header with slider */}
       <div className="advanced-settings-header">
         <h1>Advanced Settings</h1>
         <div className="slider-wrapper">
@@ -554,7 +586,7 @@ const AdvancedSettings: React.FC = () => {
         <>
           <p>
             These settings allow for more customized billing periods, including day-of-week or
-            time-of-day pricing. Time must be in 24 hour format.
+            time-of-day pricing. Time must be in 24-hour format.
           </p>
 
           <div className="advanced-grid">
@@ -568,12 +600,16 @@ const AdvancedSettings: React.FC = () => {
             {/* 3 rows for each day */}
             {[0, 1, 2].map((rowIndex) =>
               dayStates.map(({ label, blocks, setter }) => {
+                // BEFORE rendering row 2, auto-disable if top coverage = 24h
+                if (rowIndex === 2) {
+                  maybeDisableThirdRow(blocks);
+                }
+                
                 const block = blocks[rowIndex];
+
                 return (
                   <div className="cell" key={label + rowIndex}>
-                    {/* The "top portion" or "top row" is basically the dropdown */}
                     {renderBlockDropdown(block, rowIndex, blocks, setter)}
-                    {/* Then the content (bottom portion, or middle + bottom for setTime) */}
                     {renderBlockContent(block, rowIndex, blocks, setter)}
                   </div>
                 );
@@ -581,7 +617,6 @@ const AdvancedSettings: React.FC = () => {
             )}
           </div>
 
-          {/* Buttons */}
           <div className="advanced-settings-buttons">
             <button className="button primary" onClick={handleSaveClick}>
               Save

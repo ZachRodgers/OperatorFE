@@ -9,15 +9,89 @@
     "freeParking": false,
     "allowValidation": true,
     "availableSlots": 0,
-    "mondayPricing": [],
-    "tuesdayPricing": [],
-    "wednesdayPricing": [],
-    "thursdayPricing": [],
-    "fridayPricing": [],
-    "saturdayPricing": [],
-    "sundayPricing": [],
+    "mondayPricing": [
+      {
+        "startTime": "02:03",
+        "endTime": "03:00",
+        "hourlyRate": "9",
+        "maximumAmount": "23"
+      },
+      {
+        "startTime": "05:08",
+        "endTime": "04:05",
+        "hourlyRate": "2",
+        "maximumAmount": "5"
+      },
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "tuesdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "wednesdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "thursdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20"
+      },
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "fridayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "saturdayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
+    "sundayPricing": [
+      {
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "hourlyRate": "5",
+        "maximumAmount": "20",
+        "isDefault": true
+      }
+    ],
     "modifiedBy": "",
-    "modifiedOn": "2025-02-27T22:08:22.924Z"
+    "modifiedOn": "2025-02-28T00:15:57.278Z"
   },
   {
     "lotId": "0000-0003",
