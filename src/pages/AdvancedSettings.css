@@ -23,7 +23,7 @@
     text-align: center;
     font-weight: 600;
     line-height: 40px;
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
   
   /* Each cell is 140×140, no extra padding. We place the dropdown at the top, the rest of the content is forcibly arranged. */
@@ -45,7 +45,7 @@
   /* The dropdown sits on top; the rest is laid out by .fixed-box below */
   .block-mode-dropdown {
     width: 100%;
-    height: 70px;  /* for default/allDay, it's half. For setTime, we'll handle differently in .setTime-mode */
+    height: 80px;  /* for default/allDay, it's half. For setTime, we'll handle differently in .setTime-mode */
     box-sizing: border-box;
     font-size: 0.9rem;
     text-align: center;
@@ -102,7 +102,7 @@
   }
   
   .allDay-mode .small-label {
-    font-size: 8px;
+    font-size: 12px;
     margin-top: -24px;
     margin-bottom: 8px;
     color: #888;
@@ -144,18 +144,13 @@
     text-align: center;
     height: 35px;
     gap: 0px;
-    margin: auto;
+    margin: 0;
     background-color: #F9F9F9;
     border-radius: 0px;
     border: 1px solid #F1F1F1;
-    font-size: 14px; /*why wont you shrink?!!!*/
+    font-size: 14px !important;
     padding: 0px;
   }
-  
-  .time-input:disabled {
-    color: rgba(0, 0, 0, 0.4);
-  }
-  
 
   .time-input:focus {
     outline: 2px solid #cce2ff;

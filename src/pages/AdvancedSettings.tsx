@@ -5,29 +5,31 @@ import Slider from "../components/Slider";
 import Modal from "../components/Modal";
 import lotPricingData from "../data/lot_pricing.json";
 
-/** 
- * Helper: parse "HH:MM" into a total minutes integer (0..1439).
- * If invalid or blank, returns 0.
+/**
+ * Helper: parse "HH:MM" into total minutes (0..1439).
  */
 function parseTime(str: string): number {
   if (!str || !str.includes(":")) return 0;
   const [hh, mm] = str.split(":").map(Number);
-  // Basic clamp
   const hSafe = isNaN(hh) ? 0 : Math.min(Math.max(hh, 0), 23);
   const mSafe = isNaN(mm) ? 0 : Math.min(Math.max(mm, 0), 59);
   return hSafe * 60 + mSafe;
 }
 
-type BlockMode = "default" | "allDay" | "setTime" | "newBlock";
+type BlockMode = "default" | "allDay" | "setTime" | "newBlock" | "noTime";
 
 interface Block {
-  mode: BlockMode;
+  blockMode: BlockMode;    // <-- we store the mode in JSON so we can restore
   startTime?: string;
   endTime?: string;
   customRate?: string;
   customMax?: string;
+  isDefault?: boolean;     // we’ll keep this for backward compatibility
 }
 
+/** 
+ * We store up to 3 blocks. 
+ */
 type DayData = [Block, Block, Block];
 
 const dayLabels = [
@@ -40,101 +42,106 @@ const dayLabels = [
   "Sunday",
 ];
 
-// ---------------- HELPER FUNCTIONS -----------------
-
-function parseDayPricing(
-  dayPricing: any[],
-  globalRate: string,
-  globalMax: string
-): DayData {
+/** 
+ * Convert the loaded JSON day array into our 3-block structure.
+ * We look for `blockMode` if present; if not, we guess from isDefault or times.
+ */
+function parseDayPricing(dayPricing: any[], globalRate: string, globalMax: string): DayData {
+  // If no data => 1 "default" block, then 2 "newBlock"
   if (!dayPricing || dayPricing.length === 0) {
     return [
-      { mode: "default", customRate: globalRate, customMax: globalMax },
-      { mode: "newBlock" },
-      { mode: "newBlock" },
+      { blockMode: "default", customRate: globalRate, customMax: globalMax },
+      { blockMode: "newBlock" },
+      { blockMode: "newBlock" },
     ];
   }
 
   const blocks: Block[] = [];
   for (let i = 0; i < dayPricing.length && i < 3; i++) {
     const entry = dayPricing[i];
-    if (entry.startTime && entry.endTime) {
-      blocks.push({
-        mode: "setTime",
-        startTime: entry.startTime,
-        endTime: entry.endTime,
-        customRate: entry.hourlyRate || "",
-        customMax: entry.maximumAmount || "",
-      });
+
+    // If the JSON already has a blockMode, use it
+    let mode: BlockMode = "default";
+    if (entry.blockMode) {
+      mode = entry.blockMode;
     } else {
-      // If no start/end => either "default" or "allDay"
+      // If no blockMode, infer from isDefault / times
       if (entry.isDefault) {
-        blocks.push({
-          mode: "default",
-          customRate: globalRate,
-          customMax: globalMax,
-        });
-      } else {
-        blocks.push({
-          mode: "allDay",
-          customRate: entry.hourlyRate || globalRate,
-          customMax: entry.maximumAmount || globalMax,
-        });
+        mode = "default";
+      } else if (entry.startTime && entry.endTime && entry.startTime === "00:00" && entry.endTime === "23:59") {
+        mode = "allDay";
+      } else if (entry.startTime && entry.endTime) {
+        mode = "setTime";
       }
     }
+
+    blocks.push({
+      blockMode: mode,
+      startTime: entry.startTime ?? "",
+      endTime: entry.endTime ?? "",
+      customRate: entry.hourlyRate ?? globalRate,
+      customMax: entry.maximumAmount ?? globalMax,
+      isDefault: !!entry.isDefault,
+    });
   }
 
+  // Fill the rest with newBlock
   while (blocks.length < 3) {
-    blocks.push({ mode: "newBlock" });
+    blocks.push({ blockMode: "newBlock" });
   }
 
   return blocks as DayData;
 }
 
+/**
+ * Build the array for JSON. We'll include "blockMode" so we can restore precisely.
+ * If blockMode === "noTime", we skip it (or store it with zero coverage).
+ */
 function buildDayPricing(blocks: DayData, globalRate: string, globalMax: string): any[] {
-  const dayPricing: any[] = [];
+  const result: any[] = [];
+
   blocks.forEach((block) => {
-    if (block.mode === "newBlock") return;
-    if (block.mode === "setTime") {
-      dayPricing.push({
-        startTime: block.startTime || "00:00",
-        endTime: block.endTime || "23:59",
-        hourlyRate: block.customRate ?? "",
-        maximumAmount: block.customMax ?? "",
-      });
-    } else if (block.mode === "allDay") {
-      dayPricing.push({
-        startTime: "00:00",
-        endTime: "23:59",
-        hourlyRate: block.customRate ?? globalRate,
-        maximumAmount: block.customMax ?? globalMax,
-      });
-    } else if (block.mode === "default") {
-      dayPricing.push({
-        startTime: "00:00",
-        endTime: "23:59",
-        hourlyRate: block.customRate ?? globalRate,
-        maximumAmount: block.customMax ?? globalMax,
-        isDefault: true,
-      });
+    if (block.blockMode === "newBlock" || block.blockMode === "noTime") {
+      return; // skip
     }
+
+    // If it's "allDay" or "default" => time is 00:00..23:59
+    // If it's setTime => use block start/end
+    let start = "00:00";
+    let end = "23:59";
+    if (block.blockMode === "setTime" && block.startTime && block.endTime) {
+      start = block.startTime;
+      end = block.endTime;
+    }
+
+    const hrRate = block.customRate ?? globalRate;
+    const maxAmt = block.customMax ?? globalMax;
+
+    const isDefault = (block.blockMode === "default");
+
+    result.push({
+      blockMode: block.blockMode, // <-- store the mode for next time
+      startTime: start,
+      endTime: end,
+      hourlyRate: hrRate,
+      maximumAmount: maxAmt,
+      isDefault: isDefault,
+    });
   });
-  return dayPricing;
+
+  return result;
 }
 
-// ---------------- COMPONENT -----------------
-
 const AdvancedSettings: React.FC = () => {
-  // Extract lotId from route
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
   const navigate = useNavigate();
 
-  // Find matching pricing entry
-  const pricing = lotPricingData.find((entry) => entry.lotId === lotId);
+  // Find pricing for this lot
+  const pricing = lotPricingData.find((entry: any) => entry.lotId === lotId);
   const globalRate = pricing?.hourlyRate !== undefined ? String(pricing.hourlyRate) : "";
   const globalMax = pricing?.maximumAmount !== undefined ? String(pricing.maximumAmount) : "";
 
-  // Parse existing day arrays into block structures
+  // Parse day arrays from JSON
   const [mondayBlocks, setMondayBlocks] = useState<DayData>(() =>
     parseDayPricing(pricing?.mondayPricing ?? [], globalRate, globalMax)
   );
@@ -156,6 +163,7 @@ const AdvancedSettings: React.FC = () => {
   const [sundayBlocks, setSundayBlocks] = useState<DayData>(() =>
     parseDayPricing(pricing?.sundayPricing ?? [], globalRate, globalMax)
   );
+  
 
   const dayStates = [
     { label: "Monday", blocks: mondayBlocks, setter: setMondayBlocks },
@@ -167,50 +175,40 @@ const AdvancedSettings: React.FC = () => {
     { label: "Sunday", blocks: sundayBlocks, setter: setSundayBlocks },
   ];
 
-  // Figure out if advanced is initially enabled
+  // Determine if advanced is on/off
   const [advancedEnabled, setAdvancedEnabled] = useState(() => {
-    // check if there's any allDay or setTime block
-    return dayStates.some((day) => day.blocks.some((b) => b.mode === "allDay" || b.mode === "setTime"));
+    return dayStates.some((day) => day.blocks.some((b) => b.blockMode === "allDay" || b.blockMode === "setTime"));
   });
 
-  // Track unsaved changes
   const [isDirty, setIsDirty] = useState(false);
 
-  // Modal control
   type ModalType = null | "disableAdvanced" | "confirmSave" | "unsavedChanges";
   const [modalType, setModalType] = useState<ModalType>(null);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-  // ---------------- HANDLERS ----------------
-
-  // Toggling the slider
+  // ------------- HANDLERS -------------
   const handleToggleAdvanced = () => {
     if (!advancedEnabled) {
-      // was OFF => now ON
       setAdvancedEnabled(true);
       setIsDirty(true);
     } else {
-      // was ON => user wants to disable
       setModalType("disableAdvanced");
     }
   };
 
-  // "Yes, disable advanced settings"
-  const confirmDisableAdvanced = async () => {
+  async function confirmDisableAdvanced() {
     try {
-      // 1) Locally reset each day's blocks
+      // Reset each day => top block default, bottom blocks newBlock
       dayStates.forEach((day) => {
         day.setter([
-          { mode: "default", customRate: globalRate, customMax: globalMax },
-          { mode: "newBlock" },
-          { mode: "newBlock" },
+          { blockMode: "default", customRate: globalRate, customMax: globalMax },
+          { blockMode: "newBlock" },
+          { blockMode: "newBlock" },
         ]);
       });
-
-      // 2) Flip slider OFF so it visually shows "disabled" and hides the grid
       setAdvancedEnabled(false);
 
-      // 3) Build a pricing object with empty arrays to POST
+      // Send empty arrays to server
       const updatedPricing = {
         lotId,
         hourlyRate: pricing?.hourlyRate ?? "",
@@ -232,33 +230,25 @@ const AdvancedSettings: React.FC = () => {
         sundayPricing: [],
       };
 
-      // 4) Immediately POST to server
       const resp = await fetch("http://localhost:5000/update-lot-pricing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedPricing),
       });
-
-      if (!resp.ok) {
-        throw new Error("Failed to disable advanced settings on server.");
-      }
-
-      // 5) Mark as not dirty
+      if (!resp.ok) throw new Error("Failed to disable advanced settings");
       setIsDirty(false);
-
     } catch (error) {
-      console.error("Error disabling advanced settings:", error);
-      alert("Failed to disable advanced settings.");
+      alert("Error disabling advanced settings.");
+      console.error(error);
     }
-  };
+  }
 
-  // "Save" => show confirm modal
-  const handleSaveClick = () => {
+  function handleSaveClick() {
     setModalType("confirmSave");
-  };
+  }
 
-  // Actually do the save once confirmed
-  const doSave = async () => {
+  async function doSave() {
+    // build the arrays
     const updatedPricing = {
       lotId,
       hourlyRate: pricing?.hourlyRate ?? "",
@@ -286,120 +276,134 @@ const AdvancedSettings: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedPricing),
       });
-      if (!resp.ok) {
-        throw new Error("Failed to update advanced settings.");
-      }
+      if (!resp.ok) throw new Error("Failed to update advanced settings");
       setIsDirty(false);
-      setModalType(null); // Close the modal
+      setModalType(null);
     } catch (error) {
-      console.error("Error updating advanced settings:", error);
+      console.error(error);
       alert("Failed to update advanced settings.");
       setModalType(null);
     }
-  };
+  }
 
-  // Navigate away (check unsaved changes)
-  const handleNavigation = (path: string) => {
+  function handleNavigation(path: string) {
     if (isDirty) {
       setPendingAction(() => () => navigate(path));
       setModalType("unsavedChanges");
     } else {
       navigate(path);
     }
-  };
+  }
 
-  // "General Settings" button
-  const handleGeneralSettings = () => {
+  function handleGeneralSettings() {
     if (customerId && lotId) {
       handleNavigation(`/${customerId}/${lotId}/settings`);
     } else {
       alert("No lot selected!");
     }
-  };
+  }
 
-  // ---------------- RENDER HELPERS ----------------
+  // ------------ COVERAGE LOGIC -----------
+  /** 
+   * Check if top 2 setTime blocks sum 24h => bottom row => noTime 
+   * Otherwise => bottom row => default remainder 
+   */
+  function maybeAdjustThirdRow(blocks: DayData) {
+    const top = blocks[0];
+    const mid = blocks[1];
+    const bottom = blocks[2];
 
-  // We’ll rename the dropdown labels to "Default", "All Day", "Set Time"
+    // If top/mid both setTime, compute coverage
+    if (top.blockMode === "setTime" && mid.blockMode === "setTime") {
+      const startA = parseTime(top.startTime ?? "");
+      const endA   = parseTime(top.endTime ?? "");
+      const durA   = (endA - startA + 1440) % 1440;
+
+      const startB = parseTime(mid.startTime ?? "");
+      const endB   = parseTime(mid.endTime ?? "");
+      const durB   = (endB - startB + 1440) % 1440;
+
+      if (durA + durB === 1440) {
+        // covers full day => bottom => noTime
+        if (bottom.blockMode !== "noTime") {
+          blocks[2] = { blockMode: "noTime" }; // “No Remaining Time Available”
+        }
+      } else {
+        // partial coverage => bottom => default remainder
+        if (bottom.blockMode === "noTime") {
+          blocks[2] = {
+            blockMode: "default",
+            customRate: globalRate,
+            customMax: globalMax,
+          };
+        }
+      }
+    } else {
+      // If top or mid is not setTime => revert bottom => default remainder if it was "noTime"
+      if (bottom.blockMode === "noTime") {
+        blocks[2] = {
+          blockMode: "default",
+          customRate: globalRate,
+          customMax: globalMax,
+        };
+      }
+    }
+  }
+
+  // -------------- RENDER UTILS -------------
   const modeLabelMap: Record<BlockMode, string> = {
     default: "Default",
     allDay: "All Day",
     setTime: "Set Time",
-    newBlock: "New Time Block", // not used in the dropdown
+    newBlock: "New Time Block",
+    noTime: "No Remaining Time Available",
   };
 
-  /**
-   * Check if top 2 blocks in a column fully cover 24 hours.
-   * If so, forcibly set the 3rd block to newBlock (disabling "remainder").
-   */
-  function maybeDisableThirdRow(blocks: DayData) {
-    const top = blocks[0];
-    const mid = blocks[1];
-
-    // Both must be setTime to check coverage
-    if (top.mode !== "setTime" || mid.mode !== "setTime") return; 
-    // Parse durations
-    const startA = parseTime(top.startTime ?? "00:00");
-    const endA   = parseTime(top.endTime   ?? "00:00");
-    const startB = parseTime(mid.startTime ?? "00:00");
-    const endB   = parseTime(mid.endTime   ?? "00:00");
-
-    // Duration calc ignoring crossing midnight complexities
-    const durA = (endA - startA + 1440) % 1440;
-    const durB = (endB - startB + 1440) % 1440;
-    if (durA + durB === 1440) {
-      // covers full day => set 3rd row to newBlock
-      blocks[2] = { mode: "newBlock" };
-    }
-  }
-
-  const renderBlockDropdown = (
+  function renderBlockDropdown(
     block: Block,
     rowIndex: number,
     blocks: DayData,
     setBlocks: React.Dispatch<React.SetStateAction<DayData>>
-  ) => {
-    // 1) Hide entirely if newBlock
-    if (block.mode === "newBlock") {
-      return null;
+  ) {
+    if (block.blockMode === "newBlock" || block.blockMode === "noTime") {
+      return null; // hide entirely
     }
-    // 2) Hide if it's the 3rd row (rowIndex=2) AND block.mode=default => no dropdown
-    if (rowIndex === 2 && block.mode === "default") {
+    // If rowIndex=2 and it's default => remainder => hide dropdown
+    if (rowIndex === 2 && block.blockMode === "default") {
       return null;
     }
 
-    // If top row => "default", "allDay", "setTime"
-    // If second/third => "default", "setTime"
     const options: BlockMode[] =
       rowIndex === 0 ? ["default", "allDay", "setTime"] : ["default", "setTime"];
 
-    const handleModeChange = (newMode: BlockMode) => {
+    function handleChange(newMode: BlockMode) {
       const newBlocks = [...blocks] as DayData;
-      newBlocks[rowIndex] = { ...newBlocks[rowIndex], mode: newMode };
-      
-      // Force logic for below blocks
+      newBlocks[rowIndex] = { ...newBlocks[rowIndex], blockMode: newMode };
+
+      // same forced logic
       if (rowIndex === 0 && newMode === "setTime") {
-        newBlocks[1] = { mode: "default", customRate: globalRate, customMax: globalMax };
-        newBlocks[2] = { mode: "newBlock" };
+        newBlocks[1] = { blockMode: "default", customRate: globalRate, customMax: globalMax };
+        newBlocks[2] = { blockMode: "newBlock" };
       } else if (rowIndex === 0 && (newMode === "allDay" || newMode === "default")) {
-        newBlocks[1] = { mode: "newBlock" };
-        newBlocks[2] = { mode: "newBlock" };
+        newBlocks[1] = { blockMode: "newBlock" };
+        newBlocks[2] = { blockMode: "newBlock" };
       } else if (rowIndex === 1 && newMode === "setTime") {
-        newBlocks[2] = { mode: "default", customRate: globalRate, customMax: globalMax };
+        newBlocks[2] = { blockMode: "default", customRate: globalRate, customMax: globalMax };
       } else if (rowIndex === 1 && (newMode === "allDay" || newMode === "default")) {
-        newBlocks[2] = { mode: "newBlock" };
+        newBlocks[2] = { blockMode: "newBlock" };
       }
 
       setBlocks(newBlocks);
       setIsDirty(true);
-    };
+    }
 
     return (
       <select
         className={
-          "block-mode-dropdown" + (block.mode === "setTime" ? " settime-dropdown" : "")
+          "block-mode-dropdown" + (block.blockMode === "setTime" ? " settime-dropdown" : "")
         }
-        value={block.mode}
-        onChange={(e) => handleModeChange(e.target.value as BlockMode)}
+        value={block.blockMode}
+        onChange={(e) => handleChange(e.target.value as BlockMode)}
       >
         {options.map((opt) => (
           <option key={opt} value={opt}>
@@ -408,15 +412,23 @@ const AdvancedSettings: React.FC = () => {
         ))}
       </select>
     );
-  };
+  }
 
-  const renderBlockContent = (
+  function renderBlockContent(
     block: Block,
     rowIndex: number,
     blocks: DayData,
     setBlocks: React.Dispatch<React.SetStateAction<DayData>>
-  ) => {
-    if (block.mode === "newBlock") {
+  ) {
+    // noTime => show "No Remaining Time Available"
+    if (block.blockMode === "noTime") {
+      return (
+        <div className="fixed-box new-block-mode">
+          <div className="new-block">No Remaining Time Available</div>
+        </div>
+      );
+    }
+    if (block.blockMode === "newBlock") {
       return (
         <div className="fixed-box new-block-mode">
           <div className="new-block">New Time Block</div>
@@ -424,7 +436,7 @@ const AdvancedSettings: React.FC = () => {
       );
     }
 
-    if (block.mode === "default") {
+    if (block.blockMode === "default") {
       const labelText = rowIndex === 0 ? "All Day" : "Remainder";
       return (
         <div className="fixed-box allDay-mode">
@@ -453,20 +465,25 @@ const AdvancedSettings: React.FC = () => {
       );
     }
 
-    if (block.mode === "allDay") {
+    if (block.blockMode === "allDay") {
       const handleRateChange = (val: string) => {
         const newBlocks = [...blocks] as DayData;
-        newBlocks[rowIndex] = { ...block, customRate: val.replace(/[^0-9.]/g, "") };
+        newBlocks[rowIndex] = {
+          ...block,
+          customRate: val.replace(/[^0-9.]/g, ""),
+        };
         setBlocks(newBlocks);
         setIsDirty(true);
       };
       const handleMaxChange = (val: string) => {
         const newBlocks = [...blocks] as DayData;
-        newBlocks[rowIndex] = { ...block, customMax: val.replace(/[^0-9.]/g, "") };
+        newBlocks[rowIndex] = {
+          ...block,
+          customMax: val.replace(/[^0-9.]/g, ""),
+        };
         setBlocks(newBlocks);
         setIsDirty(true);
       };
-
       return (
         <div className="fixed-box allDay-mode">
           <div className="allDay-bottom">
@@ -495,7 +512,7 @@ const AdvancedSettings: React.FC = () => {
       );
     }
 
-    if (block.mode === "setTime") {
+    if (block.blockMode === "setTime") {
       const handleStartChange = (val: string) => {
         const newBlocks = [...blocks] as DayData;
         newBlocks[rowIndex] = { ...block, startTime: val };
@@ -523,17 +540,18 @@ const AdvancedSettings: React.FC = () => {
 
       return (
         <div className="fixed-box setTime-mode">
-          {/* top row is the dropdown, next row is start/end, bottom row is rate */}
           <div className="setTime-middle">
             <input
               type="time"
-              step="60"              // <--- ensures 24-hour format increments by 1 minute, no AM/PM
+              lang="en-GB"  // Force 24h in many browsers
+              step="60"
               value={block.startTime ?? ""}
               onChange={(e) => handleStartChange(e.target.value)}
               className="time-input"
             />
             <input
               type="time"
+              lang="en-GB"
               step="60"
               value={block.endTime ?? ""}
               onChange={(e) => handleEndChange(e.target.value)}
@@ -567,7 +585,7 @@ const AdvancedSettings: React.FC = () => {
     }
 
     return null;
-  };
+  }
 
   return (
     <div className="content">
@@ -581,30 +599,25 @@ const AdvancedSettings: React.FC = () => {
       {!advancedEnabled && (
         <p>Enable advanced settings to control time of day or day of week pricing.</p>
       )}
-
       {advancedEnabled && (
         <>
-          <p>
-            These settings allow for more customized billing periods, including day-of-week or
-            time-of-day pricing. Time must be in 24-hour format.
-          </p>
+          <p>These settings allow for more customized billing periods. Time must be 24‐hour format.</p>
 
           <div className="advanced-grid">
-            {/* Day Labels (row 1) */}
+            {/* Row 1: day labels */}
             {dayLabels.map((day) => (
               <div className="day-label" key={day}>
                 {day}
               </div>
             ))}
 
-            {/* 3 rows for each day */}
+            {/* Rows 2..4 => blocks */}
             {[0, 1, 2].map((rowIndex) =>
               dayStates.map(({ label, blocks, setter }) => {
-                // BEFORE rendering row 2, auto-disable if top coverage = 24h
+                // auto-check coverage before rendering rowIndex=2
                 if (rowIndex === 2) {
-                  maybeDisableThirdRow(blocks);
+                  maybeAdjustThirdRow(blocks);
                 }
-                
                 const block = blocks[rowIndex];
 
                 return (
@@ -628,12 +641,11 @@ const AdvancedSettings: React.FC = () => {
         </>
       )}
 
-      {/* ---------- MODALS ---------- */}
       {modalType === "disableAdvanced" && (
         <Modal
-          isOpen={true}
+          isOpen
           title="Disable Advanced Settings?"
-          description="This will remove any custom day/time pricing and revert these fields to empty on the server. Vehicles will be billed at General Settings rates only."
+          description="This removes custom day/time pricing and reverts to General Settings."
           confirmText="Disable"
           cancelText="Cancel"
           onConfirm={() => {
@@ -643,12 +655,11 @@ const AdvancedSettings: React.FC = () => {
           onCancel={() => setModalType(null)}
         />
       )}
-
       {modalType === "confirmSave" && (
         <Modal
-          isOpen={true}
+          isOpen
           title="Confirm Changes"
-          description="You're about to update the advanced pricing data. This change will be recorded in case of disputes."
+          description="You're about to update advanced pricing on the server."
           confirmText="Update Settings"
           cancelText="Return"
           onConfirm={() => {
@@ -658,12 +669,11 @@ const AdvancedSettings: React.FC = () => {
           onCancel={() => setModalType(null)}
         />
       )}
-
       {modalType === "unsavedChanges" && (
         <Modal
-          isOpen={true}
+          isOpen
           title="You have unsaved changes!"
-          description="The changes you made will not be applied unless you save before switching to another page."
+          description="Changes will not be applied unless you save before leaving."
           confirmText="Take me back!"
           cancelText="Continue Anyway"
           onConfirm={() => setModalType(null)}
