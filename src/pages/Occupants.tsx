@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import parkingSessionsData from "../data/parking_sessions.json";
 import lotPricing from "../data/lot_pricing.json";
-import lotsData from "../data/lots_master.json"; // Import lots data
+import lotsData from "../data/lots_master.json";
+import Modal from "../components/Modal";
 import "./Occupants.css";
 
 interface ParkingSession {
@@ -19,6 +20,8 @@ interface ParkingSession {
   plate: string;
 }
 
+type ModalType = "removeVehicle" | "removeValidation" | null;
+
 const Occupants: React.FC = () => {
   const { lotId } = useParams<{ lotId: string }>();
 
@@ -27,25 +30,29 @@ const Occupants: React.FC = () => {
   const [sortBy, setSortBy] = useState("plate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  // Find the current lot info (to get lotCapacity)
+  // For modal control
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<ModalType>(null);
+  const [modalSessionId, setModalSessionId] = useState<string | null>(null);
+
+  // Find current lot info (capacity)
   const currentLot = lotsData.find((l) => l.lotId === lotId);
   const lotCapacity = currentLot?.lotCapacity ?? 0;
 
   useEffect(() => {
-    // Filter relevant sessions for this lot
     const relevant = parkingSessionsData.filter((s) => s.lotId === lotId);
     setSessions(relevant);
   }, [lotId]);
 
-  // occupant count
   const occupantCount = sessions.length;
 
-  // check if validation is allowed
+  // Check if validation is allowed
   const pricing = lotPricing.find((entry) => entry.lotId === lotId);
   const allowValidation = pricing?.allowValidation ?? false;
 
-  // local validation toggle
+  // Helper to set occupant validated
   const handleValidate = (sessionId: string) => {
+    // If occupant is not validated, validate immediately (no modal)
     setSessions((prev) =>
       prev.map((s) =>
         s.sessionId === sessionId ? { ...s, isValidated: true } : s
@@ -53,9 +60,42 @@ const Occupants: React.FC = () => {
     );
   };
 
-  // remove occupant
-  const handleRemove = (sessionId: string) => {
-    setSessions((prev) => prev.filter((s) => s.sessionId !== sessionId));
+  // If occupant is validated, we want a modal to remove validation
+  const handleRemoveValidationModal = (sessionId: string) => {
+    setModalType("removeValidation");
+    setModalSessionId(sessionId);
+    setModalOpen(true);
+  };
+
+  const confirmRemoveValidation = () => {
+    if (modalSessionId) {
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.sessionId === modalSessionId ? { ...s, isValidated: false } : s
+        )
+      );
+    }
+    closeModal();
+  };
+
+  // Show a modal before removing occupant from the lot
+  const handleRemoveVehicleModal = (sessionId: string) => {
+    setModalType("removeVehicle");
+    setModalSessionId(sessionId);
+    setModalOpen(true);
+  };
+
+  const confirmRemoveVehicle = () => {
+    if (modalSessionId) {
+      setSessions((prev) => prev.filter((s) => s.sessionId !== modalSessionId));
+    }
+    closeModal();
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalType(null);
+    setModalSessionId(null);
   };
 
   // occupant status
@@ -65,13 +105,13 @@ const Occupants: React.FC = () => {
     return "Active";
   };
 
-  // sort handling
+  // sorting
   const handleSort = (column: string) => {
     setSortOrder(sortBy === column && sortOrder === "asc" ? "desc" : "asc");
     setSortBy(column);
   };
 
-  // duration calculations
+  // duration
   const getDurationMinutes = (time: string) => {
     const now = new Date();
     const entered = new Date(time);
@@ -84,7 +124,7 @@ const Occupants: React.FC = () => {
     return `${hrs}h ${mins}m`;
   };
 
-  // filtering & sorting
+  // filter & sort
   const filteredSessions = sessions
     .filter((s) =>
       Object.values(s).some((val) =>
@@ -136,10 +176,13 @@ const Occupants: React.FC = () => {
   };
 
   return (
-    <div className="occupants-page">
+    <div className="content">
       <div className="occupants-header">
         <h1>
-          Occupants {occupantCount}/{lotCapacity}
+          Occupants{" "}
+          <span className="occupant-count">
+            {occupantCount}/{lotCapacity}
+          </span>
         </h1>
         <p>Current Vehicle Plates in Your Lot</p>
       </div>
@@ -238,7 +281,8 @@ const Occupants: React.FC = () => {
                 className={`sort-arrow ${sortOrder}`}
               />
             </th>
-            <th>Remove</th>
+            {/* Narrow column for remove icon (no heading) */}
+            <th className="remove-column"></th>
           </tr>
         </thead>
         <tbody>
@@ -246,8 +290,6 @@ const Occupants: React.FC = () => {
             const durationMins = getDurationMinutes(session.entryTime);
             const isVal = session.isValidated;
             const isReg = session.isInRegistry;
-
-            // Determine occupant status
             const statusStr = getStatus(session);
 
             return (
@@ -259,6 +301,7 @@ const Occupants: React.FC = () => {
                 <td>{getDateStr(session.entryTime)}</td>
                 <td>{formatDuration(durationMins)}</td>
                 <td>
+                  {/* Validation logic */}
                   {allowValidation && !isVal && !isReg && (
                     <button
                       className="validate-button"
@@ -268,11 +311,17 @@ const Occupants: React.FC = () => {
                     </button>
                   )}
                   {allowValidation && isVal && (
-                    <button className="validate-button validated" disabled>
+                    <button
+                      className="validate-button validated"
+                      onClick={() => handleRemoveValidationModal(session.sessionId)}
+                    >
                       Validated
                     </button>
                   )}
-                  {!isVal && isReg && <span className="registered-label">Registered</span>}
+                  {!isVal && isReg && (
+                    <span className="registered-label">Registered</span>
+                  )}
+                  {/* If validation isn't allowed and status is Active, we show blank or any label */}
                   {!allowValidation && statusStr === "Active" && <span></span>}
                 </td>
                 <td>
@@ -280,7 +329,7 @@ const Occupants: React.FC = () => {
                     src="/assets/Minus.svg"
                     alt="Remove occupant"
                     className="remove-icon"
-                    onClick={() => handleRemove(session.sessionId)}
+                    onClick={() => handleRemoveVehicleModal(session.sessionId)}
                   />
                 </td>
               </tr>
@@ -288,6 +337,31 @@ const Occupants: React.FC = () => {
           })}
         </tbody>
       </table>
+
+      {/* MODALS */}
+      {modalOpen && modalType === "removeVehicle" && (
+        <Modal
+          isOpen
+          title="Remove Vehicle"
+          description="Confirming this action will remove this vehicle from your lot. They will not be billed or logged. You cannot undo this action."
+          confirmText="Remove Vehicle"
+          cancelText="Cancel"
+          onConfirm={confirmRemoveVehicle}
+          onCancel={closeModal}
+        />
+      )}
+
+      {modalOpen && modalType === "removeValidation" && (
+        <Modal
+          isOpen
+          title="Remove Validation"
+          description="This vehicle was already validated. Removing validation means the vehicle will be billed for their stay."
+          confirmText="Remove Validation"
+          cancelText="Keep Validated"
+          onConfirm={confirmRemoveValidation}
+          onCancel={closeModal}
+        />
+      )}
     </div>
   );
 };
