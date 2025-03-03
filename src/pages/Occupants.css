@@ -1,0 +1,132 @@
+
+  
+  /* Title area */
+  .occupants-header {
+    margin-top: 20px;
+    margin-bottom: 40px;
+  }
+  
+  
+  /* SEARCH BAR */
+  .occupants-search-bar {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    width: 100%;
+    max-width: 1250px;
+    margin: 0 auto 30px;
+    background-color: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 25px;
+    position: relative;
+  }
+  
+  .occupants-search-bar img {
+    width: 16px;
+    height: 16px;
+    margin-left: 20px;
+  }
+  
+  .occupants-search-bar input {
+    width: 100%;
+    border: none;
+    font-size: 16px;
+    outline: none;
+    background: transparent;
+    margin: 0px;
+  }
+  
+  /* TABLE */
+  .occupants-table {
+    width: 100%;
+    border-collapse: collapse;
+    transition: 0.2s;
+  }
+  
+  .occupants-table th {
+    text-align: left;
+    padding: 20px;
+    background-color: #ffffff;
+    color: #000000;
+    cursor: pointer;
+  }
+  
+  .occupants-table th.active {
+    color: #007aff;
+  }
+  
+  .occupants-table td {
+    padding: 10px 20px;
+    vertical-align: middle;
+  }
+  
+  /* Alternate row colors */
+  .occupants-table tr:nth-child(even) {
+    background-color: #fafafa;
+  }
+  
+  .occupants-table tr:nth-child(odd) {
+    background-color: #f3f3f3;
+  }
+  
+  /* Simple hover: bold text, no color inversion */
+  .occupants-table tr:hover td {
+    font-weight: 600;
+    background-color: inherit;
+    color: inherit;
+  }
+  
+  /* PLATE BADGE */
+  .plate-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border: 2px solid #FAFAFA;
+    border-radius: 8px;
+    font-family: "Oxanium", sans-serif;
+    font-size: 18px;
+    color: #000000;
+    background-color: #ffffff;
+    width: 80px;
+    text-align: center;
+    box-shadow: #0000001d 1px 1px 5px;
+  }
+  
+  /* VALIDATE BUTTON */
+  .validate-button {
+    padding: 8px 12px;
+    background-color: #007aff;
+    color: #ffffff;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-right: 10px;
+    width: 100px;
+  }
+  
+  .validate-button:hover {
+    background-color: rgb(30, 118, 212);
+  }
+
+  .validate-button.validated {
+    background-color: #b5d9ff;
+    cursor: not-allowed;
+  }
+  
+  /* REGISTERED LABEL */
+  .registered-label {
+    color: #000000;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 14px;
+    padding: 8px 12px;
+    text-align: center;
+  }
+  
+  /* REMOVE ICON */
+  .remove-icon {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+  
