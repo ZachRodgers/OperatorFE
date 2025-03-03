@@ -44,10 +44,10 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/parked-cars`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/${customerId}/${lotId}/occupants`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
-              <img src={`/assets/nav/${isActive ? "ParkedCarsSelected.svg" : "ParkedCars.svg"}`} alt="Parked Cars" />
+              <img src={`/assets/nav/${isActive ? "OccupantsSelected.svg" : "Occupants.svg"}`} alt="Occupants" />
               <span className={isActive ? "active-text" : ""}>Occupants</span>
             </>
           )}

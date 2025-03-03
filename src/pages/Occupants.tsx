@@ -1,12 +1,12 @@
 import React from "react";
 
-const ParkedCars = () => {
+const Occupants = () => {
   return (
     <div className="content">
-      <h1>ParkedCars</h1>
+      <h1>Occupants</h1>
       <p>Page content goes here.</p>
     </div>
   );
 };
 
-export default ParkedCars;
+export default Occupants;

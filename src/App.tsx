@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "rea
 import Login from "./pages/Login";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import RevenueDashboard from "./pages/RevenueDashboard";
-import ParkedCars from "./pages/ParkedCars";
+import ParkedCars from "./pages/Occupants";
 import Settings from "./pages/Settings";
 import AdvancedSettings from "./pages/AdvancedSettings";
 import PlateRegistry from "./pages/PlateRegistry";
@@ -49,7 +49,7 @@ function App() {
         
         {/* Pages using Sidebar layout */}
         <Route path="/:customerId/:lotId/revenue-dashboard" element={<ProtectedRoute element={<PageLayout><RevenueDashboard /></PageLayout>} requiresLot />} />
-        <Route path="/:customerId/:lotId/parked-cars" element={<ProtectedRoute element={<PageLayout><ParkedCars /></PageLayout>} requiresLot />} />
+        <Route path="/:customerId/:lotId/occupants" element={<ProtectedRoute element={<PageLayout><ParkedCars /></PageLayout>} requiresLot />} />
         <Route path="/:customerId/:lotId/settings" element={<ProtectedRoute element={<PageLayout><Settings /></PageLayout>} requiresLot />} />
         <Route path="/:customerId/:lotId/advanced" element={<ProtectedRoute element={<PageLayout><AdvancedSettings /></PageLayout>} requiresLot />} />
         <Route path="/:customerId/:lotId/registry" element={<ProtectedRoute element={<PageLayout><PlateRegistry /></PageLayout>} requiresLot />} />
