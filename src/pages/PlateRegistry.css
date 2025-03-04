@@ -1,6 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap");
 
-
 /* Title & slider in one row, left aligned. */
 .top-row {
   display: flex;
@@ -14,7 +13,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 20px;
-  margin-bottom: 30px
+  margin-bottom: 30px;
 }
 
 /* Search bar */
@@ -33,6 +32,7 @@
 .registry-search-bar img {
   width: 16px;
   height: 16px;
+  margin-right: 10px;
 }
 
 .registry-search-bar input {
@@ -44,7 +44,7 @@
   margin: 0px;
 }
 
-/* Upload wrapper: button + tooltip icon floating on the right. */
+/* Upload wrapper: button + tooltip icon floating on the left inside the same container. */
 .upload-wrapper {
   display: flex;
   align-items: center;
@@ -55,15 +55,16 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 9999; /* ensure it's above the button */
+  z-index: 900;
   left: 20px;
 }
 
-/* TABLE */
+/* TABLE with fixed layout to avoid shifting columns on hover. */
 .registry-table {
   width: 100%;
   border-collapse: collapse;
   transition: 0.2s;
+  table-layout: fixed; /* ensures columns have fixed widths */
 }
 
 .registry-table th {
@@ -72,6 +73,9 @@
   background-color: #ffffff;
   color: #000000;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .registry-table th.active {
@@ -82,8 +86,34 @@
   padding: 10px 20px;
   vertical-align: middle;
   position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Define specific column widths so the table doesn't resize on hover */
+.registry-table th:nth-child(1),
+.registry-table td:nth-child(1) {
+  width: 10%;
+}
+.registry-table th:nth-child(2),
+.registry-table td:nth-child(2) {
+  width: 20%;
+}
+.registry-table th:nth-child(3),
+.registry-table td:nth-child(3) {
+  width: 30%;
+}
+.registry-table th:nth-child(4),
+.registry-table td:nth-child(4) {
+  width: 20%;
+}
+.registry-table th:nth-child(5),
+.registry-table td:nth-child(5) {
+  width: 10%;
+}
+
+/* Hover style */
 .registry-table tr:nth-child(even) {
   background-color: #fafafa;
 }
@@ -92,7 +122,6 @@
   background-color: #f3f3f3;
 }
 
-/* Simple hover style */
 .registry-table tr:hover td {
   background-color: inherit;
   color: inherit;
@@ -113,21 +142,21 @@
 
 /* Plate badge */
 .plate-badge-reg {
-    display: inline-block;
-    padding: 5px 10px;
-    border: 2px solid #fafafa;
-    border-radius: 8px;
-    font-family: "Oxanium", sans-serif; /* ensure Oxanium usage */
-    font-size: 18px;
-    color: #000000;
-    background-color: #ffffff;
-    width: 80px;
-    text-align: center;
-    box-shadow: #0000001d 1px 1px 5px;
-    text-transform: uppercase;
+  display: inline-block;
+  padding: 5px 10px;
+  border: 2px solid #fafafa;
+  border-radius: 8px;
+  font-family: "Oxanium", sans-serif;
+  font-size: 18px;
+  color: #000000;
+  background-color: #ffffff;
+  width: 80px;
+  text-align: center;
+  box-shadow: #0000001d 1px 1px 5px;
+  text-transform: uppercase;
 }
 
-/* Normal input for existing rows */
+/* For normal editing input fields */
 .registry-input {
   width: 100%;
   border: 1px solid #ddd;
@@ -155,23 +184,24 @@
   background: #ffffff3d;
 }
 
+/* Special styling for the plate placeholder */
 .placeholder-input.plate-placeholder {
-    width: 105px;
-    border: 1.5px dashed #cccccc;
-    border-radius: 7px;
-    font-size: 18px;
-    outline: none;
-    color: #999;
-    padding: 8px 10px;
-    margin: 0px;
-    margin-bottom: 0px;
-    background: #ffffff72;
-    text-transform: uppercase;
-  }
+  width: 105px;
+  border: 1.5px dashed #cccccc;
+  border-radius: 7px;
+  font-size: 18px;
+  outline: none;
+  color: #999;
+  padding: 8px 10px;
+  margin: 0px;
+  margin-bottom: 0px;
+  background: #ffffff72;
+  text-transform: uppercase;
+}
 
 /* Actions column */
 .actions-column {
-  width: 100px;
+  width: 80px;
   text-align: center;
 }
 
@@ -183,7 +213,7 @@
   cursor: pointer;
   margin-right: 20px;
   transition: opacity 0.2s, filter 0.2s;
-  opacity: 100%;
+  opacity: 1;
 }
 
 .add-icon {
@@ -213,8 +243,19 @@
   transition: 0.2s;
 }
 
-/* Example styling for a “not allowed” cursor on the plus icon, if desired */
 .placeholder-row img:hover {
   filter: none;
   cursor: not-allowed;
+}
+
+/* 
+Optional: If you want an ellipsis for any long text 
+in non-editing cells, you can do:
+*/
+.ellipsis-cell {
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
