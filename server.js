@@ -114,3 +114,38 @@ app.get("/get-customer", (req, res) => {
     res.status(500).json({ message: "Server error." });
   }
 });
+
+// Additional paths
+const VEHICLE_REGISTRY_DATA_PATH = path.join(__dirname, "src/data/vehicle_registry.json");
+
+// Endpoint to fetch vehicle registry data (optional if you prefer direct JSON import)
+app.get("/get-vehicle-registry", (req, res) => {
+  try {
+    fs.readFile(VEHICLE_REGISTRY_DATA_PATH, "utf8", (err, data) => {
+      if (err) {
+        console.error("Error reading vehicle_registry.json:", err);
+        return res.status(500).json({ message: "Failed to read data." });
+      }
+      res.json(JSON.parse(data));
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
+// Endpoint to update or overwrite the entire vehicle_registry.json
+app.post("/update-vehicle-registry", (req, res) => {
+  try {
+    const newRegistry = req.body; // Expecting an array of registry entries
+    fs.writeFile(VEHICLE_REGISTRY_DATA_PATH, JSON.stringify(newRegistry, null, 2), "utf8", (err) => {
+      if (err) {
+        console.error("Error writing to vehicle_registry.json:", err);
+        return res.status(500).json({ message: "Failed to update data." });
+      }
+      res.status(200).json({ message: "Vehicle registry updated successfully." });
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({ message: "Server error." });
+  }
+});

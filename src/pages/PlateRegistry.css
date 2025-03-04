@@ -1,0 +1,191 @@
+@import url("https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap");
+
+
+/* Title & slider in one row, left aligned. */
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* The row containing search bar, upload, and save. Right aligned. */
+.actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+/* Search bar */
+.registry-search-bar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  background-color: #f9f9f9;
+  border: 1px solid #e5e5e5;
+  border-radius: 25px;
+  position: relative;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.registry-search-bar img {
+  width: 16px;
+  height: 16px;
+}
+
+.registry-search-bar input {
+  width: 100%;
+  border: none;
+  font-size: 16px;
+  outline: none;
+  background: transparent;
+  margin: 0px;
+}
+
+/* Upload wrapper: button + tooltip icon floating on the right. */
+.upload-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.tooltip-icon-container {
+  position: absolute;
+  right: -30px; /* shift it to the right so it doesn't overlap button */
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999; /* ensure it's above the button */
+}
+
+/* TABLE */
+.registry-table {
+  width: 100%;
+  border-collapse: collapse;
+  transition: 0.2s;
+}
+
+.registry-table th {
+  text-align: left;
+  padding: 15px;
+  background-color: #ffffff;
+  color: #000000;
+  border-bottom: 1px solid #e5e5e5;
+  cursor: pointer;
+}
+
+.registry-table th.active {
+  color: #007aff;
+}
+
+.registry-table td {
+  padding: 15px;
+  border-bottom: 1px solid #e5e5e5;
+  vertical-align: middle;
+  position: relative;
+}
+
+.registry-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.registry-table tr:nth-child(odd) {
+  background-color: #f3f3f3;
+}
+
+/* Simple hover style */
+.registry-table tr:hover td {
+  background-color: inherit;
+  color: inherit;
+  font-weight: 600;
+}
+
+/* Sort arrow */
+.sort-arrow {
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  transition: transform 0.2s ease;
+}
+
+.sort-arrow.desc {
+  transform: rotate(180deg);
+}
+
+/* Plate badge */
+.plate-badge-reg {
+  display: inline-block;
+  padding: 2px 5px;
+  border: 2px solid #fafafa;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: #0000001d 1px 1px 5px;
+  font-family: "Oxanium", sans-serif;
+}
+
+/* Normal input for existing rows */
+.registry-input {
+  width: 95%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  color: #000;
+  padding: 3px 5px;
+  background: #ffffff;
+}
+
+/* Placeholder row inputs */
+.placeholder-input {
+  width: 95%;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  color: #999;
+  padding: 3px 5px;
+  background: #ffffff;
+}
+
+/* Actions column */
+.actions-column {
+  width: 100px;
+  text-align: center;
+}
+
+/* Icons */
+.edit-icon,
+.remove-icon {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: opacity 0.2s, filter 0.2s;
+}
+
+.edit-icon:hover,
+.remove-icon:hover {
+  filter: brightness(90%);
+}
+
+/* Faded icons when another row is in edit mode */
+.faded {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Placeholder row styling */
+.placeholder-row td {
+  color: #999;
+}
+
+/* For the plus icon in placeholder row (inactive) */
+.placeholder-row img {
+  transition: 0.2s;
+}
+
+/* Example styling for a “not allowed” cursor on the plus icon, if desired */
+.placeholder-row img:hover {
+  filter: none;
+  cursor: not-allowed;
+}
