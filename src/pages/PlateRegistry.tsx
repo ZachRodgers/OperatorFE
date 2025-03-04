@@ -18,7 +18,7 @@ interface VehicleRegistryEntry {
 
 /** Distinguish a real row from the placeholder row. */
 interface RegistryRow extends VehicleRegistryEntry {
-  isPlaceholder?: boolean;  // if true, this row shows "+ Plate", etc.
+  isPlaceholder?: boolean;  // if true, it’s the “add new” row
   isEditing?: boolean;      // whether this row is in edit mode
 }
 
@@ -52,8 +52,8 @@ const PlateRegistry: React.FC = () => {
   // Track if we turned registry from off->on
   const turnedRegistryOn = useRef(false);
 
-  /** On mount: load relevant rows, plus one placeholder row. */
   useEffect(() => {
+    // Load relevant rows from vehicleRegistryData
     const relevant = vehicleRegistryData.filter((v) => v.lotId === lotId);
     const realRows: RegistryRow[] = relevant.map((r) => ({
       ...r,
@@ -69,14 +69,14 @@ const PlateRegistry: React.FC = () => {
     setRows(realRows);
   }, [lotId]);
 
-  /** Create a fresh placeholder row. */
+  /** Create a fresh placeholder row with empty strings, so we can use actual input placeholders. */
   const createPlaceholderRow = (): RegistryRow => ({
     lotId: lotId || "",
-    vehicleId: `PL_${Math.floor(Math.random() * 100000)}`, // unique ID
-    plate: "+ Plate",
-    name: "Name",
-    email: "email@address.com",
-    phone: "000-000-0000",
+    vehicleId: `PL_${Math.floor(Math.random() * 100000)}`,
+    plate: "", // truly empty, so we can use placeholder text in the input
+    name: "",
+    email: "",
+    phone: "",
     isPlaceholder: true,
     isEditing: false,
   });
@@ -135,21 +135,21 @@ const PlateRegistry: React.FC = () => {
   // --------------- SEARCH & SORT ---------------
   const filteredRows = rows
     .filter((r) => {
-      // If it's the placeholder row, always show if registryOn
+      // Hide placeholder if registry is off
       if (r.isPlaceholder && !registryOn) {
         return false;
       }
-      // normal search for real row
+      // Search
       const str = `${r.plate} ${r.name} ${r.email} ${r.phone}`.toLowerCase();
       return str.includes(searchQuery.toLowerCase());
     })
     .sort((a, b) => {
-      // Put the placeholder row at the bottom always
+      // Keep placeholder row at bottom
       if (a.isPlaceholder && !b.isPlaceholder) return 1;
       if (b.isPlaceholder && !a.isPlaceholder) return -1;
 
       if (a.isPlaceholder && b.isPlaceholder) {
-        // If both are placeholders, sort by vehicleId just to keep stable
+        // If both are placeholders, sort by vehicleId for stability
         return a.vehicleId.localeCompare(b.vehicleId);
       }
 
@@ -191,9 +191,8 @@ const PlateRegistry: React.FC = () => {
     );
   };
 
-  /** When user clicks anywhere outside inputs, we exit edit mode if not placeholder. */
+  /** If user clicks outside an input/icon, end edit mode for all non-placeholder rows. */
   const handleGlobalClick = (e: MouseEvent) => {
-    // If the user clicked inside an input or an icon, do nothing
     const target = e.target as HTMLElement;
     if (
       target.closest(".registry-input") ||
@@ -204,7 +203,6 @@ const PlateRegistry: React.FC = () => {
     ) {
       return;
     }
-    // Otherwise, turn off editing for all non-placeholder rows
     setRows((prev) =>
       prev.map((r) => (r.isPlaceholder ? r : { ...r, isEditing: false }))
     );
@@ -216,32 +214,44 @@ const PlateRegistry: React.FC = () => {
   }, []);
 
   // --------------- FIELD CHANGES ---------------
-  /** If row is placeholder and user modifies any field from default, convert it to a real row. */
+  /**
+   * If this row is a placeholder, and the user types anything (value != ""),
+   * we convert it to a real row (isPlaceholder=false, isEditing=true),
+   * then append a new placeholder row. We do that after the map finishes
+   * to avoid concurrency issues.
+   */
   const handleFieldChange = (
     rowId: string,
     field: keyof VehicleRegistryEntry,
     value: string
   ) => {
     setRows((prev) => {
-      const newState = prev.map((r) => {
+      // We'll do two passes: first map, then possibly add new placeholder row.
+      let convertedIndex = -1;
+
+      const newRows = prev.map((r, idx) => {
         if (r.vehicleId === rowId) {
-          // If it's a placeholder and user typed something, we convert it to real row
-          if (r.isPlaceholder) {
-            // If user is editing the placeholder text (like "+ Plate"), once changed => real row
-            const changed = value.trim() !== "" && value.trim() !== r[field];
-            if (changed && (r[field].startsWith("+ ") || r[field] === "Name" || r[field] === "email@address.com" || r[field] === "000-000-0000")) {
-              // Convert to real row
-              r.isPlaceholder = false;
-              r.isEditing = true; // now it's in edit mode
-              // Add a new placeholder row below
-              newState.push(createPlaceholderRow());
-            }
+          // update the field
+          const updated = { ...r, [field]: value };
+
+          // if it's a placeholder and user typed something non-empty
+          if (r.isPlaceholder && value.trim() !== "") {
+            // convert to real row
+            updated.isPlaceholder = false;
+            updated.isEditing = true;
+            convertedIndex = idx;
           }
-          return { ...r, [field]: value };
+          return updated;
         }
         return r;
       });
-      return newState;
+
+      // if we converted a placeholder => push a new placeholder row
+      if (convertedIndex >= 0) {
+        newRows.push(createPlaceholderRow());
+      }
+
+      return newRows;
     });
     setIsDirty(true);
   };
@@ -318,7 +328,6 @@ const PlateRegistry: React.FC = () => {
   };
 
   // --------------- RENDER ---------------
-  // Whether to fade out other rows’ icons if a row is in edit mode
   const someRowIsEditing = rows.some((r) => r.isEditing);
 
   return (
@@ -329,14 +338,12 @@ const PlateRegistry: React.FC = () => {
         <Slider checked={registryOn} onChange={handleToggleRegistry} />
       </div>
 
-      {/* If registry off => short message only */}
       {!registryOn && (
         <p>
           Enable the Plate Registry to add license plates that will not be charged when parked in the lot.
         </p>
       )}
 
-      {/* If on => show note, plus row with search, upload, and Save */}
       {registryOn && (
         <>
           <p>
@@ -344,7 +351,7 @@ const PlateRegistry: React.FC = () => {
             You can add them manually, upload a spreadsheet, or purchase an addon for monthly billing.
           </p>
 
-          {/* Search, Upload, Save in one row (right aligned) */}
+          {/* Search, Upload, Save in one row */}
           <div className="actions-row">
             <div className="registry-search-bar">
               <img src="/assets/SearchBarIcon.svg" alt="Search" />
@@ -360,7 +367,6 @@ const PlateRegistry: React.FC = () => {
               <button className="button secondary" onClick={() => alert("Not implemented!")}>
                 Upload Sheet
               </button>
-              {/* The info icon & tooltip can float outside to avoid clipping */}
               <div className="tooltip-icon-container">
                 <Tooltip
                   text="Our system will parse your spreadsheet to add plates automatically."
@@ -443,13 +449,15 @@ const PlateRegistry: React.FC = () => {
                 const fadeIcons = someRowIsEditing && !isRowEditing;
 
                 if (row.isPlaceholder) {
-                  // Placeholder row
+                  // The add-new row: empty strings, with placeholders
                   return (
                     <tr key={row.vehicleId} className="placeholder-row">
                       <td>
                         <input
                           type="text"
-                          className="placeholder-input"
+                          className="placeholder-input plate-placeholder"
+                          placeholder="+ Plate"
+                          style={{ fontFamily: "'Oxanium', sans-serif" }}
                           value={row.plate}
                           onChange={(e) => handleFieldChange(row.vehicleId, "plate", e.target.value)}
                         />
@@ -458,6 +466,7 @@ const PlateRegistry: React.FC = () => {
                         <input
                           type="text"
                           className="placeholder-input"
+                          placeholder="Name"
                           value={row.name}
                           onChange={(e) => handleFieldChange(row.vehicleId, "name", e.target.value)}
                         />
@@ -466,6 +475,7 @@ const PlateRegistry: React.FC = () => {
                         <input
                           type="text"
                           className="placeholder-input"
+                          placeholder="email@address.com"
                           value={row.email}
                           onChange={(e) => handleFieldChange(row.vehicleId, "email", e.target.value)}
                         />
@@ -474,6 +484,7 @@ const PlateRegistry: React.FC = () => {
                         <input
                           type="text"
                           className="placeholder-input"
+                          placeholder="000-000-0000"
                           value={row.phone}
                           onChange={(e) => handleFieldChange(row.vehicleId, "phone", e.target.value)}
                         />
@@ -482,7 +493,7 @@ const PlateRegistry: React.FC = () => {
                         <img
                           src="/assets/Plus.svg"
                           alt="Add row"
-                          className={'add-icon'}
+                          className="add-icon"
                         />
                       </td>
                     </tr>
@@ -499,6 +510,7 @@ const PlateRegistry: React.FC = () => {
                           className="registry-input"
                           value={row.plate}
                           onChange={(e) => handleFieldChange(row.vehicleId, "plate", e.target.value)}
+                          style={{ fontFamily: "'Oxanium', sans-serif" }}
                         />
                       ) : (
                         <div className="plate-badge-reg">{row.plate}</div>
@@ -599,7 +611,7 @@ const PlateRegistry: React.FC = () => {
         <Modal
           isOpen
           title="You have unsaved changes!"
-          description="Changes will not be applied unless you save before leaving. Do you want to discard them and disable the registry?"
+          description="Changes will not be applied unless you save before leaving. Discard them and disable the registry?"
           confirmText="Discard & Disable"
           cancelText="Keep Editing"
           onConfirm={() => {

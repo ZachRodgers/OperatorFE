@@ -124,6 +124,7 @@
     width: 80px;
     text-align: center;
     box-shadow: #0000001d 1px 1px 5px;
+    text-transform: uppercase;
 }
 
 /* Normal input for existing rows */
@@ -143,7 +144,7 @@
 /* Placeholder row inputs */
 .placeholder-input {
   width: 100%;
-  border: 1.5px dashed #cccccc;
+  border: 0px;
   border-radius: 4px;
   font-size: 16px;
   outline: none;
@@ -151,8 +152,22 @@
   padding: 8px 10px;
   margin-left: -10px;
   margin-bottom: 0px;
-  background: #ffffff;
+  background: #ffffff3d;
 }
+
+.placeholder-input.plate-placeholder {
+    width: 105px;
+    border: 1.5px dashed #cccccc;
+    border-radius: 7px;
+    font-size: 18px;
+    outline: none;
+    color: #999;
+    padding: 8px 10px;
+    margin: 0px;
+    margin-bottom: 0px;
+    background: #ffffff72;
+    text-transform: uppercase;
+  }
 
 /* Actions column */
 .actions-column {
@@ -166,7 +181,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  margin-right: 10px;
+  margin-right: 20px;
   transition: opacity 0.2s, filter 0.2s;
   opacity: 100%;
 }
