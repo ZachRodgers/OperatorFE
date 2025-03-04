@@ -358,7 +358,7 @@ const PlateRegistry: React.FC = () => {
 
             <div className="upload-wrapper">
               <button className="button secondary" onClick={() => alert("Not implemented!")}>
-                Upload Spreadsheet
+                Upload Sheet
               </button>
               {/* The info icon & tooltip can float outside to avoid clipping */}
               <div className="tooltip-icon-container">
@@ -482,7 +482,7 @@ const PlateRegistry: React.FC = () => {
                         <img
                           src="/assets/Plus.svg"
                           alt="Add row"
-                          style={{ opacity: 0.3, cursor: "not-allowed" }}
+                          className={'add-icon'}
                         />
                       </td>
                     </tr>
