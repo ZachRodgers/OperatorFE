@@ -206,7 +206,7 @@
 }
 
 /* Icons */
-.edit-icon,
+.edit-icon2,
 .remove-icon {
   width: 20px;
   height: 20px;
@@ -222,7 +222,7 @@
   opacity: 0.3;
 }
 
-.edit-icon:hover,
+.edit-icon2:hover,
 .remove-icon:hover {
   filter: brightness(80%);
 }

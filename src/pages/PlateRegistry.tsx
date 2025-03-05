@@ -628,7 +628,7 @@ const toggleEditRow = (vehicleId: string) => {
                       <img
                         src="/assets/Edit2.svg"
                         alt="Edit entry"
-                        className={`edit-icon ${fadeIcons ? "faded" : ""}`}
+                        className={`edit-icon2 ${fadeIcons ? "faded" : ""}`}
                         onClick={() => {
                           if (!fadeIcons) toggleEditRow(row.vehicleId);
                         }}

@@ -1,0 +1,82 @@
+.account-title-row {
+    margin-bottom: 20px;
+  }
+  
+  .light-text {
+    font-weight: 400;
+    color: #323232;
+    margin-left: 5px;
+  }
+  
+  .account-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  
+  .account-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .account-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .bold {
+    font-weight: 600;
+  }
+  
+  .edit-icon {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  
+  .edit-icon:hover {
+    opacity: 1;
+  }
+  
+  .lot-section {
+    margin-bottom: 200px;
+  }
+  
+  .lot-role-row {
+    display: flex;
+    gap: 25%;
+    margin-top: 10px;
+  }
+  
+  .lot-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .reset-password-link {
+    background: none;
+    border: none;
+    color: #7d7d7d;
+    font-size: 14px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  
+  .reset-password-link:hover {
+    color: #007AFF;
+  }
+  
+  .error {
+    color: #ff3b3b; 
+    font-size: 14px;
+    font-style: italic; 
+    text-align: center;
+    margin-top: 10px;
+  }
+  

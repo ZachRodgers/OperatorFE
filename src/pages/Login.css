@@ -162,4 +162,11 @@
     color: #BDBDBD !important; /* Force placeholder to be visible */
     opacity: 1 !important;
   }
+  .reset-info {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 15px;
+    text-align: left;
+    line-height: 1.4;
+  }
   
