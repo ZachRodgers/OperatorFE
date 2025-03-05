@@ -146,29 +146,28 @@ const PlateRegistry: React.FC = () => {
   /** Returns the final array of rows after filtering, sorting, and pinning editing row on top. */
   const getFilteredAndSortedRows = (): RegistryRow[] => {
     let working = [...rows];
-
+  
     // If registry is off => hide placeholder row
     if (!registryOn) {
       working = working.filter((r) => !r.isPlaceholder);
     }
-
+  
     // Filter by search
     working = working.filter((r) => {
       const str = `${r.plate} ${r.name} ${r.email} ${r.phone}`.toLowerCase();
       return str.includes(searchQuery.toLowerCase());
     });
-
-    // Sort
+  
+    // Sort normally
     working.sort((a, b) => {
-      // keep placeholders at bottom
-      if (a.isPlaceholder && !b.isPlaceholder) return 1;
-      if (b.isPlaceholder && !a.isPlaceholder) return -1;
-
-      // If both placeholders, stable by ID
+      // If both placeholders or both real rows, normal logic applies
       if (a.isPlaceholder && b.isPlaceholder) {
-        return a.vehicleId.localeCompare(b.vehicleId);
+        return a.vehicleId.localeCompare(b.vehicleId); // stable
       }
-
+      if (a.isPlaceholder && !b.isPlaceholder) return 1;  // by default placeholders at bottom
+      if (!a.isPlaceholder && b.isPlaceholder) return -1; // or top—(we’ll fix this below)
+      
+      // Real row sorting
       let valA = "";
       let valB = "";
       if (sortBy === "plate") {
@@ -187,17 +186,29 @@ const PlateRegistry: React.FC = () => {
       const cmp = valA.localeCompare(valB);
       return sortOrder === "asc" ? cmp : -cmp;
     });
-
-    // If a row is editing => pin to top
-    const editingIndex = working.findIndex((r) => r.isEditing);
+  
+    // --- Force the placeholder row to the very top ---
+    // (We’ll find the placeholder row, remove it, unshift it)
+    const placeholderIndex = working.findIndex((r) => r.isPlaceholder);
+    if (placeholderIndex >= 0) {
+      const [placeholderRow] = working.splice(placeholderIndex, 1);
+      working.unshift(placeholderRow);
+    }
+  
+    // --- Pin editing row below the placeholder row ---
+    // (Find an editing row that’s not the placeholder, remove, then insert at index=1)
+    const editingIndex = working.findIndex((r) => r.isEditing && !r.isPlaceholder);
     if (editingIndex > -1) {
       const [editingRow] = working.splice(editingIndex, 1);
-      working.unshift(editingRow);
+      // If we have a placeholder row at [0], place editing row at [1].
+      // If no placeholder row (e.g., registry is off), place at 0. 
+      const targetIndex = placeholderIndex >= 0 ? 1 : 0;
+      working.splice(targetIndex, 0, editingRow);
     }
-
+  
     return working;
   };
-
+  
   const handleSort = (col: "plate" | "name" | "email" | "phone") => {
     setSortOrder(sortBy === col && sortOrder === "asc" ? "desc" : "asc");
     setSortBy(col);
