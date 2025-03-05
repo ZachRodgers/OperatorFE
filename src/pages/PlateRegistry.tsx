@@ -204,20 +204,45 @@ const PlateRegistry: React.FC = () => {
   };
 
   // ------------------- EDIT MODE -------------------
-  const toggleEditRow = (vehicleId: string) => {
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.vehicleId === vehicleId) {
-          return { ...r, isEditing: !r.isEditing };
+// ...
+const toggleEditRow = (vehicleId: string) => {
+  setRows((prev) => {
+    return prev.map((row) => {
+      if (row.vehicleId === vehicleId) {
+        // If we're currently editing, and we want to turn off edit mode
+        if (row.isEditing) {
+          // Check if the row is truly empty (all fields blank) and not a placeholder
+          const allEmpty =
+            !row.plate.trim() &&
+            !row.name.trim() &&
+            !row.email.trim() &&
+            !row.phone.trim();
+
+          // If empty => remove from array
+          if (allEmpty && !row.isPlaceholder) {
+            // We'll remove it in a separate pass below
+            return { ...row, isEditing: false, vehicleId: "TO_BE_REMOVED" };
+          }
+          // Otherwise just toggle off edit
+          return { ...row, isEditing: false };
+        } else {
+          // Turn on edit mode, turn off for all others
+          return { ...row, isEditing: true };
         }
-        return { ...r, isEditing: false };
-      })
-    );
-  };
+      }
+      // Turn off edit for all other rows
+      return { ...row, isEditing: false };
+    }).filter((r) => r.vehicleId !== "TO_BE_REMOVED"); // Filter out any empty row
+  });
+};
+// ...
+
 
   /** If user clicks outside an input/icon => end edit mode for real rows. */
   const handleGlobalClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
+    
+    // If the user clicked inside an input or an icon, do nothing
     if (
       target.closest(".registry-input") ||
       target.closest(".plate-input") ||
@@ -227,8 +252,33 @@ const PlateRegistry: React.FC = () => {
     ) {
       return;
     }
-    setRows((prev) => prev.map((r) => (r.isPlaceholder ? r : { ...r, isEditing: false })));
+  
+    setRows((prev) => {
+      // First, end edit mode for all non-placeholder rows
+      let newRows = prev.map((row) =>
+        row.isPlaceholder ? row : { ...row, isEditing: false }
+      );
+  
+      // Then, remove any real row that is completely empty
+      newRows = newRows.filter((row) => {
+        // Keep placeholder rows
+        if (row.isPlaceholder) return true;
+  
+        // Check if row is all blank
+        const allEmpty =
+          !row.plate.trim() &&
+          !row.name.trim() &&
+          !row.email.trim() &&
+          !row.phone.trim();
+  
+        // If all fields are empty => remove it
+        return !allEmpty;
+      });
+  
+      return newRows;
+    });
   };
+  
 
   useEffect(() => {
     document.addEventListener("click", handleGlobalClick);

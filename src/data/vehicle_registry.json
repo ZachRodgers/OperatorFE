@@ -9,14 +9,6 @@
   },
   {
     "lotId": "0000-0001",
-    "vehicleId": "PL_34130",
-    "plate": "bmkk002",
-    "name": "Test person",
-    "email": "email@email",
-    "phone": ""
-  },
-  {
-    "lotId": "0000-0001",
     "vehicleId": "VR_1002",
     "plate": "JLK2403",
     "name": "Rex Johnford",
