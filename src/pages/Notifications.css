@@ -1,0 +1,252 @@
+/* Top bar styling from your snippet */
+.notif-topbar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    margin-top: 40px;
+  }
+  
+  .notif-topbar button {
+    border: none;
+    border-radius: 20px;
+    background-color: #f1f1f1;
+    padding: 10px 20px;
+    min-width: 150px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+  }
+  
+  .notif-topbar button:hover {
+    background-color: #007aff;
+    color: #ffffff;
+    font-weight: 500;
+  }
+  
+  .recipients-btn {
+    margin-left: auto;
+  }
+  
+  /* Table with no thead, alternating row colors */
+  .notif-table {
+    width: 100%;
+    border-collapse: collapse;
+    transition: 0.2s;
+  }
+  
+  .notif-table td {
+    padding: 15px;
+    vertical-align: top;
+  }
+  
+  /* Alternating row colors */
+  .notif-table tr:nth-child(even) {
+    background-color: #fafafa;
+  }
+  .notif-table tr:nth-child(odd) {
+    background-color: #f3f3f3;
+  }
+  
+  /* Column widths */
+  .checkbox-col {
+    width: 50px;
+    text-align: center;
+  }
+  
+  .notif-info-col {
+    width: calc(100% - 200px);
+  }
+  
+  .button-col {
+    width: 150px;
+    text-align: left;
+  }
+  
+  /* Custom checkbox styling */
+  .custom-checkbox {
+    position: relative;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+  
+  .hidden-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+  }
+  
+  .checkbox-styler {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #999;
+    border-radius: 4px;
+    background-color: transparent;
+    transition: background-color 0.1s, border-color 0.1s;
+  }
+  
+  /* 
+     When checked => 
+     - background: #007aff
+     - a small white border around the inside 
+     - outer border is #999
+     We'll simulate by using box-shadow or an inset border
+  */
+  .hidden-checkbox:checked ~ .checkbox-styler {
+    background-color: #007aff;
+    box-shadow: inset 0 0 0 1.4px #ffffff; /* thin white border inside */
+    border-color: #999; /* outer border is gray */
+  }
+  
+  /* Hover effect: highlight border in blue */
+  .custom-checkbox:hover .checkbox-styler {
+    border-color: #007aff;
+  }
+  
+  /* Title row: title, badges, date in one line */
+  .notif-title-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .notif-title {
+    font-weight: 600;
+    font-size: 16px;
+  }
+  
+  /* "NEW" badge in blue */
+  .new-badge {
+    background-color: #007aff;
+    color: #ffffff;
+    font-size: 10px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  
+  /* "Violation" badge in red, smaller text */
+  .violation-badge {
+    background-color: #F05E5E;
+    color: #ffffff;
+    font-size: 10px; 
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+  
+  /* Date right after badges */
+  .notif-date-loc {
+    font-size: 14px;
+    font-weight: 600;
+    color: #999999;
+  }
+  
+  /* message text */
+  .notif-message {
+    font-size: 14px;
+    color: #000000;
+    margin-top: 5px;
+  }
+  
+  /* Link button in 3rd column */
+  .link-btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    background-color: #007aff;
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .link-btn:hover {
+    background-color: #005bbb;
+    transition: 0.2s;
+  }
+  
+  /* Modal overlay for image preview */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Modal content box */
+  .modal-content {
+    background-color: #ffffff;
+    width: 600px;
+    max-width: 90%;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    text-align: center;
+  }
+  
+  .modal-content h2 {
+    margin-bottom: 10px;
+    font-size: 20px;
+  }
+  
+  .modal-content p {
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+  
+  .modal-image {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-bottom: 15px;
+  }
+  
+  /* Buttons in the modal */
+  .modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+  
+  .dismiss-btn,
+  .close-btn {
+    border: none;
+    border-radius: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  
+  .dismiss-btn {
+    background-color: #007aff;
+    color: #ffffff;
+  }
+  
+  .dismiss-btn:hover {
+    background-color: #005bbb;
+  }
+  
+  .close-btn {
+    background-color: #f1f1f1;
+    color: #000000;
+  }
+  
+  .close-btn:hover {
+    background-color: #dcdcdc;
+  }
+  

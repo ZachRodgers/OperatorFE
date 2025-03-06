@@ -178,6 +178,42 @@ app.post("/update-vehicle-registry", (req, res) => {
   }
 });
 
+// 8. Lot notifications endpoints
+
+const NOTIFICATIONS_DATA_PATH = path.join(__dirname, "src/data/lot_notifications.json");
+
+app.get("/get-lot-notifications", (req, res) => {
+  try {
+    fs.readFile(NOTIFICATIONS_DATA_PATH, "utf8", (err, data) => {
+      if (err) {
+        console.error("Error reading lot_notifications.json:", err);
+        return res.status(500).json({ message: "Failed to read data." });
+      }
+      res.json(JSON.parse(data));
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
+app.post("/update-lot-notifications", (req, res) => {
+  try {
+    const newNotifs = req.body; // array of notifications
+    fs.writeFile(NOTIFICATIONS_DATA_PATH, JSON.stringify(newNotifs, null, 2), "utf8", (err) => {
+      if (err) {
+        console.error("Error writing lot_notifications.json:", err);
+        return res.status(500).json({ message: "Failed to update notifications." });
+      }
+      res.status(200).json({ message: "Notifications updated successfully." });
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
+
+
 // 7. Start the server
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
