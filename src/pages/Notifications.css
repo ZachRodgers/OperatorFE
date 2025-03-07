@@ -1,29 +1,48 @@
-/* Top bar styling from your snippet */
 .notif-topbar {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    margin-top: 40px;
-  }
-  
-  .notif-topbar button {
-    border: none;
-    border-radius: 20px;
-    background-color: #f1f1f1;
-    padding: 10px 20px;
-    min-width: 150px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: 0.2s;
-  }
-  
-  .notif-topbar button:hover {
-    background-color: #007aff;
-    color: #ffffff;
-    font-weight: 500;
-  }
-  
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  margin-top: 40px;
+}
+
+.notif-topbar button {
+  /* Use inline-flex so icon & text can align nicely */
+  display: inline-flex;
+  align-items: center;     /* vertically center icon & text */
+  justify-content: center; /* horizontally center them within the button */
+  gap: 8px;                /* space between icon & text */
+
+  border: none;
+  border-radius: 20px;
+  background-color: #f1f1f1;
+  padding: 10px 20px;
+  min-width: 150px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+/* On hover => background is #007aff, text is white, and icon turns white */
+.notif-topbar button:hover {
+  background-color: #007aff;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* The icon itself */
+.icon-person {
+  width: 16px;
+  height: 16px;
+  transition: 0.2s;
+}
+
+/* On hover => invert icon to white */
+.notif-topbar button:hover .icon-person {
+  filter: brightness(0) invert(1);
+}
+
+
   .recipients-btn {
     margin-left: auto;
   }
@@ -249,4 +268,3 @@
   .close-btn:hover {
     background-color: #dcdcdc;
   }
-  
