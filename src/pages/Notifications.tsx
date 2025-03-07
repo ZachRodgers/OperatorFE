@@ -44,7 +44,7 @@ const Notifications: React.FC = () => {
   const [recipientModalOpen, setRecipientModalOpen] = useState(false);
   const [currentRecipients, setCurrentRecipients] = useState<string[]>([]);
 
-  // We do a 2-second timer to mark unread as read on the server
+  // Timer ref to mark notifications as read on the server
   const markReadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -56,10 +56,9 @@ const Notifications: React.FC = () => {
         id: `notif_${index}`,
         isSelected: false,
       }));
-
     setNotifications(relevant);
 
-    // 2) Mark them read on the server after 2s
+    // 2) After 2 seconds, mark all unread notifications as read on the server.
     markReadTimerRef.current = setTimeout(() => {
       markAllUnreadOnServer(relevant);
     }, 2000);
@@ -77,7 +76,7 @@ const Notifications: React.FC = () => {
     };
   }, [lotId]);
 
-  // We do not update local isRead => keeps "NEW" badge
+  // Mark notifications as read on the server (local isRead remains unchanged)
   const markAllUnreadOnServer = async (items: DisplayNotification[]) => {
     const updated = items.map((item) =>
       item.isRead ? item : { ...item, isRead: true }
@@ -85,13 +84,11 @@ const Notifications: React.FC = () => {
     updateNotificationsOnServer(updated);
   };
 
-  // Keep track of how many are selected
   useEffect(() => {
     const count = notifications.filter((n) => n.isSelected).length;
     setSelectedCount(count);
   }, [notifications]);
 
-  // Toggling selection
   const toggleSelect = (id: string) => {
     setNotifications((prev) =>
       prev.map((item) =>
@@ -100,17 +97,14 @@ const Notifications: React.FC = () => {
     );
   };
 
-  // "Select All"
   const handleSelectAll = () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, isSelected: true })));
   };
 
-  // "Unselect All"
   const handleUnselectAll = () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, isSelected: false })));
   };
 
-  // "Dismiss" => isDeleted = true for selected
   const handleDismiss = () => {
     setNotifications((prev) => {
       const updated = prev.map((item) =>
@@ -122,7 +116,6 @@ const Notifications: React.FC = () => {
     });
   };
 
-  // "Mark as Read" => server only
   const handleMarkAsRead = () => {
     setNotifications((prev) => {
       const updatedForServer = prev.map((item) =>
@@ -133,7 +126,7 @@ const Notifications: React.FC = () => {
     });
   };
 
-  // For recipients
+  // Recipients modal controls
   const handleOpenRecipients = () => {
     setRecipientModalOpen(true);
   };
@@ -141,19 +134,15 @@ const Notifications: React.FC = () => {
     setRecipientModalOpen(false);
   };
 
-  // Called by the modal whenever the array changes
   const handleUpdateRecipients = async (newRecipients: string[]) => {
     setCurrentRecipients(newRecipients);
-    // Update on server
     try {
       const resp = await fetch("http://localhost:5000/update-lot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lotId,
-          updatedData: {
-            notificationRecipients: newRecipients,
-          },
+          updatedData: { notificationRecipients: newRecipients },
         }),
       });
       if (!resp.ok) {
@@ -164,7 +153,6 @@ const Notifications: React.FC = () => {
     }
   };
 
-  // server update for notifications
   const updateNotificationsOnServer = async (updatedList: DisplayNotification[]) => {
     const toWrite = updatedList.map((item) => ({
       lotId: item.lotId,
@@ -189,7 +177,6 @@ const Notifications: React.FC = () => {
     }
   };
 
-  // Sorting: unread on top => date desc
   const sortNotifications = (items: DisplayNotification[]) => {
     const unread = items.filter((i) => !i.isRead);
     const read = items.filter((i) => i.isRead);
@@ -198,12 +185,10 @@ const Notifications: React.FC = () => {
     return [...unread, ...read];
   };
 
-  // Filter out deleted
   const visible = sortNotifications(
     notifications.filter((n) => !n.isDeleted)
   );
 
-  // "Update" or "View Image"
   const handleNotificationButton = (notif: DisplayNotification) => {
     if (notif.type === "Software") {
       alert("Software update not available.");
@@ -216,14 +201,12 @@ const Notifications: React.FC = () => {
     }
   };
 
-  // Image modal close
   const handleCloseModal = () => {
     setModalOpen(false);
     setModalImageSrc(null);
     setModalNotifId(null);
   };
 
-  // Dismiss from image modal
   const handleDismissFromModal = () => {
     if (!modalNotifId) return;
     setNotifications((prev) => {
@@ -237,9 +220,7 @@ const Notifications: React.FC = () => {
     handleCloseModal();
   };
 
-  // Render top bar
   const renderTopBar = () => {
-    // We'll display the count from currentRecipients
     const recipientsCount = currentRecipients.length;
     if (selectedCount > 0) {
       return (
@@ -249,11 +230,7 @@ const Notifications: React.FC = () => {
           <button onClick={handleDismiss}>Dismiss</button>
           <button onClick={handleMarkAsRead}>Mark as Read</button>
           <button className="recipients-btn" onClick={handleOpenRecipients}>
-            <img
-              src="/assets/AddPerson.svg"
-              alt="Add Person"
-              style={{ width: "16px", marginRight: "5px" }}
-            />
+            <img src="/assets/AddPerson.svg" alt="Add Person" className="icon-person" />
             Recipients ({recipientsCount})
           </button>
         </div>
@@ -263,11 +240,7 @@ const Notifications: React.FC = () => {
         <div className="notif-topbar">
           <button onClick={handleSelectAll}>Select All</button>
           <button className="recipients-btn" onClick={handleOpenRecipients}>
-            <img
-              src="/assets/AddPerson.svg"
-              alt="Add Person"
-              className="icon-person"
-            />
+            <img src="/assets/AddPerson.svg" alt="Add Person" className="icon-person" />
             Recipients ({recipientsCount})
           </button>
         </div>
@@ -332,10 +305,7 @@ const Notifications: React.FC = () => {
 
                 <td className="button-col">
                   {buttonLabel && (
-                    <button
-                      className="link-btn"
-                      onClick={() => handleNotificationButton(item)}
-                    >
+                    <button className="link-btn" onClick={() => handleNotificationButton(item)}>
                       {buttonLabel}
                     </button>
                   )}
@@ -346,18 +316,15 @@ const Notifications: React.FC = () => {
         </tbody>
       </table>
 
-      {/* Image modal */}
+      {/* Image modal using new class names */}
       {modalOpen && modalImageSrc && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-notification-content">
             <h2>
               {visible.find((v) => v.id === modalNotifId)?.title || "Notification"}
             </h2>
             <p>
-              {
-                visible.find((v) => v.id === modalNotifId)?.message ||
-                "No message."
-              }
+              {visible.find((v) => v.id === modalNotifId)?.message || "No message."}
             </p>
             <img src={modalImageSrc} alt="No Image Found" className="modal-image" />
             <div className="modal-buttons">

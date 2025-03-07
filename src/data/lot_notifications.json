@@ -15,20 +15,6 @@
   },
   {
     "lotId": "0000-0001",
-    "type": "Error",
-    "title": "Unable to Identify Vehicle",
-    "message": "An obscured vehicle plate has entered the lot.",
-    "badges": [
-      ""
-    ],
-    "isRead": true,
-    "isDeleted": false,
-    "date": "2025-04-12T09:12:00Z",
-    "location": "Ottawa, ON",
-    "link": "View Image"
-  },
-  {
-    "lotId": "0000-0001",
     "type": "Software",
     "title": "Software Update Available",
     "message": "Camera Firmware v0.1 now available.",
