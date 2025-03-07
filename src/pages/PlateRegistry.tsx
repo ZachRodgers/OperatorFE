@@ -249,46 +249,39 @@ const toggleEditRow = (vehicleId: string) => {
 // ...
 
 
-  /** If user clicks outside an input/icon => end edit mode for real rows. */
-  const handleGlobalClick = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    
-    // If the user clicked inside an input or an icon, do nothing
-    if (
-      target.closest(".registry-input") ||
-      target.closest(".plate-input") ||
-      target.closest(".edit-icon") ||
-      target.closest(".remove-icon") ||
-      target.closest(".placeholder-input")
-    ) {
-      return;
-    }
+const handleGlobalClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
   
-    setRows((prev) => {
-      // First, end edit mode for all non-placeholder rows
-      let newRows = prev.map((row) =>
-        row.isPlaceholder ? row : { ...row, isEditing: false }
-      );
-  
-      // Then, remove any real row that is completely empty
-      newRows = newRows.filter((row) => {
-        // Keep placeholder rows
-        if (row.isPlaceholder) return true;
-  
-        // Check if row is all blank
-        const allEmpty =
-          !row.plate.trim() &&
-          !row.name.trim() &&
-          !row.email.trim() &&
-          !row.phone.trim();
-  
-        // If all fields are empty => remove it
-        return !allEmpty;
-      });
-  
-      return newRows;
+  if (
+    target.closest(".registry-input") ||
+    target.closest(".plate-input") ||
+    target.closest(".edit-icon") ||
+    target.closest(".edit-icon2") ||
+    target.closest(".remove-icon") ||
+    target.closest(".placeholder-input")
+  ) {
+    return;
+  }
+
+  // Reset editing state for non-placeholder rows
+  setRows((prev) => {
+    let newRows = prev.map((row) =>
+      row.isPlaceholder ? row : { ...row, isEditing: false }
+    );
+    newRows = newRows.filter((row) => {
+      if (row.isPlaceholder) return true;
+      const allEmpty =
+        !row.plate.trim() &&
+        !row.name.trim() &&
+        !row.email.trim() &&
+        !row.phone.trim();
+      return !allEmpty;
     });
-  };
+    return newRows;
+  });
+};
+
+  
   
 
   useEffect(() => {
