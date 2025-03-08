@@ -16,9 +16,9 @@ interface VehicleRegistryEntry {
   phone: string;
 }
 
-interface RegistryRow extends VehicleRegistryEntry {
-  isPlaceholder?: boolean;  // "Add new" row
-  isEditing?: boolean;      // row-level edit mode
+export interface RegistryRow extends VehicleRegistryEntry {
+  isPlaceholder?: boolean; // "Add new" row
+  isEditing?: boolean;     // row-level edit mode
 }
 
 type ModalType =
@@ -32,31 +32,32 @@ const PlateRegistry: React.FC = () => {
   const { lotId } = useParams<{ lotId: string }>();
   const currentLot = lotsData.find((lot) => lot.lotId === lotId);
 
-  // Keep track of the server's known "registryOn" so we can handle immediate disable if it's truly on.
-  // We'll update this whenever we successfully enable or disable on the server.
-  const [serverRegistryOn, setServerRegistryOn] = useState<boolean>(currentLot?.registryOn ?? false);
+  // Server registry state
+  const [serverRegistryOn, setServerRegistryOn] = useState<boolean>(
+    currentLot?.registryOn ?? false
+  );
 
-  // Our local slider state. If user toggles ON, we only finalize on Save (unless it was already on).
+  // Local slider state
   const [registryOn, setRegistryOn] = useState<boolean>(serverRegistryOn);
 
-  // Table rows
+  // Table rows state
   const [rows, setRows] = useState<RegistryRow[]>([]);
-  // Sorting/searching
+  // Sorting/searching state
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"plate" | "name" | "email" | "phone">("plate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  // Track unsaved changes => for Save button + modals
+  // Unsaved changes flag
   const [isDirty, setIsDirty] = useState(false);
 
-  // Modal states
+  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>(null);
   const [removalVehicleId, setRemovalVehicleId] = useState<string | null>(null);
 
-  // If user toggles from off->on locally, we track that to know if we must update the server on Save
+  // Track if user toggled from off -> on
   const turnedRegistryOn = useRef(false);
 
-  // On mount: load table data
+  // On mount: load table data and add a placeholder row
   useEffect(() => {
     const relevant = vehicleRegistryData.filter((v) => v.lotId === lotId);
     const realRows: RegistryRow[] = relevant.map((r) => ({
@@ -64,15 +65,12 @@ const PlateRegistry: React.FC = () => {
       isPlaceholder: false,
       isEditing: false,
     }));
-    // Sort them initially by plate
     realRows.sort((a, b) => a.plate.localeCompare(b.plate));
-
-    // Add a single placeholder row
     realRows.push(createPlaceholderRow());
     setRows(realRows);
   }, [lotId]);
 
-  /** Create a fresh placeholder row. */
+  /** Create a fresh placeholder row */
   function createPlaceholderRow(): RegistryRow {
     return {
       lotId: lotId || "",
@@ -89,15 +87,12 @@ const PlateRegistry: React.FC = () => {
   // ------------------- REGISTRY TOGGLE -------------------
   const handleToggleRegistry = () => {
     if (!registryOn) {
-      // turning local slider ON
       if (!serverRegistryOn) {
-        // was off on server => we'll finalize on Save
         turnedRegistryOn.current = true;
         setIsDirty(true);
       }
       setRegistryOn(true);
     } else {
-      // turning local slider OFF => immediate confirm
       if (isDirty) {
         setModalType("unsavedChanges");
         setModalOpen(true);
@@ -108,10 +103,8 @@ const PlateRegistry: React.FC = () => {
     }
   };
 
-  /** Immediately disable registry on the server + local UI. */
   const confirmDisableRegistry = async () => {
     try {
-      // If server was truly on, we must update it
       if (serverRegistryOn) {
         const resp = await fetch("http://localhost:5000/update-lot", {
           method: "POST",
@@ -123,12 +116,10 @@ const PlateRegistry: React.FC = () => {
         });
         if (!resp.ok) throw new Error("Failed to disable registry on server.");
       }
-      // Now reflect locally
       setServerRegistryOn(false);
       setRegistryOn(false);
       setIsDirty(false);
       turnedRegistryOn.current = false;
-
       closeModal();
     } catch (error) {
       console.error(error);
@@ -143,31 +134,21 @@ const PlateRegistry: React.FC = () => {
   };
 
   // ------------------- SORT + SEARCH -------------------
-  /** Returns the final array of rows after filtering, sorting, and pinning editing row on top. */
   const getFilteredAndSortedRows = (): RegistryRow[] => {
     let working = [...rows];
-  
-    // If registry is off => hide placeholder row
     if (!registryOn) {
       working = working.filter((r) => !r.isPlaceholder);
     }
-  
-    // Filter by search
     working = working.filter((r) => {
       const str = `${r.plate} ${r.name} ${r.email} ${r.phone}`.toLowerCase();
       return str.includes(searchQuery.toLowerCase());
     });
-  
-    // Sort normally
     working.sort((a, b) => {
-      // If both placeholders or both real rows, normal logic applies
       if (a.isPlaceholder && b.isPlaceholder) {
-        return a.vehicleId.localeCompare(b.vehicleId); // stable
+        return a.vehicleId.localeCompare(b.vehicleId);
       }
-      if (a.isPlaceholder && !b.isPlaceholder) return 1;  // by default placeholders at bottom
-      if (!a.isPlaceholder && b.isPlaceholder) return -1; // or top—(we’ll fix this below)
-      
-      // Real row sorting
+      if (a.isPlaceholder && !b.isPlaceholder) return 1;
+      if (!a.isPlaceholder && b.isPlaceholder) return -1;
       let valA = "";
       let valB = "";
       if (sortBy === "plate") {
@@ -186,103 +167,75 @@ const PlateRegistry: React.FC = () => {
       const cmp = valA.localeCompare(valB);
       return sortOrder === "asc" ? cmp : -cmp;
     });
-  
-    // --- Force the placeholder row to the very top ---
-    // (We’ll find the placeholder row, remove it, unshift it)
+    // Force the placeholder row to the top
     const placeholderIndex = working.findIndex((r) => r.isPlaceholder);
     if (placeholderIndex >= 0) {
       const [placeholderRow] = working.splice(placeholderIndex, 1);
       working.unshift(placeholderRow);
     }
-  
-    // --- Pin editing row below the placeholder row ---
-    // (Find an editing row that’s not the placeholder, remove, then insert at index=1)
-    const editingIndex = working.findIndex((r) => r.isEditing && !r.isPlaceholder);
-    if (editingIndex > -1) {
-      const [editingRow] = working.splice(editingIndex, 1);
-      // If we have a placeholder row at [0], place editing row at [1].
-      // If no placeholder row (e.g., registry is off), place at 0. 
-      const targetIndex = placeholderIndex >= 0 ? 1 : 0;
-      working.splice(targetIndex, 0, editingRow);
-    }
-  
     return working;
   };
-  
+
   const handleSort = (col: "plate" | "name" | "email" | "phone") => {
     setSortOrder(sortBy === col && sortOrder === "asc" ? "desc" : "asc");
     setSortBy(col);
   };
 
   // ------------------- EDIT MODE -------------------
-// ...
-const toggleEditRow = (vehicleId: string) => {
-  setRows((prev) => {
-    return prev.map((row) => {
-      if (row.vehicleId === vehicleId) {
-        // If we're currently editing, and we want to turn off edit mode
-        if (row.isEditing) {
-          // Check if the row is truly empty (all fields blank) and not a placeholder
-          const allEmpty =
-            !row.plate.trim() &&
-            !row.name.trim() &&
-            !row.email.trim() &&
-            !row.phone.trim();
-
-          // If empty => remove from array
-          if (allEmpty && !row.isPlaceholder) {
-            // We'll remove it in a separate pass below
-            return { ...row, isEditing: false, vehicleId: "TO_BE_REMOVED" };
+  // Toggle editing state for a row
+  const toggleEditRow = (vehicleId: string) => {
+    setRows((prev) =>
+      prev
+        .map((row) => {
+          if (row.vehicleId === vehicleId) {
+            if (row.isEditing) {
+              // If turning off edit, remove the row if all fields are empty (and not a placeholder)
+              const allEmpty =
+                !row.plate.trim() &&
+                !row.name.trim() &&
+                !row.email.trim() &&
+                !row.phone.trim();
+              if (allEmpty && !row.isPlaceholder) {
+                return { ...row, isEditing: false, vehicleId: "TO_BE_REMOVED" };
+              }
+              return { ...row, isEditing: false };
+            } else {
+              return { ...row, isEditing: true };
+            }
           }
-          // Otherwise just toggle off edit
           return { ...row, isEditing: false };
-        } else {
-          // Turn on edit mode, turn off for all others
-          return { ...row, isEditing: true };
-        }
-      }
-      // Turn off edit for all other rows
-      return { ...row, isEditing: false };
-    }).filter((r) => r.vehicleId !== "TO_BE_REMOVED"); // Filter out any empty row
-  });
-};
-// ...
-
-
-const handleGlobalClick = (e: MouseEvent) => {
-  const target = e.target as HTMLElement;
-  
-  if (
-    target.closest(".registry-input") ||
-    target.closest(".plate-input") ||
-    target.closest(".edit-icon") ||
-    target.closest(".edit-icon2") ||
-    target.closest(".remove-icon") ||
-    target.closest(".placeholder-input")
-  ) {
-    return;
-  }
-
-  // Reset editing state for non-placeholder rows
-  setRows((prev) => {
-    let newRows = prev.map((row) =>
-      row.isPlaceholder ? row : { ...row, isEditing: false }
+        })
+        .filter((r) => r.vehicleId !== "TO_BE_REMOVED")
     );
-    newRows = newRows.filter((row) => {
-      if (row.isPlaceholder) return true;
-      const allEmpty =
-        !row.plate.trim() &&
-        !row.name.trim() &&
-        !row.email.trim() &&
-        !row.phone.trim();
-      return !allEmpty;
-    });
-    return newRows;
-  });
-};
+  };
 
-  
-  
+  const handleGlobalClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest(".registry-input") ||
+      target.closest(".plate-input") ||
+      target.closest(".edit-icon2") ||
+      target.closest(".remove-icon") ||
+      target.closest(".placeholder-input")
+    ) {
+      return;
+    }
+    setRows((prev) => {
+      let newRows = prev.map((row) =>
+        row.isPlaceholder ? row : { ...row, isEditing: false }
+      );
+      newRows = newRows.filter((row) => {
+        if (row.isPlaceholder) return true;
+        const allEmpty =
+          !row.plate.trim() &&
+          !row.name.trim() &&
+          !row.email.trim() &&
+          !row.phone.trim();
+        return !allEmpty;
+      });
+      return newRows;
+    });
+  };
 
   useEffect(() => {
     document.addEventListener("click", handleGlobalClick);
@@ -295,26 +248,19 @@ const handleGlobalClick = (e: MouseEvent) => {
     field: keyof VehicleRegistryEntry,
     value: string
   ) => {
-    setRows((prev) => {
-      let convertedIndex = -1;
-      const newRows = prev.map((r, idx) => {
+    setRows((prev) =>
+      prev.map((r) => {
         if (r.vehicleId === rowId) {
           const updated = { ...r, [field]: value };
-          // If it's a placeholder => user typed => convert to real row
           if (r.isPlaceholder && value.trim() !== "") {
             updated.isPlaceholder = false;
             updated.isEditing = true;
-            convertedIndex = idx;
           }
           return updated;
         }
         return r;
-      });
-      if (convertedIndex >= 0) {
-        newRows.push(createPlaceholderRow());
-      }
-      return newRows;
-    });
+      })
+    );
     setIsDirty(true);
   };
 
@@ -334,32 +280,44 @@ const handleGlobalClick = (e: MouseEvent) => {
   };
 
   // ------------------- SAVE -------------------
+  // Validation functions
+  const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
+  const isValidPhone = (phone: string) => phone.replace(/\D/g, "").length >= 7;
+
   const handleSave = () => {
     setModalType("confirmSave");
     setModalOpen(true);
   };
 
   const confirmSaveChanges = async () => {
+    // Validate all non-placeholder rows
+    for (const row of rows.filter((r) => !r.isPlaceholder)) {
+      if (!isValidEmail(row.email)) {
+        alert(`Invalid email address in row with plate "${row.plate}"`);
+        return;
+      }
+      if (!isValidPhone(row.phone)) {
+        alert(`Invalid phone number in row with plate "${row.plate}"`);
+        return;
+      }
+    }
     try {
-      // Filter out placeholders
-      const finalRows = rows.filter((r) => !r.isPlaceholder).map((r) => ({
-        lotId: r.lotId,
-        vehicleId: r.vehicleId,
-        plate: r.plate,
-        name: r.name,
-        email: r.email,
-        phone: r.phone,
-      }));
-
-      // Overwrite vehicle_registry.json
+      const finalRows = rows
+        .filter((r) => !r.isPlaceholder)
+        .map((r) => ({
+          lotId: r.lotId,
+          vehicleId: r.vehicleId,
+          plate: r.plate,
+          name: r.name,
+          email: r.email,
+          phone: r.phone,
+        }));
       const resp = await fetch("http://localhost:5000/update-vehicle-registry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(finalRows),
       });
       if (!resp.ok) throw new Error("Failed to update registry.");
-
-      // If turned from off->on => update the server
       if (!serverRegistryOn && turnedRegistryOn.current) {
         const lotUpdateResp = await fetch("http://localhost:5000/update-lot", {
           method: "POST",
@@ -369,11 +327,10 @@ const handleGlobalClick = (e: MouseEvent) => {
             updatedData: { registryOn: true },
           }),
         });
-        if (!lotUpdateResp.ok) throw new Error("Failed to enable registry on server.");
-        // Now the server is truly on
+        if (!lotUpdateResp.ok)
+          throw new Error("Failed to enable registry on server.");
         setServerRegistryOn(true);
       }
-
       setIsDirty(false);
       turnedRegistryOn.current = false;
       closeModal();
@@ -391,7 +348,6 @@ const handleGlobalClick = (e: MouseEvent) => {
     setRemovalVehicleId(null);
   };
 
-  // ------------------- RENDER -------------------
   const workingRows = getFilteredAndSortedRows();
   const someRowIsEditing = rows.some((r) => r.isEditing);
 
@@ -402,7 +358,6 @@ const handleGlobalClick = (e: MouseEvent) => {
         <Slider checked={registryOn} onChange={handleToggleRegistry} />
       </div>
 
-      {/* If local slider is off => show short note. */}
       {!registryOn && (
         <p>
           Enable the Plate Registry to add license plates that will not be charged when parked in the lot.
@@ -416,7 +371,6 @@ const handleGlobalClick = (e: MouseEvent) => {
             You can add them manually, upload a spreadsheet, or purchase an addon for monthly billing.
           </p>
 
-          {/* Search, Upload, Save */}
           <div className="actions-row">
             <div className="registry-search-bar">
               <img src="/assets/SearchBarIcon.svg" alt="Search" />
@@ -427,7 +381,6 @@ const handleGlobalClick = (e: MouseEvent) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-
             <div className="upload-wrapper">
               <button className="button secondary" onClick={() => alert("Not implemented!")}>
                 Upload Sheet
@@ -439,7 +392,6 @@ const handleGlobalClick = (e: MouseEvent) => {
                 />
               </div>
             </div>
-
             <button
               className="button primary"
               style={{ opacity: isDirty ? 1 : 0.6 }}
@@ -450,7 +402,6 @@ const handleGlobalClick = (e: MouseEvent) => {
             </button>
           </div>
 
-          {/* Table */}
           <table className="registry-table">
             <thead>
               <tr>
@@ -510,66 +461,54 @@ const handleGlobalClick = (e: MouseEvent) => {
               </tr>
             </thead>
             <tbody>
-              {workingRows.map((row) => {
-                const isRowEditing = row.isEditing;
-                const fadeIcons = someRowIsEditing && !isRowEditing;
-
-                if (row.isPlaceholder) {
-                  return (
-                    <tr key={row.vehicleId} className="placeholder-row">
-                      <td>
-                        <input
-                          type="text"
-                          className="placeholder-input plate-placeholder"
-                          placeholder="+ Plate"
-                          style={{ fontFamily: "'Oxanium', sans-serif" }}
-                          value={row.plate}
-                          onChange={(e) => handleFieldChange(row.vehicleId, "plate", e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="placeholder-input"
-                          placeholder="Name"
-                          value={row.name}
-                          onChange={(e) => handleFieldChange(row.vehicleId, "name", e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="placeholder-input"
-                          placeholder="email@address.com"
-                          value={row.email}
-                          onChange={(e) => handleFieldChange(row.vehicleId, "email", e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="placeholder-input"
-                          placeholder="000-000-0000"
-                          value={row.phone}
-                          onChange={(e) => handleFieldChange(row.vehicleId, "phone", e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <img
-                          src="/assets/Plus.svg"
-                          alt="Add row"
-                          className="add-icon"
-                        />
-                      </td>
-                    </tr>
-                  );
-                }
-
-                // Normal row
-                return (
+              {workingRows.map((row) =>
+                row.isPlaceholder ? (
+                  <tr key={row.vehicleId} className="placeholder-row">
+                    <td>
+                      <input
+                        type="text"
+                        className="placeholder-input plate-placeholder"
+                        placeholder="+ Plate"
+                        style={{ fontFamily: "'Oxanium', sans-serif" }}
+                        value={row.plate}
+                        onChange={(e) => handleFieldChange(row.vehicleId, "plate", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="placeholder-input"
+                        placeholder="Name"
+                        value={row.name}
+                        onChange={(e) => handleFieldChange(row.vehicleId, "name", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="placeholder-input"
+                        placeholder="email@address.com"
+                        value={row.email}
+                        onChange={(e) => handleFieldChange(row.vehicleId, "email", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="placeholder-input"
+                        placeholder="000-000-0000"
+                        value={row.phone}
+                        onChange={(e) => handleFieldChange(row.vehicleId, "phone", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <img src="/assets/Plus.svg" alt="Add row" className="add-icon" />
+                    </td>
+                  </tr>
+                ) : (
                   <tr key={row.vehicleId}>
                     <td>
-                      {isRowEditing ? (
+                      {row.isEditing ? (
                         <input
                           type="text"
                           className="registry-input"
@@ -582,7 +521,7 @@ const handleGlobalClick = (e: MouseEvent) => {
                       )}
                     </td>
                     <td>
-                      {isRowEditing ? (
+                      {row.isEditing ? (
                         <input
                           type="text"
                           className="registry-input"
@@ -594,7 +533,7 @@ const handleGlobalClick = (e: MouseEvent) => {
                       )}
                     </td>
                     <td>
-                      {isRowEditing ? (
+                      {row.isEditing ? (
                         <input
                           type="text"
                           className="registry-input"
@@ -606,7 +545,7 @@ const handleGlobalClick = (e: MouseEvent) => {
                       )}
                     </td>
                     <td>
-                      {isRowEditing ? (
+                      {row.isEditing ? (
                         <input
                           type="text"
                           className="registry-input"
@@ -621,29 +560,24 @@ const handleGlobalClick = (e: MouseEvent) => {
                       <img
                         src="/assets/Edit2.svg"
                         alt="Edit entry"
-                        className={`edit-icon2 ${fadeIcons ? "faded" : ""}`}
-                        onClick={() => {
-                          if (!fadeIcons) toggleEditRow(row.vehicleId);
-                        }}
+                        className={`edit-icon2 ${!row.isEditing ? "" : ""}`}
+                        onClick={() => toggleEditRow(row.vehicleId)}
                       />
                       <img
                         src="/assets/Minus.svg"
                         alt="Remove entry"
-                        className={`remove-icon ${fadeIcons ? "faded" : ""}`}
-                        onClick={() => {
-                          if (!fadeIcons) handleRemoveRow(row.vehicleId);
-                        }}
+                        className="remove-icon"
+                        onClick={() => handleRemoveRow(row.vehicleId)}
                       />
                     </td>
                   </tr>
-                );
-              })}
+                )
+              )}
             </tbody>
           </table>
         </>
       )}
 
-      {/* Modals */}
       {modalOpen && modalType === "disableRegistry" && (
         <Modal
           isOpen
