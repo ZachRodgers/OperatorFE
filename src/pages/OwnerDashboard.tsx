@@ -92,13 +92,9 @@ const OwnerDashboard = () => {
         <div className="header-content">
           <img src="/assets/Logo_Owner.svg" alt="Logo" className="logo-owner" />
           <div className="header-actions">
-            <div className="user-info">
-              <span>Logged in as: {user?.name || 'User'}</span>
-              <span className="user-role">{user?.role}</span>
-            </div>
             <button className="icon-button account" onClick={() => alert("Not yet implemented")}>
               <img src="/assets/nav/Account.svg" alt="Account" />
-              <span>Account</span>
+              <span>{user?.name || 'User'}</span>
             </button>
             <button className="icon-button logout" onClick={handleLogout}>
               <img src="/assets/nav/Logout.svg" alt="Logout" />
