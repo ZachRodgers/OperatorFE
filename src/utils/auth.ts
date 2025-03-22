@@ -14,12 +14,36 @@ export const storeAuthData = (userId: string, token: string) => {
     expiresAt
   };
   
+  // Clear any existing auth data first
+  clearAuthData();
+  
+  // Store new auth data
   localStorage.setItem("token", token);
   localStorage.setItem("userId", userId);
   localStorage.setItem("expiresAt", expiresAt.toString());
   localStorage.setItem("isAuthenticated", "true");
 
+  // Verify storage was successful
+  const storedToken = localStorage.getItem("token");
+  const storedUserId = localStorage.getItem("userId");
+  
+  if (storedToken !== token || storedUserId !== userId) {
+    console.error("Auth data storage failed - values don't match");
+    return null;
+  }
+
+  console.log("Auth data stored successfully", { userId, tokenLength: token.length });
   return authData;
+};
+
+// Validate that authentication data is properly stored
+export const validateAuthStorage = (): boolean => {
+  const token = localStorage.getItem("token");
+  const userId = localStorage.getItem("userId");
+  const expiresAtStr = localStorage.getItem("expiresAt");
+  const isAuthStr = localStorage.getItem("isAuthenticated");
+  
+  return !!(token && userId && expiresAtStr && isAuthStr === "true");
 };
 
 // Retrieve and validate authentication data

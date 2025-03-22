@@ -87,6 +87,35 @@
     background-color: #18a3ff;
   }
   
+  .login-button.loading {
+    background-color: #80bdff;
+    cursor: not-allowed;
+    position: relative;
+  }
+  
+  .login-button.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    right: 15px;
+    margin-top: -10px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: button-loading-spinner 0.8s linear infinite;
+  }
+  
+  @keyframes button-loading-spinner {
+    from {
+      transform: rotate(0turn);
+    }
+    to {
+      transform: rotate(1turn);
+    }
+  }
+  
   .forgot-password {
     display: block;
     margin-top: 10px;
@@ -183,5 +212,35 @@
     margin-bottom: 15px;
     text-align: left;
     line-height: 1.4;
+  }
+  
+  .redirecting-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .redirecting-message p {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #007AFF;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 122, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: #007AFF;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
   
