@@ -35,41 +35,40 @@ const Login = () => {
     }
   };
 
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    alert("Password reset is not enabled. Please contact Parallel administrators for assistance.");
+  };
+
   return (
     <div className="login-container">
       <div className="login-box">
         <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo-operator" />
         
-        <div className="info-message">
-          <p>Access granted for SuperAdmin and Operator roles</p>
-        </div>
-
-        <form onSubmit={handleLogin} autoComplete="off">
-          {/* Fake Hidden Fields to Stop Autofill */}
-          <input type="text" name="fakeuser" style={{ display: "none" }} />
-          <input type="password" name="fakepassword" style={{ display: "none" }} />
-
+        <form onSubmit={handleLogin}>
+          {/* Remove fake fields that were preventing autofill */}
+          
           <input
             type="text"
             placeholder="Email Address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="off"
-            name="email-input"
+            autoComplete="username" // Enable username autofill
+            name="email"
           />
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            name="password-input"
+            autoComplete="current-password" // Keep password autofill
+            name="password"
           />
           <button type="submit" className="login-button">Login</button>
           {error && <p className="error">{error}</p>}
         </form>
 
-        <a href="#" className="forgot-password">Forgot my password</a>
+        <a href="#" className="forgot-password" onClick={handleForgotPassword}>Forgot my password</a>
       </div>
       <footer>
         <img src="/assets/PoweredbyParallelDark.svg" alt="Powered by Parallel" className="powered-by-logo" />
