@@ -29,9 +29,19 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login for protected endpoints
     if (error.response && error.response.status === 401) {
-      window.location.href = '/login';
+      try {
+        const baseURL = error.config.baseURL || window.location.origin;
+        const fullUrl = new URL(error.config.url, baseURL).pathname;
+        // If the request was NOT made to the login endpoint, then redirect
+        if (fullUrl !== '/login') {
+          window.location.href = '/login';
+        }
+      } catch (err) {
+        // Fallback redirection in case URL construction fails
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

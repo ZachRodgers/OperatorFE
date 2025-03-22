@@ -36,7 +36,7 @@ const Login = () => {
       const response = await api.post('/login', {
         email: email,
         password: password
-      });
+      }, { skipAuthRedirect: true } as any);
 
       console.log("Login response received:", response.status);
       
