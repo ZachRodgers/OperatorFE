@@ -46,6 +46,21 @@ const OwnerDashboard = () => {
       return 0;
     });
 
+// Helper function to format the lot ID by removing the "PWP-PL-" prefix and inserting a dash.
+const formatLotId = (id: string): string => {
+  const prefix = "PWP-PL-";
+  let numericPart = id;
+  if (id.startsWith(prefix)) {
+    numericPart = id.substring(prefix.length);
+  }
+  // If the numeric part has at least 8 characters, format it as "XXXX-XXXX"
+  if (numericPart.length >= 8) {
+    return `${numericPart.slice(0, 4)}-${numericPart.slice(4, 8)}`;
+  }
+  return numericPart;
+};
+
+
   // Show loading state
   if (loading) {
     return <div className="loading-state">Loading lots...</div>;
@@ -157,7 +172,7 @@ const OwnerDashboard = () => {
           <tbody>
             {filteredLots.map((lot) => (
               <tr key={lot.lotId} onClick={() => navigate(`/lot/${lot.lotId}/revenue-dashboard`)}>
-                <td>{lot.lotId}</td>
+                <td>{formatLotId(lot.lotId)}</td>
                 <td>{lot.lotName}</td>
                 <td>{lot.address}</td>
                 <td>{lot.accountCreated || 'N/A'}</td>
