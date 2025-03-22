@@ -1,24 +1,25 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import customers from "../data/customer_master.json";
-import lots from "../data/lots_master.json";
-import { clearSession } from "../utils/auth";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 import "./OwnerDashboard.css";
 
 const OwnerDashboard = () => {
-  const { customerId } = useParams();
   const navigate = useNavigate();
-
-  const customer = customers.find((c) => c.customerId === customerId);
-  if (!customer) return <h1>Error: Customer not found</h1>;
+  const { user, userLots, loading, error, fetchUserLots, logout } = useUser();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("lotId");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
+  // Fetch lots when component mounts if not already loaded
+  useEffect(() => {
+    if (userLots.length === 0) {
+      fetchUserLots();
+    }
+  }, [fetchUserLots, userLots]);
+
   const handleLogout = () => {
-    clearSession();
-    navigate("/login");
+    logout();
   };
 
   const handleSort = (column: string) => {
@@ -26,11 +27,11 @@ const OwnerDashboard = () => {
     setSortBy(column);
   };
 
-  const filteredLots = lots
-    .filter((lot) => customer.assignedLots.includes(lot.lotId))
+  // Filter and sort lots based on searchQuery and sort settings
+  const filteredLots = userLots
     .filter((lot) =>
-      Object.values(lot).some((value) =>
-        value.toString().toLowerCase().includes(searchQuery.toLowerCase())
+      Object.values(lot).some((value) => 
+        value ? value.toString().toLowerCase().includes(searchQuery.toLowerCase()) : false
       )
     )
     .sort((a, b) => {
@@ -45,6 +46,45 @@ const OwnerDashboard = () => {
       return 0;
     });
 
+  // Show loading state
+  if (loading) {
+    return <div className="loading-state">Loading lots...</div>;
+  }
+
+  // Show error state
+  if (error) {
+    return <div className="error-state">Error: {error}</div>;
+  }
+
+  // Show empty state if no lots found
+  if (userLots.length === 0) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <div className="header-content">
+            <img src="/assets/Logo_Owner.svg" alt="Logo" className="logo-owner" />
+            <div className="header-actions">
+              <button className="icon-button account" onClick={() => alert("Not yet implemented")}>
+                <img src="/assets/nav/Account.svg" alt="Account" />
+                <span>Account</span>
+              </button>
+              <button className="icon-button logout" onClick={handleLogout}>
+                <img src="/assets/nav/Logout.svg" alt="Logout" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="dashboard-content">
+          <div className="empty-state">
+            <h2>No Lots Found</h2>
+            <p>You don't have any lots assigned to your account.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       {/* Header */}
@@ -52,6 +92,10 @@ const OwnerDashboard = () => {
         <div className="header-content">
           <img src="/assets/Logo_Owner.svg" alt="Logo" className="logo-owner" />
           <div className="header-actions">
+            <div className="user-info">
+              <span>Logged in as: {user?.name || 'User'}</span>
+              <span className="user-role">{user?.role}</span>
+            </div>
             <button className="icon-button account" onClick={() => alert("Not yet implemented")}>
               <img src="/assets/nav/Account.svg" alt="Account" />
               <span>Account</span>
@@ -70,7 +114,7 @@ const OwnerDashboard = () => {
           <img src="/assets/SearchBarIcon.svg" alt="Search" />
           <input
             type="text"
-            placeholder="Search LotID, Customer, Date or Location"
+            placeholder="Search LotID, Name, or Location"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -116,11 +160,11 @@ const OwnerDashboard = () => {
           </thead>
           <tbody>
             {filteredLots.map((lot) => (
-              <tr key={lot.lotId} onClick={() => navigate(`/${customerId}/${lot.lotId}/revenue-dashboard`)}>
+              <tr key={lot.lotId} onClick={() => navigate(`/lot/${lot.lotId}/revenue-dashboard`)}>
                 <td>{lot.lotId}</td>
                 <td>{lot.lotName}</td>
                 <td>{lot.address}</td>
-                <td>{lot.accountCreated}</td>
+                <td>{lot.accountCreated || 'N/A'}</td>
               </tr>
             ))}
           </tbody>

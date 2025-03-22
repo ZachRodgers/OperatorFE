@@ -1,24 +1,29 @@
 import React from "react";
-import { NavLink, useParams } from "react-router-dom";
-import { getSession } from "../utils/auth"; // Import session
-import lots from "../data/lots_master.json"; // Import lot data
+import { NavLink, useParams, useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 import "./Sidebar.css";
 
 const Sidebar = () => {
-  const { customerId, lotId } = useParams();
-  const user = getSession(); // Get current user session
+  const { lotId } = useParams();
+  const navigate = useNavigate();
+  const { user, userLots, logout } = useUser();
 
-  if (!customerId || !lotId) return null; // Prevent rendering if params are missing
+  if (!lotId) return null; // Prevent rendering if lotId is missing
 
-  const userLots = user?.assignedLots || []; // Get assigned lots or empty array
-  const hasMultipleLots = userLots.length > 1; // Check if multiple lots exist
+  // Check if user has multiple lots
+  const hasMultipleLots = userLots.length > 1;
 
-  // Find the lot name based on lotId
-  const lot = lots.find((lot) => lot.lotId === lotId);
-  const lotName = lot ? lot.lotName : "Unknown Lot";
+  // Find the current lot based on lotId
+  const currentLot = userLots.find((lot) => lot.lotId === lotId);
+  const lotName = currentLot ? currentLot.lotName : "Unknown Lot";
 
   // Truncate lot name if it exceeds 36 characters
   const truncatedLotName = lotName.length > 36 ? lotName.substring(0, 36) + "..." : lotName;
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <div className="sidebar">
@@ -29,14 +34,14 @@ const Sidebar = () => {
         </div>
         {/* Only show Change Lot if the user has more than one lot */}
         {hasMultipleLots && (
-          <NavLink to={`/${customerId}/owner-dashboard`} className="change-lot">
+          <NavLink to="/owner-dashboard" className="change-lot">
             <img src="/assets/BackIcon.svg" alt="Back" className="back-icon" />
             Change Lot
           </NavLink>
         )}
       </div>
       <nav className="sidebar-menu">
-        <NavLink to={`/${customerId}/${lotId}/revenue-dashboard`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/revenue-dashboard`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "DashboardSelected.svg" : "Dashboard1.svg"}`} alt="Dashboard" />
@@ -44,7 +49,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/occupants`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/occupants`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "OccupantsSelected.svg" : "Occupants.svg"}`} alt="Occupants" />
@@ -52,7 +57,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/settings`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/settings`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "SettingsSelected.svg" : "Settings.svg"}`} alt="Settings" />
@@ -60,7 +65,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/advanced`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/advanced`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "AdvancedSelected.svg" : "Advanced.svg"}`} alt="Advanced" />
@@ -68,7 +73,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/registry`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/registry`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "RegistrySelected.svg" : "Registry.svg"}`} alt="Registry" />
@@ -76,7 +81,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/notifications`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/notifications`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "NotificationsSelected.svg" : "Notifications.svg"}`} alt="Notifications" />
@@ -84,7 +89,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/addons`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/addons`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "AddonsSelected.svg" : "Addons.svg"}`} alt="Addons" />
@@ -94,7 +99,7 @@ const Sidebar = () => {
         </NavLink>
       </nav>
       <div className="sidebar-footer">
-        <NavLink to={`/${customerId}/${lotId}/account`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/account`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "AccountSelected.svg" : "Account.svg"}`} alt="Account" />
@@ -102,10 +107,10 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to="/login" className="sidebar-item logout">
+        <div className="sidebar-item logout" onClick={handleLogout}>
           <img src="/assets/nav/Logout.svg" alt="Logout" />
           <span>Logout</span>
-        </NavLink>
+        </div>
       </div>
     </div>
   );

@@ -157,3 +157,53 @@
 .sort-arrow.desc {
     transform: rotate(180deg);
 }
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    margin-right: 20px;
+    text-align: right;
+}
+
+.user-info span {
+    font-size: 14px;
+    color: #333;
+}
+
+.user-info .user-role {
+    font-weight: bold;
+    color: #0056B3;
+    font-size: 12px;
+}
+
+.loading-state,
+.error-state,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    width: 100%;
+    text-align: center;
+}
+
+.loading-state {
+    color: #0056B3;
+    font-size: 18px;
+}
+
+.error-state {
+    color: #FF0000;
+    font-size: 18px;
+}
+
+.empty-state h2 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #666;
+    font-size: 16px;
+}

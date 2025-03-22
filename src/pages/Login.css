@@ -26,6 +26,21 @@
     margin-bottom: 40px;
   }
   
+  .info-message {
+    background-color: #E6F2FF;
+    border: 1px solid #B8DAFF;
+    border-radius: 5px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .info-message p {
+    color: #0056B3;
+    font-size: 14px;
+    margin: 0;
+  }
+  
   input {
     width: 100%;
     padding: 15px;

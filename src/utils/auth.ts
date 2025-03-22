@@ -1,35 +1,69 @@
 interface AuthPayload {
-    customerId: string;
-    role: string;
-    assignedLots: string[];
+  userId: string;
+  token: string;
+  expiresAt: number;
+}
+
+// Store user authentication data
+export const storeAuthData = (userId: string, token: string) => {
+  const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
+  
+  const authData: AuthPayload = {
+    userId,
+    token,
+    expiresAt
+  };
+  
+  localStorage.setItem("token", token);
+  localStorage.setItem("userId", userId);
+  localStorage.setItem("expiresAt", expiresAt.toString());
+  localStorage.setItem("isAuthenticated", "true");
+
+  return authData;
+};
+
+// Retrieve and validate authentication data
+export const getAuthData = (): AuthPayload | null => {
+  const token = localStorage.getItem("token");
+  const userId = localStorage.getItem("userId");
+  const expiresAtStr = localStorage.getItem("expiresAt");
+  
+  if (!token || !userId || !expiresAtStr) {
+    return null;
   }
   
-  // Store user session (simulating JWT)
-  export const storeSession = (payload: AuthPayload) => {
-    localStorage.setItem("authData", JSON.stringify(payload));
+  const expiresAt = parseInt(expiresAtStr, 10);
+  
+  // Check if token has expired
+  if (Date.now() > expiresAt) {
+    clearAuthData();
+    return null;
+  }
+  
+  return {
+    token,
+    userId,
+    expiresAt
   };
-  
-  // Retrieve session
-  export const getSession = () => {
-    const session = localStorage.getItem("authToken");
-  
-    if (!session) return null;
-  
-    const userData = JSON.parse(session);
-  
-    // If the session is expired, remove it and return null
-    if (Date.now() > userData.expiresAt) {
-      localStorage.removeItem("authToken");
-      return null;
-    }
-  
-    return userData;
-  };
-  
-  
-  
-  // Remove session on logout
-  export const clearSession = () => {
-    localStorage.removeItem("authData");
-  };
+};
+
+// Check if user is authenticated
+export const isAuthenticated = (): boolean => {
+  const authData = getAuthData();
+  return authData !== null;
+};
+
+// Remove auth data on logout
+export const clearAuthData = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("expiresAt");
+  localStorage.removeItem("isAuthenticated");
+};
+
+// Get the authentication token for API requests
+export const getToken = (): string | null => {
+  const authData = getAuthData();
+  return authData ? authData.token : null;
+};
   
