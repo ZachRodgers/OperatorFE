@@ -32,14 +32,26 @@ interface Lot {
 }
 
 const Account: React.FC = () => {
-  const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
+  // NOTE: For better routing, consider changing routes to:
+  // /user/:userId/lot/:lotId/account
+  // This will ensure both IDs are available in the URL
+
+  const { customerId: routeCustomerId, lotId: routeLotId } = useParams<{ customerId?: string; lotId?: string }>();
+  const [currentCustomerId, setCurrentCustomerId] = useState<string>(routeCustomerId || localStorage.getItem('customerId') || '');
+  const lotId = routeLotId || localStorage.getItem('lotId') || '';
   const navigate = useNavigate();
+  
+  console.log("Account.tsx: Using customerId:", currentCustomerId, "lotId:", lotId);
+  console.log("Account.tsx: localStorage values:", {
+    customerId: localStorage.getItem('customerId'),
+    lotId: localStorage.getItem('lotId')
+  });
 
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-  const [allLots, setAllLots] = useState<Lot[]>([]);
-
+  const BASE_URL = "http://localhost:8085/ParkingWithParallel";
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [lot, setLot] = useState<Lot | null>(null);
+  const [operators, setOperators] = useState<Customer[]>([]);
+  const [owner, setOwner] = useState<Customer | null>(null);
 
   // Modal editing states for non-password fields
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -52,37 +64,120 @@ const Account: React.FC = () => {
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [resetError, setResetError] = useState("");
 
+  const formatId = (id: string): string => {
+    return id.replace(/^PWP-(U|PL)-/, '');
+  };
+
   // 1. Load all customers
   useEffect(() => {
-    fetch("http://localhost:5000/get-customer")
-      .then((res) => res.json())
-      .then((data: Customer[]) => {
-        setAllCustomers(data);
-      })
-      .catch((err) => console.error("Error fetching customers:", err));
-  }, []);
+    if (currentCustomerId) {
+      console.log(`Fetching customer with ID: ${currentCustomerId}`);
+      fetch(`${BASE_URL}/users/get-user-by-id/${currentCustomerId}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch customer: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Customer data received:", data);
+          setCustomer(data);
+        })
+        .catch((err) => {
+          console.error("Error fetching customer:", err);
+        });
+    } else {
+      console.warn("No customerId available for fetch");
+    }
+  }, [currentCustomerId, BASE_URL]);
 
   // 2. Load all lots
   useEffect(() => {
-    fetch("http://localhost:5000/get-lots")
-      .then((res) => res.json())
-      .then((data: Lot[]) => {
-        setAllLots(data);
-      })
-      .catch((err) => console.error("Error fetching lots:", err));
-  }, []);
+    if (lotId) {
+      console.log(`Fetching lot with ID: ${lotId}`);
+      fetch(`${BASE_URL}/parkinglots/get-by-id/${lotId}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch lot: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Lot data received:", data);
+          setLot(data);
+          
+          // Store lotId in localStorage for persistence
+          localStorage.setItem('lotId', data.lotId);
+          
+          // If no customerId is available, use the lot's owner ID
+          if (!currentCustomerId && data.ownerCustomerId) {
+            console.log(`No customerId found, using lot owner ID: ${data.ownerCustomerId}`);
+            // Store in localStorage
+            localStorage.setItem('customerId', data.ownerCustomerId);
+            setCurrentCustomerId(data.ownerCustomerId);
+            // Fetch customer data using this ID
+            fetch(`${BASE_URL}/users/get-user-by-id/${data.ownerCustomerId}`)
+              .then(res => {
+                if (!res.ok) {
+                  throw new Error(`Failed to fetch owner: ${res.status}`);
+                }
+                return res.json();
+              })
+              .then(ownerData => {
+                console.log("Owner data received:", ownerData);
+                setCustomer(ownerData);
+              })
+              .catch(err => {
+                console.error("Error fetching owner:", err);
+              });
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching lot:", err);
+        });
+    } else {
+      console.warn("No lotId available for fetch");
+    }
+  }, [lotId, currentCustomerId, BASE_URL]);
 
   // 3. Identify current customer and lot from route
   useEffect(() => {
-    if (allCustomers.length) {
-      const foundCustomer = allCustomers.find((c) => c.customerId === customerId);
-      setCustomer(foundCustomer || null);
+    if (customer && lot) {
+      console.log("Fetching related users. Customer role:", customer.role);
+      
+      if (customer.role === "owner") {
+        fetch(`${BASE_URL}/parkinglots/get-operators/${lot.lotId}`)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch operators: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            console.log("Operators data received:", data);
+            setOperators(data);
+          })
+          .catch((err) => {
+            console.error("Error fetching operators:", err);
+          });
+      } else {
+        fetch(`${BASE_URL}/users/get-user-by-id/${lot.ownerCustomerId}`)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch owner: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            console.log("Owner data received:", data);
+            setOwner(data);
+          })
+          .catch((err) => {
+            console.error("Error fetching owner:", err);
+          });
+      }
     }
-    if (allLots.length) {
-      const foundLot = allLots.find((l) => l.lotId === lotId);
-      setLot(foundLot || null);
-    }
-  }, [allCustomers, allLots, customerId, lotId]);
+  }, [customer, lot, BASE_URL]);
 
   // Open edit modal for non-password fields
   const openEditPopup = (field: string, currentValue: string) => {
@@ -97,13 +192,10 @@ const Account: React.FC = () => {
 
     const updatedField = { [editingField]: tempValue };
 
-    fetch("http://localhost:5000/update-customer", {
-      method: "POST",
+    fetch(`${BASE_URL}/users/update-user/${customer.customerId}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerId: customer.customerId,
-        updatedData: updatedField,
-      }),
+      body: JSON.stringify({ ...customer, ...updatedField }),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to update customer.");
@@ -132,22 +224,28 @@ const Account: React.FC = () => {
   // Handle password reset submission
   const submitPasswordReset = () => {
     if (!customer) return;
-    if (oldPasswordInput !== customer.password) {
-      setResetError("Old password is incorrect.");
-      return;
-    }
+    
+    // Instead of directly comparing passwords (which is insecure),
+    // we'll send both the old and new password to the server for validation
+    const passwordUpdateData = {
+      ...customer,
+      oldPassword: oldPasswordInput,  // Add old password for server validation
+      password: newPasswordInput      // New password to set
+    };
 
-    // Update password via partial update endpoint
-    fetch("http://localhost:5000/update-customer", {
-      method: "POST",
+    fetch(`${BASE_URL}/users/update-user/${customer.customerId}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerId: customer.customerId,
-        updatedData: { password: newPasswordInput },
-      }),
+      body: JSON.stringify(passwordUpdateData),
     })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to update password.");
+        if (!res.ok) {
+          // Check if it's specifically an authentication error
+          if (res.status === 401) {
+            throw new Error("Old password is incorrect.");
+          }
+          throw new Error("Failed to update password.");
+        }
         return res.json();
       })
       .then(() => {
@@ -157,15 +255,33 @@ const Account: React.FC = () => {
       })
       .catch((err) => {
         console.error("Error updating password:", err);
-        setResetError("Server error. Please try again.");
+        setResetError(err.message || "Server error. Please try again.");
       });
   };
+
+  if (!currentCustomerId || !lotId) {
+    return (
+      <div className="content">
+        <h1>Account</h1>
+        <p>Missing customer or lot information. Please select a lot from the dashboard.</p>
+      </div>
+    );
+  }
 
   if (!customer) {
     return (
       <div className="content">
         <h1>Account</h1>
-        <p>Loading account data...</p>
+        <p>Loading account data for customer ID: {formatId(currentCustomerId)}...</p>
+      </div>
+    );
+  }
+
+  if (!lot) {
+    return (
+      <div className="content">
+        <h1>Account</h1>
+        <p>Loading lot data for lot ID: {formatId(lotId)}...</p>
       </div>
     );
   }
@@ -173,22 +289,14 @@ const Account: React.FC = () => {
   const nameDisplay = customer.name.trim() === "" ? "None" : customer.name;
   const emailDisplay = customer.email.trim() === "" ? "None" : customer.email;
   const phoneDisplay = customer.phoneNo.trim() === "" ? "None" : customer.phoneNo;
-  const passwordDisplay = customer.password.trim() === "" ? "None" : "********";
+  const passwordDisplay = "********"; // Always show asterisks for security reasons
 
   const roleLabel = customer.role === "owner" ? "Owner" : "Operator";
   let secondaryLabel = "";
   if (customer.role === "owner") {
-    const operators = allCustomers.filter(
-      (c) => c.role === "operator" && c.assignedLots.includes(lotId || "")
-    );
-    secondaryLabel = operators.length
-      ? operators.map((op) => `${op.name} (#${op.customerId})`).join(", ")
-      : "None";
+    secondaryLabel = operators.length > 0 ? operators.map((op) => `${op.name} (#${op.customerId})`).join(", ") : "None";
   } else {
-    if (lot) {
-      const owner = allCustomers.find((c) => c.customerId === lot.ownerCustomerId);
-      secondaryLabel = owner ? `${owner.name} (#${owner.customerId})` : "Unknown";
-    }
+    secondaryLabel = owner ? `${owner.name} (#${owner.customerId})` : "Unknown";
   }
 
   return (
@@ -196,7 +304,7 @@ const Account: React.FC = () => {
       {/* Title Row */}
       <div className="account-title-row">
         <h1>
-          Account <span className="light-text">#{customer.customerId}</span>
+          Account <span className="light-text">#{formatId(currentCustomerId)}</span>
         </h1>
       </div>
 
@@ -250,7 +358,7 @@ const Account: React.FC = () => {
       {lot && (
         <div className="lot-section">
           <h1>
-            Lot <span className="light-text">#{lot.lotId}</span>
+            Lot <span className="light-text">#{formatId(lot.lotId)}</span>
           </h1>
           <div className="lot-role-row">
             <div className="lot-item">
