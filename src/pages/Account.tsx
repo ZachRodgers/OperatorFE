@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
+import { useUser } from "../context/UserContext";
+import { User } from "../types";
 import "./Account.css";
 
 interface Customer {
@@ -31,21 +33,33 @@ interface Lot {
   registryOn: boolean;
 }
 
+interface ApiUser {
+  userId: string;
+  name: string;
+  email: string;
+  phoneNo?: string;
+  role: string;
+  isVerified?: boolean;
+  isDeleted?: boolean;
+  [key: string]: any; // Allow any other properties
+}
+
 const Account: React.FC = () => {
   // NOTE: For better routing, consider changing routes to:
   // /user/:userId/lot/:lotId/account
   // This will ensure both IDs are available in the URL
 
   const { customerId: routeCustomerId, lotId: routeLotId } = useParams<{ customerId?: string; lotId?: string }>();
-  const [currentCustomerId, setCurrentCustomerId] = useState<string>(routeCustomerId || localStorage.getItem('customerId') || '');
-  const lotId = routeLotId || localStorage.getItem('lotId') || '';
   const navigate = useNavigate();
+  const { user, logout } = useUser(); // Access the authenticated user from context
   
-  console.log("Account.tsx: Using customerId:", currentCustomerId, "lotId:", lotId);
-  console.log("Account.tsx: localStorage values:", {
-    customerId: localStorage.getItem('customerId'),
-    lotId: localStorage.getItem('lotId')
-  });
+  // Use the authenticated user ID from context, falling back to route params
+  const [currentCustomerId, setCurrentCustomerId] = useState<string>(
+    (user?.userId as string) || routeCustomerId || localStorage.getItem('loggedInUserId') || ''
+  );
+  const lotId = routeLotId || localStorage.getItem('lotId') || '';
+  
+  console.log("Account.tsx: Using authenticated user:", user?.name, "customerId:", currentCustomerId, "lotId:", lotId);
 
   const BASE_URL = "http://localhost:8085/ParkingWithParallel";
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -64,13 +78,59 @@ const Account: React.FC = () => {
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [resetError, setResetError] = useState("");
 
-  const formatId = (id: string): string => {
-    return id.replace(/^PWP-(U|PL)-/, '');
+  const formatId = (id?: string): string => {
+    if (!id) return '';
+    
+    // For debugging
+    console.log("Formatting ID:", id);
+    
+    // Extract the ID number after the prefix
+    const match = id.match(/^PWP-(U|PL)-(\d+)$/);
+    if (match) {
+      return match[2]; // Return just the number portion
+    }
+    
+    // If no match found, return the original ID
+    return id;
   };
 
-  // 1. Load all customers
+  // Function to convert API user to Customer
+  const convertApiUserToCustomer = (apiUser: ApiUser): Customer => {
+    return {
+      customerId: apiUser.userId, // Map userId to customerId
+      name: apiUser.name || "",
+      email: apiUser.email || "",
+      phoneNo: apiUser.phoneNo || "",
+      role: apiUser.role || "",
+      password: "", // We don't get passwords from API
+      assignedLots: [],
+      isVerified: apiUser.isVerified ? "true" : "false",
+      lastLogin: ""
+    };
+  };
+
+  // Load authenticated user data
   useEffect(() => {
-    if (currentCustomerId) {
+    // If we have a user from context, use that
+    if (user?.userId) {
+      console.log("Using authenticated user data from context:", user);
+      // Convert User to Customer type
+      const userAsCustomer: Customer = {
+        customerId: user.userId,
+        name: user.name,
+        email: user.email,
+        phoneNo: user.phoneNo || '',
+        role: user.role,
+        password: '',  // We don't store password in context
+        assignedLots: user.assignedLots || [],
+        isVerified: user.isVerified ? 'true' : 'false',
+        lastLogin: user.lastLogin || '',
+      };
+      setCustomer(userAsCustomer);
+      setCurrentCustomerId(user.userId);
+    } 
+    // Otherwise fetch from API
+    else if (currentCustomerId) {
       console.log(`Fetching customer with ID: ${currentCustomerId}`);
       fetch(`${BASE_URL}/users/get-user-by-id/${currentCustomerId}`)
         .then((res) => {
@@ -81,17 +141,21 @@ const Account: React.FC = () => {
         })
         .then((data) => {
           console.log("Customer data received:", data);
-          setCustomer(data);
+          // Convert API response to Customer
+          setCustomer(convertApiUserToCustomer(data));
         })
         .catch((err) => {
           console.error("Error fetching customer:", err);
+          // If user can't be fetched, redirect to login
+          logout();
         });
     } else {
-      console.warn("No customerId available for fetch");
+      console.warn("No authenticated user available. Redirecting to login.");
+      logout();
     }
-  }, [currentCustomerId, BASE_URL]);
+  }, [user, currentCustomerId, BASE_URL, logout]);
 
-  // 2. Load all lots
+  // 2. Load lot data
   useEffect(() => {
     if (lotId) {
       console.log(`Fetching lot with ID: ${lotId}`);
@@ -108,29 +172,6 @@ const Account: React.FC = () => {
           
           // Store lotId in localStorage for persistence
           localStorage.setItem('lotId', data.lotId);
-          
-          // If no customerId is available, use the lot's owner ID
-          if (!currentCustomerId && data.ownerCustomerId) {
-            console.log(`No customerId found, using lot owner ID: ${data.ownerCustomerId}`);
-            // Store in localStorage
-            localStorage.setItem('customerId', data.ownerCustomerId);
-            setCurrentCustomerId(data.ownerCustomerId);
-            // Fetch customer data using this ID
-            fetch(`${BASE_URL}/users/get-user-by-id/${data.ownerCustomerId}`)
-              .then(res => {
-                if (!res.ok) {
-                  throw new Error(`Failed to fetch owner: ${res.status}`);
-                }
-                return res.json();
-              })
-              .then(ownerData => {
-                console.log("Owner data received:", ownerData);
-                setCustomer(ownerData);
-              })
-              .catch(err => {
-                console.error("Error fetching owner:", err);
-              });
-          }
         })
         .catch((err) => {
           console.error("Error fetching lot:", err);
@@ -138,44 +179,49 @@ const Account: React.FC = () => {
     } else {
       console.warn("No lotId available for fetch");
     }
-  }, [lotId, currentCustomerId, BASE_URL]);
+  }, [lotId, BASE_URL]);
 
-  // 3. Identify current customer and lot from route
+  // 3. Determine user role for this lot and fetch related users
   useEffect(() => {
     if (customer && lot) {
-      console.log("Fetching related users. Customer role:", customer.role);
+      console.log("Determining user role for lot:", lot.lotId);
       
-      if (customer.role === "owner") {
-        fetch(`${BASE_URL}/parkinglots/get-operators/${lot.lotId}`)
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error(`Failed to fetch operators: ${res.status}`);
-            }
-            return res.json();
-          })
-          .then((data) => {
-            console.log("Operators data received:", data);
-            setOperators(data);
-          })
-          .catch((err) => {
-            console.error("Error fetching operators:", err);
-          });
-      } else {
-        fetch(`${BASE_URL}/users/get-user-by-id/${lot.ownerCustomerId}`)
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error(`Failed to fetch owner: ${res.status}`);
-            }
-            return res.json();
-          })
-          .then((data) => {
-            console.log("Owner data received:", data);
-            setOwner(data);
-          })
-          .catch((err) => {
-            console.error("Error fetching owner:", err);
-          });
-      }
+      // First, always fetch the owner information
+      fetch(`${BASE_URL}/users/get-user-by-id/${lot.ownerCustomerId}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch owner: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Owner data received:", data);
+          // Convert API response to Customer before setting
+          setOwner(convertApiUserToCustomer(data));
+        })
+        .catch((err) => {
+          console.error("Error fetching owner:", err);
+        });
+      
+      // Then, fetch operators for this lot
+      fetch(`${BASE_URL}/parkinglots/get-operators/${lot.lotId}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch operators: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Operators data received:", data);
+          // Map each operator through the converter function
+          const convertedOperators = Array.isArray(data) 
+            ? data.map(op => convertApiUserToCustomer(op))
+            : [];
+          setOperators(convertedOperators);
+        })
+        .catch((err) => {
+          console.error("Error fetching operators:", err);
+        });
     }
   }, [customer, lot, BASE_URL]);
 
@@ -249,14 +295,18 @@ const Account: React.FC = () => {
         return res.json();
       })
       .then(() => {
-        // Clear session and redirect to login
-        localStorage.removeItem("authToken");
-        navigate("/");
+        // Clear all auth data and redirect to login
+        logout();
       })
       .catch((err) => {
         console.error("Error updating password:", err);
         setResetError(err.message || "Server error. Please try again.");
       });
+  };
+
+  // Use the logout function from context
+  const handleLogout = () => {
+    logout();
   };
 
   if (!currentCustomerId || !lotId) {
@@ -291,12 +341,52 @@ const Account: React.FC = () => {
   const phoneDisplay = customer.phoneNo.trim() === "" ? "None" : customer.phoneNo;
   const passwordDisplay = "********"; // Always show asterisks for security reasons
 
-  const roleLabel = customer.role === "owner" ? "Owner" : "Operator";
-  let secondaryLabel = "";
-  if (customer.role === "owner") {
-    secondaryLabel = operators.length > 0 ? operators.map((op) => `${op.name} (#${op.customerId})`).join(", ") : "None";
+  // Determine if the current user is the owner of this lot
+  const isOwner = lot.ownerCustomerId === customer.customerId;
+  console.log("Role determination - Owner check:", {
+    lotOwnerId: lot.ownerCustomerId,
+    currentUserId: customer.customerId,
+    isOwner
+  });
+  
+  // Determine if the current user is an operator for this lot
+  const isOperator = operators.some(op => op.customerId === customer.customerId);
+  console.log("Role determination - Operator check:", {
+    operators: operators.map(op => ({name: op.name, id: op.customerId})),
+    currentUserId: customer.customerId,
+    isOperator
+  });
+  
+  // Compute roleLabel based FIRST on relationship to the lot, THEN on role
+  let roleLabel = "";
+  if (isOwner) {
+    roleLabel = "Owner";
+  } else if (isOperator) {
+    roleLabel = "Operator"; // Force "Operator" if they're in the operators list
+  } else if (customer.role && customer.role.toLowerCase() === "staff") {
+    roleLabel = "Staff";
   } else {
-    secondaryLabel = owner ? `${owner.name} (#${owner.customerId})` : "Unknown";
+    roleLabel = customer.role ? (customer.role.charAt(0).toUpperCase() + customer.role.slice(1)) : "Viewer";
+  }
+  
+  // After computing roleLabel, log it
+  console.log("Final role label:", roleLabel);
+  
+  // Set up the secondary label depending on the role
+  let secondaryLabel = "";
+  if (isOwner) {
+    // If user is owner, display all operators (excluding self) with proper IDs
+    secondaryLabel = operators.length > 0 
+      ? operators
+          .filter(op => op.customerId !== customer.customerId)
+          .map((op) => `${op.name} (#${formatId(op.customerId)})`)
+          .join(", ") 
+      : "None";
+  } else {
+    // If user is not owner, display the owner info with proper id
+    secondaryLabel = owner 
+      ? `${owner.name} (#${formatId(owner.customerId)})` 
+      : "Unknown";
   }
 
   return (
@@ -364,7 +454,7 @@ const Account: React.FC = () => {
             <div className="lot-item">
               <span className="bold">Role:</span> {roleLabel}
             </div>
-            {customer.role === "owner" ? (
+            {isOwner ? (
               <div className="lot-item">
                 <span className="bold">Operators:</span> {secondaryLabel}
               </div>

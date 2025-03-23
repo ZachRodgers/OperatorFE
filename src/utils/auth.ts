@@ -20,12 +20,13 @@ export const storeAuthData = (userId: string, token: string) => {
   // Store new auth data
   localStorage.setItem("token", token);
   localStorage.setItem("userId", userId);
+  localStorage.setItem("loggedInUserId", userId); // Store as loggedInUserId for consistent reference
   localStorage.setItem("expiresAt", expiresAt.toString());
   localStorage.setItem("isAuthenticated", "true");
 
   // Verify storage was successful
   const storedToken = localStorage.getItem("token");
-  const storedUserId = localStorage.getItem("userId");
+  const storedUserId = localStorage.getItem("loggedInUserId");
   
   if (storedToken !== token || storedUserId !== userId) {
     console.error("Auth data storage failed - values don't match");
@@ -81,6 +82,9 @@ export const isAuthenticated = (): boolean => {
 export const clearAuthData = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("userId");
+  localStorage.removeItem("loggedInUserId");
+  localStorage.removeItem("customerId"); // Clear customerId as well
+  localStorage.removeItem("lotId"); // Clear lotId as well
   localStorage.removeItem("expiresAt");
   localStorage.removeItem("isAuthenticated");
 };
