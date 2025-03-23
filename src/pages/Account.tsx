@@ -271,30 +271,43 @@ const Account: React.FC = () => {
   const submitPasswordReset = () => {
     if (!customer) return;
     
-    // Instead of directly comparing passwords (which is insecure),
-    // we'll send both the old and new password to the server for validation
-    const passwordUpdateData = {
-      ...customer,
-      oldPassword: oldPasswordInput,  // Add old password for server validation
-      password: newPasswordInput      // New password to set
+    // Form validation
+    if (!oldPasswordInput || !newPasswordInput) {
+      setResetError("Please fill in both password fields.");
+      return;
+    }
+    
+    // Password complexity check
+    if (newPasswordInput.length < 6) {
+      setResetError("New password must be at least 6 characters long.");
+      return;
+    }
+    
+    // Create the data for password change
+    const passwordChangeData = {
+      oldPassword: oldPasswordInput,
+      newPassword: newPasswordInput
     };
 
-    fetch(`${BASE_URL}/users/update-user/${customer.customerId}`, {
-      method: "PUT",
+    // Use the dedicated password change endpoint
+    fetch(`${BASE_URL}/users/change-password/${customer.customerId}`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(passwordUpdateData),
+      body: JSON.stringify(passwordChangeData),
     })
       .then((res) => {
         if (!res.ok) {
-          // Check if it's specifically an authentication error
           if (res.status === 401) {
-            throw new Error("Old password is incorrect.");
+            throw new Error("The current password you entered is incorrect.");
           }
           throw new Error("Failed to update password.");
         }
         return res.json();
       })
       .then(() => {
+        // Show success message
+        alert("Password updated successfully. You will be logged out for security reasons.");
+        
         // Clear all auth data and redirect to login
         logout();
       })
@@ -502,8 +515,8 @@ const Account: React.FC = () => {
         <Modal
           isOpen={true}
           title="Reset Password"
-          description="Enter your old and new password."
-          confirmText="Reset"
+          description="Enter your current password and a new password."
+          confirmText="Reset Password"
           cancelText="Cancel"
           onConfirm={submitPasswordReset}
           onCancel={() => {
@@ -513,21 +526,32 @@ const Account: React.FC = () => {
             setNewPasswordInput("");
           }}
         >
-          <input
-            type="text"
-            placeholder="Old Password"
-            value={oldPasswordInput}
-            onChange={(e) => setOldPasswordInput(e.target.value)}
-            className="popup-input"
-          />
-          <input
-            type="text"
-            placeholder="New Password"
-            value={newPasswordInput}
-            onChange={(e) => setNewPasswordInput(e.target.value)}
-            className="popup-input"
-          />
-          {resetError && <p className="error">{resetError}</p>}
+          <div className="password-reset-form">
+            <div className="form-group">
+              <input
+                id="oldPassword"
+                type="password"
+                placeholder="Current Password"
+                value={oldPasswordInput}
+                onChange={(e) => setOldPasswordInput(e.target.value)}
+                className="popup-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <input
+                id="newPassword"
+                type="password"
+                placeholder="New Password"
+                value={newPasswordInput}
+                onChange={(e) => setNewPasswordInput(e.target.value)}
+                className="popup-input"
+              />
+
+            </div>
+            
+            {resetError && <p className="error-message">{resetError}</p>}
+          </div>
         </Modal>
       )}
     </div>
