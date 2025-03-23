@@ -1,21 +1,75 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
+import { lotService } from "../utils/api";
 import "./Sidebar.css";
 
 const Sidebar = () => {
   const { lotId } = useParams();
   const navigate = useNavigate();
-  const { user, userLots, logout } = useUser();
+  const { user, userLots, fetchUserLots, logout } = useUser();
+  const [lotName, setLotName] = useState<string>("Unknown Lot");
+  const [hasMultipleLots, setHasMultipleLots] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Effect to load and persist lot information
+  useEffect(() => {
+    const loadLotData = async () => {
+      if (!lotId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // First check localStorage for cached lot name
+        const cachedLotName = localStorage.getItem(`lot_${lotId}_name`);
+        
+        // If we have a cached name, use it initially while we fetch the latest
+        if (cachedLotName) {
+          setLotName(cachedLotName);
+        }
+
+        // Fetch current lot information
+        const lotData = await lotService.getLotById(lotId);
+        if (lotData) {
+          // Update state with lot name
+          setLotName(lotData.lotName || "Unknown Lot");
+          // Cache the lot name for persistence
+          localStorage.setItem(`lot_${lotId}_name`, lotData.lotName);
+        }
+
+        // Get multiple lots status from localStorage or from context
+        if (userLots && userLots.length > 0) {
+          setHasMultipleLots(userLots.length > 1);
+          // Store for persistence
+          localStorage.setItem('user_has_multiple_lots', userLots.length > 1 ? 'true' : 'false');
+        } else {
+          // If userLots is empty, try to fetch them
+          const lots = await fetchUserLots();
+          setHasMultipleLots(lots.length > 1);
+          // Store for persistence
+          localStorage.setItem('user_has_multiple_lots', lots.length > 1 ? 'true' : 'false');
+        }
+      } catch (error) {
+        console.error("Error loading lot data:", error);
+        
+        // Fall back to localStorage if API calls fail
+        const cachedLotName = localStorage.getItem(`lot_${lotId}_name`);
+        if (cachedLotName) {
+          setLotName(cachedLotName);
+        }
+        
+        const cachedHasMultipleLots = localStorage.getItem('user_has_multiple_lots') === 'true';
+        setHasMultipleLots(cachedHasMultipleLots);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLotData();
+  }, [lotId, userLots, fetchUserLots]);
 
   if (!lotId) return null; // Prevent rendering if lotId is missing
-
-  // Check if user has multiple lots
-  const hasMultipleLots = userLots.length > 1;
-
-  // Find the current lot based on lotId
-  const currentLot = userLots.find((lot) => lot.lotId === lotId);
-  const lotName = currentLot ? currentLot.lotName : "Unknown Lot";
 
   // Truncate lot name if it exceeds 36 characters
   const truncatedLotName = lotName.length > 36 ? lotName.substring(0, 36) + "..." : lotName;
@@ -30,7 +84,7 @@ const Sidebar = () => {
       <div className="sidebar-header">
         <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo" />
         <div className="lot-box">
-          <p className="lot-id">{truncatedLotName}</p> {/* Display lot name */}
+          <p className="lot-id">{isLoading ? "Loading..." : truncatedLotName}</p>
         </div>
         {/* Only show Change Lot if the user has more than one lot */}
         {hasMultipleLots && (
