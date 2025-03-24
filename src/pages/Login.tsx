@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../utils/api";
 import { storeAuthData, validateAuthStorage, isAuthenticated } from "../utils/auth";
 import "./Login.css";
@@ -8,9 +8,11 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Check if already logged in
   useEffect(() => {
@@ -20,6 +22,16 @@ const Login = () => {
     }
   }, []);
 
+  // Check for success message from other pages
+  useEffect(() => {
+    const state = location.state as { message?: string };
+    if (state?.message) {
+      setSuccessMessage(state.message);
+      // Clear the message from location state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     
@@ -28,6 +40,7 @@ const Login = () => {
     
     setIsLoading(true);
     setError("");
+    setSuccessMessage("");
     
     try {
       console.log("Attempting login for:", email);
@@ -94,7 +107,7 @@ const Login = () => {
 
   const handleForgotPassword = (e: React.MouseEvent) => {
     e.preventDefault();
-    alert("Password reset is not enabled. Please contact Parallel administrators for assistance.");
+    navigate('/forgot-password');
   };
 
   if (isRedirecting) {
@@ -143,6 +156,7 @@ const Login = () => {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
           {error && <p className="error">{error}</p>}
+          {successMessage && <p className="success">{successMessage}</p>}
         </form>
 
         <a href="#" className="forgot-password" onClick={handleForgotPassword}>Forgot my password</a>
