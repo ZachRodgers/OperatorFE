@@ -4,50 +4,58 @@ import "./Settings.css";
 import Slider from "../components/Slider";
 import Modal from "../components/Modal";
 import Tooltip from "../components/Tooltip";
-import lots from "../data/lots_master.json"; // Import lot data
 import lotPricing from "../data/lot_pricing.json"; // Import lot pricing data
-
+import { lotService } from "../utils/api";
+import { useLot } from "../contexts/LotContext"; // Import the useLot hook
 
 const Settings: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
   const navigate = useNavigate();
+  
+  // Get lot context methods
+  const { lotData: contextLotData, invalidateData } = useLot();
 
-// Find the lot by lotId
-const lot = lots.find((lot) => lot.lotId === lotId);
-// Find the lot pricing entry for the current lotId
-const pricing = lotPricing.find((entry) => entry.lotId === lotId);
-
-
-// Default values from the JSON (fallback if undefined)
-const [lotName, setLotName] = useState(lot?.lotName || "Unknown Lot");
-const [companyName, setCompanyName] = useState(lot?.companyName || "Unknown Company");
-const [address, setAddress] = useState(lot?.address || "Unknown Address");
-const [lotCapacity, setLotCapacity] = useState(String(lot?.lotCapacity ?? "0"));
-
+  // State for lot data
+  const [lotName, setLotName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [address, setAddress] = useState("");
+  const [lotCapacity, setLotCapacity] = useState("0");
+  // Added registryOn state to store the current registry status
+  const [registryOn, setRegistryOn] = useState(false);
+  // Added ownerCustomerId state from params or fetched lot data
+  const [ownerCustomerId, setOwnerCustomerId] = useState(customerId || "");
+  const [lotData, setLotData] = useState<any>(null);
 
   // Pricing settings
   const [hourlyPrice, setHourlyPrice] = useState(
-    pricing?.hourlyRate !== undefined ? String(pricing.hourlyRate) : ""
+    lotPricing.find((entry) => entry.lotId === lotId)?.hourlyRate !== undefined 
+      ? String(lotPricing.find((entry) => entry.lotId === lotId)?.hourlyRate) 
+      : ""
   );
   const [dailyMaxPrice, setDailyMaxPrice] = useState(
-    pricing?.maximumAmount !== undefined ? String(pricing.maximumAmount) : ""
+    lotPricing.find((entry) => entry.lotId === lotId)?.maximumAmount !== undefined 
+      ? String(lotPricing.find((entry) => entry.lotId === lotId)?.maximumAmount) 
+      : ""
   );
   const [gracePeriod, setGracePeriod] = useState(
-    pricing?.gracePeriod !== undefined ? String(pricing.gracePeriod) : ""
+    lotPricing.find((entry) => entry.lotId === lotId)?.gracePeriod !== undefined 
+      ? String(lotPricing.find((entry) => entry.lotId === lotId)?.gracePeriod) 
+      : ""
   );
   const [maxTime, setMaxTime] = useState(
-    pricing?.maximumTime !== undefined ? String(pricing.maximumTime) : ""
+    lotPricing.find((entry) => entry.lotId === lotId)?.maximumTime !== undefined 
+      ? String(lotPricing.find((entry) => entry.lotId === lotId)?.maximumTime) 
+      : ""
   );
   const [ticketAmount, setTicketAmount] = useState(
-    pricing?.ticketAmount !== undefined ? String(pricing.ticketAmount) : ""
+    lotPricing.find((entry) => entry.lotId === lotId)?.ticketAmount !== undefined 
+      ? String(lotPricing.find((entry) => entry.lotId === lotId)?.ticketAmount) 
+      : ""
   );
-  
 
-  
   // Toggles
-  const [freeParking, setFreeParking] = useState(pricing?.freeParking ?? false);
-  const [allowValidation, setAllowValidation] = useState(pricing?.allowValidation ?? false);
-  
+  const [freeParking, setFreeParking] = useState(lotPricing.find((entry) => entry.lotId === lotId)?.freeParking ?? false);
+  const [allowValidation, setAllowValidation] = useState(lotPricing.find((entry) => entry.lotId === lotId)?.allowValidation ?? false);
 
   // State for modals
   const [modalType, setModalType] = useState<string | null>(null);
@@ -61,7 +69,43 @@ const [lotCapacity, setLotCapacity] = useState(String(lot?.lotCapacity ?? "0"));
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [gracePeriodError, setGracePeriodError] = useState(false);
-const [maxTimeError, setMaxTimeError] = useState(false);
+  const [maxTimeError, setMaxTimeError] = useState(false);
+
+  // Fetch lot data when component mounts
+  useEffect(() => {
+    const fetchLotData = async () => {
+      try {
+        if (!lotId) return;
+        const fetchedLot = await lotService.getLotById(lotId);
+        setLotData(fetchedLot);
+        setLotName(fetchedLot.lotName || "Unknown Lot");
+        setCompanyName(fetchedLot.companyName || "Unknown Company");
+        setAddress(fetchedLot.address || "Unknown Address");
+        setLotCapacity(String(fetchedLot.lotCapacity ?? "0"));
+        setRegistryOn(fetchedLot.registryOn !== undefined ? fetchedLot.registryOn : false);
+        setOwnerCustomerId(fetchedLot.ownerCustomerId || customerId);
+      } catch (error) {
+        console.error('Error fetching lot data:', error);
+        // Set default values if fetch fails
+        setLotName("Unknown Lot");
+        setCompanyName("Unknown Company");
+        setAddress("Unknown Address");
+        setLotCapacity("0");
+      }
+    };
+
+    fetchLotData();
+  }, [lotId]);
+
+  // Update local lot info when contextLotData changes (e.g., after an update)
+  useEffect(() => {
+    if (contextLotData) {
+      setLotName(contextLotData.lotName || "Unknown Lot");
+      setCompanyName(contextLotData.companyName || "Unknown Company");
+      setAddress(contextLotData.address || "Unknown Address");
+      setLotCapacity(String(contextLotData.lotCapacity ?? "0"));
+    }
+  }, [contextLotData]);
 
   useEffect(() => {
     setSaveButtonOpacity(isDirty ? 1 : 0.3);
@@ -78,66 +122,36 @@ const [maxTimeError, setMaxTimeError] = useState(false);
   };
 
   const saveEditPopup = async () => {
-    if (!editingField) return;
-  
-    const updatedField = { [editingField]: tempValue };
+    if (!editingField || !lotId || !lotData) return;
   
     try {
-      console.log("📡 Sending update-lot request:", updatedField);
+      console.log("📡 Sending update-lot request for field:", { [editingField]: tempValue });
   
-      // Update local state first (ensures UI update)
-      switch (editingField) {
-        case "lotName":
-          setLotName(tempValue);
-          break;
-        case "companyName":
-          setCompanyName(tempValue);
-          break;
-        case "address":
-          setAddress(tempValue);
-          break;
-        case "lotCapacity":
-          setLotCapacity(tempValue);
-          break;
-        default:
-          break;
-      }
-  
-      const response = await fetch("http://localhost:5000/update-lot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lotId,
-          updatedData: updatedField,
-        }),
-      });
-  
-      if (!response.ok) {
-        const errorMessage = await response.text();
-        throw new Error(`Failed to update: ${errorMessage}`);
-      }
-  
-      console.log("Successfully updated, fetching latest data...");
-  
-      // Fetch latest data after update
-      setTimeout(async () => {
-        const updatedResponse = await fetch("http://localhost:5000/get-customer");
-        const updatedCustomers = await updatedResponse.json();
-  
-        const updatedLot = updatedCustomers.find((lot: { lotId: string }) => lot.lotId === lotId);
-  
-        if (updatedLot) {
-          console.log("Updated Lot Data from Backend:", updatedLot);
-          setLotName(updatedLot.lotName);
-          setCompanyName(updatedLot.companyName);
-          setAddress(updatedLot.address);
-          setLotCapacity(String(updatedLot.lotCapacity ?? "0"));
-        }
-      }, 500); // Small delay to ensure backend writes data
-  
+      // Create update object with only required fields
+      const updatedLot = {
+         lotName: editingField === "lotName" ? tempValue : lotData.lotName,
+         companyName: editingField === "companyName" ? tempValue : lotData.companyName,
+         address: editingField === "address" ? tempValue : lotData.address,
+         lotCapacity: editingField === "lotCapacity" 
+           ? (tempValue.trim() === "" ? (parseInt(String(lotData.lotCapacity)) || 0) : parseInt(tempValue)) 
+           : (parseInt(String(lotData.lotCapacity)) || 0),
+         ownerCustomerId: lotData.ownerCustomerId,
+         accountStatus: "ACTIVE",
+         registryOn: lotData.registryOn
+      };
+
+      console.log("Updated lot object:", updatedLot);
+      await lotService.updateLot(lotId, updatedLot);
+      console.log("Successfully updated lot settings");
+      
+      // Update UI state
       setEditingField(null);
       setModalType(null);
       setIsDirty(false);
+      
+      // Invalidate the lot context data to force a refresh in all components using the context
+      invalidateData();
+      
     } catch (error) {
       console.error("❌ Error updating lot:", error);
       alert("Failed to update lot settings.");

@@ -86,6 +86,12 @@ export const lotService = {
   getLotById: async (lotId: string) => {
     const response = await api.get(`/parkinglots/get-by-id/${lotId}`);
     return response.data;
+  },
+
+  // Update lot
+  updateLot: async (lotId: string, lotData: any) => {
+    const response = await api.put(`/parkinglots/update/${lotId}`, lotData);
+    return response.data;
   }
 };
 

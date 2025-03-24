@@ -1,5 +1,5 @@
 import React, { ReactElement } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Login from "./pages/Login";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import RevenueDashboard from "./pages/RevenueDashboard";
@@ -13,6 +13,7 @@ import Account from "./pages/Account";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { UserProvider } from "./context/UserContext";
+import { LotProvider } from "./contexts/LotContext";
 import UserRedirect from "./components/UserRedirect";
 import "./App.css";
 
@@ -21,7 +22,27 @@ if (!Sidebar) {
   console.error("Sidebar component not found. Ensure Sidebar.tsx is exported correctly.");
 }
 
-// Ensure PageLayout is defined AFTER all imports
+// LotProviderWrapper - extracts lotId from URL and provides it to LotProvider
+const LotProviderWrapper = ({ children }: { children: ReactElement }) => {
+  const { lotId } = useParams<{ lotId: string }>();
+  return (
+    <LotProvider lotId={lotId}>
+      {children}
+    </LotProvider>
+  );
+};
+
+// PageLayout with LotProvider for lot-specific routes
+const LotPageLayout = ({ children }: { children: ReactElement }) => (
+  <LotProviderWrapper>
+    <div className="app-container">
+      <Sidebar />
+      <div className="content">{children}</div>
+    </div>
+  </LotProviderWrapper>
+);
+
+// Regular PageLayout for non-lot-specific routes
 const PageLayout = ({ children }: { children: ReactElement }) => (
   <div className="app-container">
     <Sidebar />
@@ -59,101 +80,101 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Lot-specific routes */}
+          {/* Lot-specific routes with LotProvider */}
           <Route path="/lot/:lotId/revenue-dashboard" element={
             <ProtectedRoute>
-              <PageLayout><RevenueDashboard /></PageLayout>
+              <LotPageLayout><RevenueDashboard /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/occupants" element={
             <ProtectedRoute>
-              <PageLayout><ParkedCars /></PageLayout>
+              <LotPageLayout><ParkedCars /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/settings" element={
             <ProtectedRoute>
-              <PageLayout><Settings /></PageLayout>
+              <LotPageLayout><Settings /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/advanced" element={
             <ProtectedRoute>
-              <PageLayout><AdvancedSettings /></PageLayout>
+              <LotPageLayout><AdvancedSettings /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/registry" element={
             <ProtectedRoute>
-              <PageLayout><PlateRegistry /></PageLayout>
+              <LotPageLayout><PlateRegistry /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/notifications" element={
             <ProtectedRoute>
-              <PageLayout><Notifications /></PageLayout>
+              <LotPageLayout><Notifications /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/addons" element={
             <ProtectedRoute>
-              <PageLayout><Addons /></PageLayout>
+              <LotPageLayout><Addons /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/lot/:lotId/account" element={
             <ProtectedRoute>
-              <PageLayout><Account /></PageLayout>
+              <LotPageLayout><Account /></LotPageLayout>
             </ProtectedRoute>
           } />
           
-          {/* Legacy routes - for backward compatibility */}
+          {/* Legacy routes - for backward compatibility - using LotPageLayout */}
           <Route path="/:customerId/:lotId/revenue-dashboard" element={
             <ProtectedRoute>
-              <PageLayout><RevenueDashboard /></PageLayout>
+              <LotPageLayout><RevenueDashboard /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/occupants" element={
             <ProtectedRoute>
-              <PageLayout><ParkedCars /></PageLayout>
+              <LotPageLayout><ParkedCars /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/settings" element={
             <ProtectedRoute>
-              <PageLayout><Settings /></PageLayout>
+              <LotPageLayout><Settings /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/advanced" element={
             <ProtectedRoute>
-              <PageLayout><AdvancedSettings /></PageLayout>
+              <LotPageLayout><AdvancedSettings /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/registry" element={
             <ProtectedRoute>
-              <PageLayout><PlateRegistry /></PageLayout>
+              <LotPageLayout><PlateRegistry /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/notifications" element={
             <ProtectedRoute>
-              <PageLayout><Notifications /></PageLayout>
+              <LotPageLayout><Notifications /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/addons" element={
             <ProtectedRoute>
-              <PageLayout><Addons /></PageLayout>
+              <LotPageLayout><Addons /></LotPageLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/:customerId/:lotId/account" element={
             <ProtectedRoute>
-              <PageLayout><Account /></PageLayout>
+              <LotPageLayout><Account /></LotPageLayout>
             </ProtectedRoute>
           } />
         </Routes>

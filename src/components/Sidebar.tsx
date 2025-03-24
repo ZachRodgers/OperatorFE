@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { lotService } from "../utils/api";
+import { useLot } from "../contexts/LotContext";
 import "./Sidebar.css";
 
 const Sidebar = () => {
@@ -11,6 +12,9 @@ const Sidebar = () => {
   const [lotName, setLotName] = useState<string>("Unknown Lot");
   const [hasMultipleLots, setHasMultipleLots] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // Get lot data from context if available
+  const lotContext = useLot();
 
   // Effect to load and persist lot information
   useEffect(() => {
@@ -29,13 +33,19 @@ const Sidebar = () => {
           setLotName(cachedLotName);
         }
 
-        // Fetch current lot information
-        const lotData = await lotService.getLotById(lotId);
-        if (lotData) {
-          // Update state with lot name
-          setLotName(lotData.lotName || "Unknown Lot");
-          // Cache the lot name for persistence
-          localStorage.setItem(`lot_${lotId}_name`, lotData.lotName);
+        // If lot data is available in context, use it
+        if (lotContext && lotContext.lotData) {
+          setLotName(lotContext.lotData.lotName || "Unknown Lot");
+          localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName);
+        } else {
+          // Fetch current lot information if not in context
+          const lotData = await lotService.getLotById(lotId);
+          if (lotData) {
+            // Update state with lot name
+            setLotName(lotData.lotName || "Unknown Lot");
+            // Cache the lot name for persistence
+            localStorage.setItem(`lot_${lotId}_name`, lotData.lotName);
+          }
         }
 
         // Get multiple lots status from localStorage or from context
@@ -67,7 +77,15 @@ const Sidebar = () => {
     };
 
     loadLotData();
-  }, [lotId, userLots, fetchUserLots]);
+  }, [lotId, userLots, fetchUserLots, lotContext]);
+
+  // Update lotName whenever lotContext.lotData changes
+  useEffect(() => {
+    if (lotContext && lotContext.lotData && lotContext.lotData.lotName) {
+      setLotName(lotContext.lotData.lotName);
+      localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName);
+    }
+  }, [lotContext?.lotData, lotId]);
 
   if (!lotId) return null; // Prevent rendering if lotId is missing
 
