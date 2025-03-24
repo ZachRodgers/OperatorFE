@@ -1,0 +1,219 @@
+.account-modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.account-error-banner {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.account-details {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.account-column {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  text-align: left;
+}
+
+.account-column p {
+  margin: 10px 0;
+  padding: 5px 0;
+  line-height: 1.5;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.account-column-inputs {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  text-align: left;
+}
+
+.account-column-inputs p {
+  margin: 10px 0;
+  padding: 5px 0;
+  line-height: 1.5;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+
+.account-disabled-text {
+  color: #888;
+}
+
+.account-editable-highlight {
+  background-color: #F9F9F9;
+  border: 1px solid #EAEAEA;
+  border-radius: 3px;
+  padding: 5px 10px!important;
+  font-weight: 400;
+  transition: all 0.2s;
+}
+
+.account-password {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.account-reset-password-btn {
+  background: none;
+  border: none;
+  color: #007AFF;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.account-reset-password-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.account-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  justify-content: flex-start;
+}
+
+.account-action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.account-action-button:hover {
+  background-color: #007AFF;
+  border-color: #007AFF;
+  color: white;
+}
+
+.account-button-icon {
+  width: 20px;
+  height: 20px;
+  transition: opacity 0.2s;
+}
+
+.account-button-icon-hover {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  top: 10px;
+}
+
+.account-action-button:hover .account-button-icon {
+  opacity: 0;
+}
+
+.account-action-button:hover .account-button-icon-hover {
+  opacity: 1;
+}
+
+.account-action-button.account-edit-active {
+  background-color: #007AFF;
+  border-color: #007AFF;
+  color: white;
+}
+
+.account-action-button.account-edit-active .account-button-icon {
+  opacity: 0;
+}
+
+.account-action-button.account-edit-active .account-button-icon-hover {
+  opacity: 1;
+}
+
+.account-action-button span {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.account-save-button {
+  background-color: #f0f7ff;
+  border-color: #007AFF;
+  color: #007AFF;
+}
+
+.account-save-button:hover {
+  background-color: #007AFF;
+  color: white;
+}
+
+.account-save-button:disabled {
+  background-color: #f0f0f0;
+  border-color: #ddd;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.account-password-form {
+  width: 100%;
+  padding: 10px 0;
+}
+
+.account-form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.account-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+}
+
+.account-form-group input {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #EAEAEA;
+  background-color: #F9F9F9;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.account-form-group input:focus {
+  outline: none;
+  border-color: #007AFF;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.account-modal-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  font-size: 14px;
+  color: #555;
+} 

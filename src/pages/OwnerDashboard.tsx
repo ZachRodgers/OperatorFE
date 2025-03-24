@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
+import AccountModal from "../components/AccountModal";
 import "./OwnerDashboard.css";
 
 const OwnerDashboard = () => {
@@ -10,6 +11,7 @@ const OwnerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("lotId");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   // Fetch lots when component mounts if not already loaded
   useEffect(() => {
@@ -79,7 +81,7 @@ const formatLotId = (id: string): string => {
           <div className="header-content">
             <img src="/assets/Logo_Owner.svg" alt="Logo" className="logo-owner" />
             <div className="header-actions">
-              <button className="icon-button account" onClick={() => alert("Not yet implemented")}>
+              <button className="icon-button account" onClick={() => setShowAccountModal(true)}>
                 <img src="/assets/nav/Account.svg" alt="Account" />
                 <span>Account</span>
               </button>
@@ -96,6 +98,7 @@ const formatLotId = (id: string): string => {
             <p>You don't have any lots assigned to your account.</p>
           </div>
         </div>
+        <AccountModal isOpen={showAccountModal} onClose={() => setShowAccountModal(false)} />
       </div>
     );
   }
@@ -107,7 +110,7 @@ const formatLotId = (id: string): string => {
         <div className="header-content">
           <img src="/assets/Logo_Owner.svg" alt="Logo" className="logo-owner" />
           <div className="header-actions">
-            <button className="icon-button account" onClick={() => alert("Not yet implemented")}>
+            <button className="icon-button account" onClick={() => setShowAccountModal(true)}>
               <img src="/assets/nav/Account.svg" alt="Account" />
               <span>{user?.name || 'User'}</span>
             </button>
@@ -181,6 +184,9 @@ const formatLotId = (id: string): string => {
           </tbody>
         </table>
       </div>
+      
+      {/* Account Modal */}
+      <AccountModal isOpen={showAccountModal} onClose={() => setShowAccountModal(false)} />
     </div>
   );
 };
