@@ -84,7 +84,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const authData = getAuthData();
     if (authData) {
-      fetchUserData();
+      // Load user data, then load user lots data
+      fetchUserData().then(userData => {
+        if (userData) {
+          fetchUserLots();
+        }
+      });
     } else {
       setLoading(false);
     }

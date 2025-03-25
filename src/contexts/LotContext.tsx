@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { lotService } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 
 // Define the shape of our lot data
 interface LotData {
@@ -40,6 +42,32 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const [invalidationToken, setInvalidationToken] = useState<number>(0);
+  const navigate = useNavigate();
+  const { user, userLots, fetchUserLots } = useUser();
+
+  // Check if user has access to this lot
+  useEffect(() => {
+    // Skip checks if we don't have a lotId
+    if (!lotId || !user) return;
+
+    // If userLots is empty, fetch them first
+    if (userLots.length === 0) {
+      fetchUserLots().then(lots => {
+        if (!lots.some(lot => lot.lotId === lotId)) {
+          // User doesn't have access to this lot, redirect to login
+          console.log(`User ${user.userId} attempted to access unauthorized lot ${lotId}`);
+          navigate('/login');
+        }
+      });
+    } else {
+      // Check if user has access to this lot
+      if (!userLots.some(lot => lot.lotId === lotId)) {
+        // User doesn't have access to this lot, redirect to login
+        console.log(`User ${user.userId} attempted to access unauthorized lot ${lotId}`);
+        navigate('/login');
+      }
+    }
+  }, [lotId, user, userLots, fetchUserLots, navigate]);
 
   // Function to fetch lot data
   const fetchLotData = async () => {
@@ -51,9 +79,14 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
     try {
       const data = await lotService.getLotById(lotId);
       setLotData(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching lot data:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch lot data'));
+      // If we get a 403 or 404, navigate to login
+      if (err.response && (err.response.status === 403 || err.response.status === 404)) {
+        console.log('Unauthorized access or lot not found, redirecting to login');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
