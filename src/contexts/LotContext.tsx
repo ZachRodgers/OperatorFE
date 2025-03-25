@@ -47,7 +47,7 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const data = await lotService.getLotById(lotId);
       setLotData(data);

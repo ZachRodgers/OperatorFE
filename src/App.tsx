@@ -59,119 +59,119 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
-          
+
           {/* Protected routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <UserRedirect />
             </ProtectedRoute>
           } />
-          
+
           <Route path="/owner-dashboard" element={
             <ProtectedRoute>
               <OwnerDashboard />
             </ProtectedRoute>
           } />
-          
+
           {/* Legacy/compatibility routes */}
           <Route path="/:customerId/owner-dashboard" element={
             <ProtectedRoute>
               <OwnerDashboard />
             </ProtectedRoute>
           } />
-          
+
           {/* Lot-specific routes with LotProvider */}
           <Route path="/lot/:lotId/revenue-dashboard" element={
             <ProtectedRoute>
               <LotPageLayout><RevenueDashboard /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/occupants" element={
             <ProtectedRoute>
               <LotPageLayout><ParkedCars /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/settings" element={
             <ProtectedRoute>
               <LotPageLayout><Settings /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/advanced" element={
             <ProtectedRoute>
               <LotPageLayout><AdvancedSettings /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/registry" element={
             <ProtectedRoute>
               <LotPageLayout><PlateRegistry /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/notifications" element={
             <ProtectedRoute>
               <LotPageLayout><Notifications /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/addons" element={
             <ProtectedRoute>
               <LotPageLayout><Addons /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/lot/:lotId/account" element={
             <ProtectedRoute>
               <LotPageLayout><Account /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           {/* Legacy routes - for backward compatibility - using LotPageLayout */}
           <Route path="/:customerId/:lotId/revenue-dashboard" element={
             <ProtectedRoute>
               <LotPageLayout><RevenueDashboard /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/occupants" element={
             <ProtectedRoute>
               <LotPageLayout><ParkedCars /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/settings" element={
             <ProtectedRoute>
               <LotPageLayout><Settings /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/advanced" element={
             <ProtectedRoute>
               <LotPageLayout><AdvancedSettings /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/registry" element={
             <ProtectedRoute>
               <LotPageLayout><PlateRegistry /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/notifications" element={
             <ProtectedRoute>
               <LotPageLayout><Notifications /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/addons" element={
             <ProtectedRoute>
               <LotPageLayout><Addons /></LotPageLayout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/:customerId/:lotId/account" element={
             <ProtectedRoute>
               <LotPageLayout><Account /></LotPageLayout>

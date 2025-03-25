@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import Modal from "../components/Modal";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const { user, loading, fetchUserData } = useUser();
+  const [isSessionWarningVisible, setSessionWarningVisible] = useState(false);
 
   useEffect(() => {
     // Fetch user data if not already loaded
@@ -22,10 +24,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       if (authData) {
         const expiresAt = parseInt(authData, 10);
         const timeLeft = expiresAt - Date.now();
-        
+
         // If less than 2 minutes left, show warning
         if (timeLeft < 2 * 60 * 1000 && timeLeft > 0) {
-          alert('Your session is about to expire in 2 minutes. Please save your work.');
+          setSessionWarningVisible(true);
         }
       }
     };
@@ -46,7 +48,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   // Return children if authenticated
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <Modal
+        isOpen={isSessionWarningVisible}
+        title="Session Expiring Soon"
+        description="Your session is about to expire in 2 minutes. Please save your work."
+        confirmText="Okay"
+        cancelText="Dismiss"
+        onConfirm={() => setSessionWarningVisible(false)}
+        onCancel={() => setSessionWarningVisible(false)}
+      />
+    </>
+  );
 };
 
 export default ProtectedRoute; 
