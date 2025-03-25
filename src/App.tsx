@@ -12,7 +12,7 @@ import Addons from "./pages/Addons";
 import Account from "./pages/Account";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { UserProvider } from "./context/UserContext";
+import { UserProvider } from "./contexts/UserContext";
 import { LotProvider } from "./contexts/LotContext";
 import UserRedirect from "./components/UserRedirect";
 import "./App.css";

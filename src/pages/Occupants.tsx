@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Modal from "../components/Modal";
 import "./Occupants.css";
-import { getSessionsByLot, validateSession, endSession, deleteSession } from "../services/api";
+import { sessionService } from "../utils/api";
 import lotPricing from "../data/lot_pricing.json"; // Still using this until we implement pricing API
 import lotsData from "../data/lots_master.json"; // Still using this until we implement lots API
 import axios, { AxiosError } from 'axios';
@@ -49,11 +49,11 @@ const Occupants: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await getSessionsByLot(lotId);
-      console.log("Sessions response:", response.data); // Add logging to debug
+      const response = await sessionService.getSessionsByLot(lotId);
+      console.log("Sessions response:", response); // Updated log to reflect direct data access
 
       // Get active sessions (we need to make sure we only show active vehicles)
-      const activeSessions = response.data.filter(
+      const activeSessions = response.filter(
         (session: ParkingSession) =>
           session.parkingStatus.toUpperCase() === "ACTIVE" &&
           !session.exitTime
@@ -138,7 +138,7 @@ const Occupants: React.FC = () => {
   // Helper to set occupant validated
   const handleValidate = async (sessionId: string) => {
     try {
-      await validateSession(sessionId, true, "operator"); // Assume operator is modifying
+      await sessionService.validateSession(sessionId, true, "operator"); // Assume operator is modifying
       // Update local state to reflect change immediately
       setSessions((prev) =>
         prev.map((s) =>
@@ -161,7 +161,7 @@ const Occupants: React.FC = () => {
   const confirmRemoveValidation = async () => {
     if (modalSessionId) {
       try {
-        await validateSession(modalSessionId, false, "operator");
+        await sessionService.validateSession(modalSessionId, false, "operator");
         // Update local state
         setSessions((prev) =>
           prev.map((s) =>
@@ -192,8 +192,8 @@ const Occupants: React.FC = () => {
         console.log("Current sessions before deletion:", sessions);
 
         // Call the DELETE endpoint
-        const response = await deleteSession(modalSessionId);
-        console.log("Delete session response:", response);
+        await sessionService.deleteSession(modalSessionId);
+        console.log("Delete session completed");
 
         // Wait before refreshing (gives the backend time to process)
         await new Promise(resolve => setTimeout(resolve, 500));

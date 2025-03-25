@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../contexts/UserContext";
 import { User } from "../types";
 import "./Account.css";
 
@@ -52,13 +52,13 @@ const Account: React.FC = () => {
   const { customerId: routeCustomerId, lotId: routeLotId } = useParams<{ customerId?: string; lotId?: string }>();
   const navigate = useNavigate();
   const { user, logout } = useUser(); // Access the authenticated user from context
-  
+
   // Use the authenticated user ID from context, falling back to route params
   const [currentCustomerId, setCurrentCustomerId] = useState<string>(
     (user?.userId as string) || routeCustomerId || localStorage.getItem('loggedInUserId') || ''
   );
   const lotId = routeLotId || localStorage.getItem('lotId') || '';
-  
+
   console.log("Account.tsx: Using authenticated user:", user?.name, "customerId:", currentCustomerId, "lotId:", lotId);
 
   const BASE_URL = "http://localhost:8085/ParkingWithParallel";
@@ -80,16 +80,16 @@ const Account: React.FC = () => {
 
   const formatId = (id?: string): string => {
     if (!id) return '';
-    
+
     // For debugging
     console.log("Formatting ID:", id);
-    
+
     // Extract the ID number after the prefix
     const match = id.match(/^PWP-(U|PL)-(\d+)$/);
     if (match) {
       return match[2]; // Return just the number portion
     }
-    
+
     // If no match found, return the original ID
     return id;
   };
@@ -128,7 +128,7 @@ const Account: React.FC = () => {
       };
       setCustomer(userAsCustomer);
       setCurrentCustomerId(user.userId);
-    } 
+    }
     // Otherwise fetch from API
     else if (currentCustomerId) {
       console.log(`Fetching customer with ID: ${currentCustomerId}`);
@@ -169,7 +169,7 @@ const Account: React.FC = () => {
         .then((data) => {
           console.log("Lot data received:", data);
           setLot(data);
-          
+
           // Store lotId in localStorage for persistence
           localStorage.setItem('lotId', data.lotId);
         })
@@ -185,7 +185,7 @@ const Account: React.FC = () => {
   useEffect(() => {
     if (customer && lot) {
       console.log("Determining user role for lot:", lot.lotId);
-      
+
       // First, always fetch the owner information
       fetch(`${BASE_URL}/users/get-user-by-id/${lot.ownerCustomerId}`)
         .then((res) => {
@@ -202,7 +202,7 @@ const Account: React.FC = () => {
         .catch((err) => {
           console.error("Error fetching owner:", err);
         });
-      
+
       // Then, fetch operators for this lot
       fetch(`${BASE_URL}/parkinglots/get-operators/${lot.lotId}`)
         .then((res) => {
@@ -214,7 +214,7 @@ const Account: React.FC = () => {
         .then((data) => {
           console.log("Operators data received:", data);
           // Map each operator through the converter function
-          const convertedOperators = Array.isArray(data) 
+          const convertedOperators = Array.isArray(data)
             ? data.map(op => convertApiUserToCustomer(op))
             : [];
           setOperators(convertedOperators);
@@ -270,19 +270,19 @@ const Account: React.FC = () => {
   // Handle password reset submission
   const submitPasswordReset = () => {
     if (!customer) return;
-    
+
     // Form validation
     if (!oldPasswordInput || !newPasswordInput) {
       setResetError("Please fill in both password fields.");
       return;
     }
-    
+
     // Password complexity check
     if (newPasswordInput.length < 6) {
       setResetError("New password must be at least 6 characters long.");
       return;
     }
-    
+
     // Create the data for password change
     const passwordChangeData = {
       oldPassword: oldPasswordInput,
@@ -307,7 +307,7 @@ const Account: React.FC = () => {
       .then(() => {
         // Show success message
         alert("Password updated successfully. You will be logged out for security reasons.");
-        
+
         // Clear all auth data and redirect to login
         logout();
       })
@@ -361,15 +361,15 @@ const Account: React.FC = () => {
     currentUserId: customer.customerId,
     isOwner
   });
-  
+
   // Determine if the current user is an operator for this lot
   const isOperator = operators.some(op => op.customerId === customer.customerId);
   console.log("Role determination - Operator check:", {
-    operators: operators.map(op => ({name: op.name, id: op.customerId})),
+    operators: operators.map(op => ({ name: op.name, id: op.customerId })),
     currentUserId: customer.customerId,
     isOperator
   });
-  
+
   // Compute roleLabel based FIRST on relationship to the lot, THEN on role
   let roleLabel = "";
   if (isOwner) {
@@ -381,24 +381,24 @@ const Account: React.FC = () => {
   } else {
     roleLabel = customer.role ? (customer.role.charAt(0).toUpperCase() + customer.role.slice(1)) : "Viewer";
   }
-  
+
   // After computing roleLabel, log it
   console.log("Final role label:", roleLabel);
-  
+
   // Set up the secondary label depending on the role
   let secondaryLabel = "";
   if (isOwner) {
     // If user is owner, display all operators (excluding self) with proper IDs
-    secondaryLabel = operators.length > 0 
+    secondaryLabel = operators.length > 0
       ? operators
-          .filter(op => op.customerId !== customer.customerId)
-          .map((op) => `${op.name} (#${formatId(op.customerId)})`)
-          .join(", ") 
+        .filter(op => op.customerId !== customer.customerId)
+        .map((op) => `${op.name} (#${formatId(op.customerId)})`)
+        .join(", ")
       : "None";
   } else {
     // If user is not owner, display the owner info with proper id
-    secondaryLabel = owner 
-      ? `${owner.name} (#${formatId(owner.customerId)})` 
+    secondaryLabel = owner
+      ? `${owner.name} (#${formatId(owner.customerId)})`
       : "Unknown";
   }
 
@@ -537,7 +537,7 @@ const Account: React.FC = () => {
                 className="popup-input"
               />
             </div>
-            
+
             <div className="form-group">
               <input
                 id="newPassword"
@@ -549,7 +549,7 @@ const Account: React.FC = () => {
               />
 
             </div>
-            
+
             {resetError && <p className="error-message">{resetError}</p>}
           </div>
         </Modal>

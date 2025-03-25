@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../contexts/UserContext';
 import { Lot } from '../types';
 
 // Component to show when user has no lots
@@ -52,7 +52,7 @@ const NoLotsMessage = () => (
     <h1>No Lots Available</h1>
     <p>You don't have any lots assigned to your account.</p>
     <p>Please contact your administrator if you believe this is an error.</p>
-    <button 
+    <button
       onClick={() => window.location.href = "/login"}
       className="login-button"
     >
@@ -73,11 +73,11 @@ const UserRedirect: React.FC = () => {
         if (!user) {
           await fetchUserData();
         }
-        
+
         // Fetch user lots if not already loaded
         if (userLots.length === 0) {
           const lots = await fetchUserLots();
-          
+
           // After fetching, check the lots to determine redirect
           if (lots.length > 1) {
             // If user has multiple lots, redirect to owner dashboard

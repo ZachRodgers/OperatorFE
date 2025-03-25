@@ -198,4 +198,83 @@ export const lotPricingService = {
   },
 };
 
+// Session service functions
+export const sessionService = {
+  // Get all sessions
+  getAllSessions: async () => {
+    const response = await api.get("/parkinglots/sessions/get-all");
+    return response.data;
+  },
+
+  // Get session by ID
+  getSessionById: async (sessionId: string) => {
+    const response = await api.get(
+      `/parkinglots/sessions/get-by-id/${sessionId}`
+    );
+    return response.data;
+  },
+
+  // Get sessions by lot ID
+  getSessionsByLot: async (lotId: string) => {
+    const response = await api.get(`/parkinglots/sessions/get-by-lot/${lotId}`);
+    return response.data;
+  },
+
+  // Create new session
+  createSession: async (sessionData: any) => {
+    const response = await api.post(
+      `/parkinglots/sessions/create`,
+      sessionData
+    );
+    return response.data;
+  },
+
+  // Update session
+  updateSession: async (sessionId: string, sessionData: any) => {
+    const response = await api.put(
+      `/parkinglots/sessions/update/${sessionId}`,
+      sessionData
+    );
+    return response.data;
+  },
+
+  // Validate session
+  validateSession: async (
+    sessionId: string,
+    validated: boolean,
+    modifiedBy: string
+  ) => {
+    const response = await api.put(
+      `/parkinglots/sessions/validate/${sessionId}?validated=${validated}&modifiedBy=${modifiedBy}`
+    );
+    return response.data;
+  },
+
+  // End session
+  endSession: async (
+    sessionId: string,
+    exitDeviceId: string,
+    modifiedBy: string
+  ) => {
+    console.log(`Calling end session API for session ${sessionId}`);
+    const response = await api.put(
+      `/parkinglots/sessions/end/${sessionId}`,
+      null,
+      {
+        params: {
+          exitDeviceId: exitDeviceId,
+          modifiedBy: modifiedBy,
+        },
+      }
+    );
+    return response.data;
+  },
+
+  // Delete session
+  deleteSession: async (sessionId: string) => {
+    console.log(`Deleting session with ID: ${sessionId}`);
+    await api.delete(`/parkinglots/sessions/delete/${sessionId}`);
+  },
+};
+
 export default api;

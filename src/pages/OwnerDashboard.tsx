@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../contexts/UserContext";
 import AccountModal from "../components/AccountModal";
 import "./OwnerDashboard.css";
 
@@ -32,7 +32,7 @@ const OwnerDashboard = () => {
   // Filter and sort lots based on searchQuery and sort settings
   const filteredLots = userLots
     .filter((lot) =>
-      Object.values(lot).some((value) => 
+      Object.values(lot).some((value) =>
         value ? value.toString().toLowerCase().includes(searchQuery.toLowerCase()) : false
       )
     )
@@ -48,19 +48,19 @@ const OwnerDashboard = () => {
       return 0;
     });
 
-// Helper function to format the lot ID by removing the "PWP-PL-" prefix and inserting a dash.
-const formatLotId = (id: string): string => {
-  const prefix = "PWP-PL-";
-  let numericPart = id;
-  if (id.startsWith(prefix)) {
-    numericPart = id.substring(prefix.length);
-  }
-  // If the numeric part has at least 8 characters, format it as "XXXX-XXXX"
-  if (numericPart.length >= 8) {
-    return `${numericPart.slice(0, 4)}-${numericPart.slice(4, 8)}`;
-  }
-  return numericPart;
-};
+  // Helper function to format the lot ID by removing the "PWP-PL-" prefix and inserting a dash.
+  const formatLotId = (id: string): string => {
+    const prefix = "PWP-PL-";
+    let numericPart = id;
+    if (id.startsWith(prefix)) {
+      numericPart = id.substring(prefix.length);
+    }
+    // If the numeric part has at least 8 characters, format it as "XXXX-XXXX"
+    if (numericPart.length >= 8) {
+      return `${numericPart.slice(0, 4)}-${numericPart.slice(4, 8)}`;
+    }
+    return numericPart;
+  };
 
 
   // Show loading state
@@ -184,7 +184,7 @@ const formatLotId = (id: string): string => {
           </tbody>
         </table>
       </div>
-      
+
       {/* Account Modal */}
       <AccountModal isOpen={showAccountModal} onClose={() => setShowAccountModal(false)} />
     </div>

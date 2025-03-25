@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../contexts/UserContext";
 import api from "../utils/api";
 import "./AccountModal.css";
 
@@ -11,25 +11,25 @@ interface AccountModalProps {
 
 const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
   const { user, fetchUserData } = useUser();
-  
+
   const [editMode, setEditMode] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   const [editableFields, setEditableFields] = useState({
     name: "",
     email: "",
     phoneNo: "",
   });
-  
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-  
+
   useEffect(() => {
     if (user) {
       setEditableFields({
@@ -39,7 +39,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
       });
     }
   }, [user]);
-  
+
   const toggleEditMode = () => {
     if (editMode && unsavedChanges) {
       setShowConfirmModal(true);
@@ -56,7 +56,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
       }
     }
   };
-  
+
   const handleFieldChange = (field: string, value: string) => {
     setEditableFields((prev) => ({
       ...prev,
@@ -64,10 +64,10 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
     }));
     setUnsavedChanges(true);
   };
-  
+
   const handleSaveAndClose = async () => {
     if (!user) return;
-    
+
     try {
       // Always include all required fields
       const updateData = {
@@ -76,13 +76,13 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
         phoneNo: editableFields.phoneNo,
         role: user.role // Include the existing role
       };
-      
+
       // Only make the API call if there are actual changes
-      if (editableFields.name !== user.name || 
-          editableFields.email !== user.email || 
-          editableFields.phoneNo !== user.phoneNo) {
+      if (editableFields.name !== user.name ||
+        editableFields.email !== user.email ||
+        editableFields.phoneNo !== user.phoneNo) {
         const response = await api.put(`/users/update-user/${user.userId}`, updateData);
-        
+
         if (response.status === 200) {
           // Refresh user data
           await fetchUserData();
@@ -91,7 +91,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
           setErrorMessage(null);
         }
       }
-      
+
       // Close the modal
       onClose();
     } catch (error: any) {
@@ -99,7 +99,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
       setErrorMessage(error.response?.data?.message || "Failed to update account information");
     }
   };
-  
+
   const handleCancel = () => {
     if (user) {
       setEditableFields({
@@ -112,38 +112,38 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
     setEditMode(false);
     setErrorMessage(null);
   };
-  
+
   const handleEdit = () => {
     setEditMode(true);
   };
-  
+
   const handlePasswordChange = (field: string, value: string) => {
     setPasswordData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-  
+
   const handleChangePassword = async () => {
     if (!user) return;
-    
+
     // Validate passwords
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setErrorMessage("New passwords do not match");
       return;
     }
-    
+
     if (passwordData.newPassword.length < 8) {
       setErrorMessage("Password must be at least 8 characters long");
       return;
     }
-    
+
     try {
       const response = await api.post(`/users/change-password/${user.userId}`, {
         oldPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       });
-      
+
       if (response.status === 200) {
         // Reset password fields and close modal
         setPasswordData({
@@ -168,7 +168,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
     }
     return id || "";
   };
-  
+
   if (!user) {
     return (
       <Modal
@@ -183,7 +183,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
       </Modal>
     );
   }
-  
+
   return (
     <>
       <Modal
@@ -200,7 +200,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
               <p>{errorMessage}</p>
             </div>
           )}
-          
+
           <div className="account-details">
             <div className="account-column">
               <p>User ID:</p>
@@ -209,7 +209,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
               <p>Phone:</p>
               <p>Password:</p>
             </div>
-            
+
             <div className="account-column-inputs">
               <p className="account-disabled-text">{formatUserId(user.userId)}</p>
               <p
@@ -250,7 +250,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       </Modal>
-      
+
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <Modal
@@ -263,7 +263,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
           onCancel={handleCancel}
         />
       )}
-      
+
       {/* Password Change Modal */}
       {showPasswordModal && (
         <Modal
@@ -288,7 +288,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
                 <p>{errorMessage}</p>
               </div>
             )}
-            
+
             <div className="account-form-group">
               <label htmlFor="currentPassword">Current Password</label>
               <input
@@ -298,7 +298,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
                 onChange={(e) => handlePasswordChange("currentPassword", e.target.value)}
               />
             </div>
-            
+
             <div className="account-form-group">
               <label htmlFor="newPassword">New Password</label>
               <input
@@ -308,7 +308,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
                 onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
               />
             </div>
-            
+
             <div className="account-form-group">
               <label htmlFor="confirmPassword">Confirm New Password</label>
               <input

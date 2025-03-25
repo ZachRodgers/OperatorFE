@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../contexts/UserContext';
 import Modal from "../components/Modal";
 
 interface ProtectedRouteProps {

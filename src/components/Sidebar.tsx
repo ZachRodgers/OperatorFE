@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useParams, useNavigate } from "react-router-dom";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../contexts/UserContext";
 import { lotService } from "../utils/api";
 import { useLot } from "../contexts/LotContext";
 import "./Sidebar.css";
@@ -12,7 +12,7 @@ const Sidebar = () => {
   const [lotName, setLotName] = useState<string>("Unknown Lot");
   const [hasMultipleLots, setHasMultipleLots] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
+
   // Get lot data from context if available
   const lotContext = useLot();
 
@@ -27,7 +27,7 @@ const Sidebar = () => {
       try {
         // First check localStorage for cached lot name
         const cachedLotName = localStorage.getItem(`lot_${lotId}_name`);
-        
+
         // If we have a cached name, use it initially while we fetch the latest
         if (cachedLotName) {
           setLotName(cachedLotName);
@@ -62,13 +62,13 @@ const Sidebar = () => {
         }
       } catch (error) {
         console.error("Error loading lot data:", error);
-        
+
         // Fall back to localStorage if API calls fail
         const cachedLotName = localStorage.getItem(`lot_${lotId}_name`);
         if (cachedLotName) {
           setLotName(cachedLotName);
         }
-        
+
         const cachedHasMultipleLots = localStorage.getItem('user_has_multiple_lots') === 'true';
         setHasMultipleLots(cachedHasMultipleLots);
       } finally {
