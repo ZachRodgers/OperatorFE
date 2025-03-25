@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./AdvancedSettings.css";
 import Slider from "../components/Slider";
 import Modal from "../components/Modal";
-import lotPricingData from "../data/lot_pricing.json";
+import { lotPricingService } from "../utils/api";
 
 /**
  * Helper: parse "HH:MM" into total minutes (0..1439).
@@ -24,7 +24,7 @@ interface Block {
   endTime?: string;
   customRate?: string;
   customMax?: string;
-  isDefault?: boolean;     // we’ll keep this for backward compatibility
+  isDefault?: boolean;     // we'll keep this for backward compatibility
 }
 
 /** 
@@ -85,6 +85,13 @@ function parseDayPricing(dayPricing: any[], globalRate: string, globalMax: strin
     });
   }
 
+  // Add missing block logic: if one or two setTime blocks exist, add a default remainder block
+  if (blocks.length === 1 && blocks[0].blockMode === "setTime") {
+    blocks.push({ blockMode: "default", customRate: globalRate, customMax: globalMax });
+  } else if (blocks.length === 2 && blocks[0].blockMode === "setTime" && blocks[1].blockMode === "setTime") {
+    blocks.push({ blockMode: "default", customRate: globalRate, customMax: globalMax });
+  }
+
   // Fill the rest with newBlock
   while (blocks.length < 3) {
     blocks.push({ blockMode: "newBlock" });
@@ -96,16 +103,18 @@ function parseDayPricing(dayPricing: any[], globalRate: string, globalMax: strin
 /**
  * Build the array for JSON. We'll include "blockMode" so we can restore precisely.
  * If blockMode === "noTime", we skip it (or store it with zero coverage).
+ * NEW: If blockMode === "default", we ALSO skip it - we don't need to store these as they use global values
  */
 function buildDayPricing(blocks: DayData, globalRate: string, globalMax: string): any[] {
   const result: any[] = [];
 
   blocks.forEach((block) => {
-    if (block.blockMode === "newBlock" || block.blockMode === "noTime") {
+    // Skip new blocks, no time blocks, and now also DEFAULT blocks
+    if (block.blockMode === "newBlock" || block.blockMode === "noTime" || block.blockMode === "default") {
       return; // skip
     }
 
-    // If it's "allDay" or "default" => time is 00:00..23:59
+    // If it's "allDay" => time is 00:00..23:59
     // If it's setTime => use block start/end
     let start = "00:00";
     let end = "23:59";
@@ -117,53 +126,232 @@ function buildDayPricing(blocks: DayData, globalRate: string, globalMax: string)
     const hrRate = block.customRate ?? globalRate;
     const maxAmt = block.customMax ?? globalMax;
 
-    const isDefault = (block.blockMode === "default");
-
+    // We don't need isDefault flag anymore since we're not saving default blocks
     result.push({
-      blockMode: block.blockMode, // <-- store the mode for next time
+      blockMode: block.blockMode, // <-- store the mode explicitly
       startTime: start,
       endTime: end,
       hourlyRate: hrRate,
       maximumAmount: maxAmt,
-      isDefault: isDefault,
+      isDefault: false, // We're not saving default blocks, so this is always false
     });
   });
 
   return result;
 }
 
+/**
+ * Convert API LotAdvancedPricing entries to the format expected by frontend
+ */
+function mapApiToFrontendFormat(apiPricings: any[], dayOfWeek: string): any[] {
+  return apiPricings
+    .filter(pricing => pricing.dayOfWeek === dayOfWeek)
+    .map(pricing => {
+      // Extract hour and minute from hourStart/hourEnd LocalTime objects
+      // The API returns them as {"hour":9,"minute":0,"second":0,"nano":0}
+      let startTime = "00:00";
+      let endTime = "23:59";
+
+      // Check if hourStart/hourEnd are strings or objects
+      if (pricing.hourStart) {
+        if (typeof pricing.hourStart === 'string') {
+          startTime = pricing.hourStart.substring(0, 5); // "HH:MM"
+        } else if (pricing.hourStart.hour !== undefined) {
+          // Handle LocalTime object
+          const hour = pricing.hourStart.hour.toString().padStart(2, '0');
+          const minute = pricing.hourStart.minute.toString().padStart(2, '0');
+          startTime = `${hour}:${minute}`;
+        }
+      }
+
+      if (pricing.hourEnd) {
+        if (typeof pricing.hourEnd === 'string') {
+          endTime = pricing.hourEnd.substring(0, 5); // "HH:MM"
+        } else if (pricing.hourEnd.hour !== undefined) {
+          // Handle LocalTime object
+          const hour = pricing.hourEnd.hour.toString().padStart(2, '0');
+          const minute = pricing.hourEnd.minute.toString().padStart(2, '0');
+          endTime = `${hour}:${minute}`;
+        }
+      }
+
+      // IMPORTANT: Always trust the blockMode property if it exists
+      // Since we're not saving default blocks, we'll only have "allDay" or "setTime" here
+      const blockMode = pricing.blockMode ||
+        ((startTime === "00:00" && endTime === "23:59") ? "allDay" : "setTime");
+
+      return {
+        blockMode: blockMode,
+        startTime: startTime,
+        endTime: endTime,
+        hourlyRate: pricing.rate !== null ? pricing.rate.toString() : "",
+        // Fix max amount handling, ensure we get the dailyMaximumPrice field directly
+        maximumAmount: pricing.dailyMaximumPrice !== null && pricing.dailyMaximumPrice !== undefined
+          ? pricing.dailyMaximumPrice.toString()
+          : "",
+        isDefault: false // Since we're not saving default blocks
+      };
+    });
+}
+
+/**
+ * Convert frontend pricing format to API format
+ */
+function mapFrontendToApiFormat(dayPricing: any[], dayOfWeek: string): any[] {
+  const now = new Date().toISOString();
+
+  return dayPricing.map(pricing => {
+    // Ensure we have valid time strings, defaults to 00:00 if missing
+    const startTime = pricing.startTime && pricing.startTime.trim() ? pricing.startTime.trim() : "00:00";
+    const endTime = pricing.endTime && pricing.endTime.trim() ? pricing.endTime.trim() : "23:59";
+
+    // Parse rate as float, defaulting to 0 if invalid
+    const rate = parseFloat(pricing.hourlyRate) || 0;
+
+    // Parse maximum amount as float, can be null if not provided
+    // More robust handling of the max amount field
+    let dailyMaximumPrice = null;
+    if (pricing.maximumAmount && pricing.maximumAmount.trim() !== "") {
+      const parsedMax = parseFloat(pricing.maximumAmount);
+      dailyMaximumPrice = !isNaN(parsedMax) ? parsedMax : null;
+    }
+
+    return {
+      lotId: "", // Will be set by the backend service
+      dayOfWeek: dayOfWeek,
+      hourStart: startTime, // Backend will handle conversion to LocalTime
+      hourEnd: endTime,
+      rate: rate,
+      dailyMaximumPrice: dailyMaximumPrice, // Ensure this is properly set
+      blockMode: pricing.blockMode || "allDay", // Default to allDay if not specified
+      isDefault: false, // We're no longer sending default blocks
+      createdOn: now,
+      modifiedOn: now,
+      advancedSettingsEnabled: true // Signal to the backend that advanced settings are on
+    };
+  });
+}
+
 const AdvancedSettings: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
   const navigate = useNavigate();
 
-  // Find pricing for this lot
-  const pricing = lotPricingData.find((entry: any) => entry.lotId === lotId);
-  const globalRate = pricing?.hourlyRate !== undefined ? String(pricing.hourlyRate) : "";
-  const globalMax = pricing?.maximumAmount !== undefined ? String(pricing.maximumAmount) : "";
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Parse day arrays from JSON
+  // General pricing data
+  const [generalPricing, setGeneralPricing] = useState<any>(null);
+  const [advancedPricing, setAdvancedPricing] = useState<any[]>([]);
+
+  // Get values from general pricing
+  const globalRate = generalPricing?.hourlyRate !== undefined ? String(generalPricing.hourlyRate) : "";
+  const globalMax = generalPricing?.dailyMaximumPrice !== undefined ? String(generalPricing.dailyMaximumPrice) : "";
+
+  // Parse day arrays from API data
   const [mondayBlocks, setMondayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.mondayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
   const [tuesdayBlocks, setTuesdayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.tuesdayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
   const [wednesdayBlocks, setWednesdayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.wednesdayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
   const [thursdayBlocks, setThursdayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.thursdayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
   const [fridayBlocks, setFridayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.fridayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
   const [saturdayBlocks, setSaturdayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.saturdayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
   const [sundayBlocks, setSundayBlocks] = useState<DayData>(() =>
-    parseDayPricing(pricing?.sundayPricing ?? [], globalRate, globalMax)
+    parseDayPricing([], globalRate, globalMax)
   );
-  
+
+  // FIX: Set advanced enabled state from API response
+  // Determine if advanced is on/off
+  const [advancedEnabled, setAdvancedEnabled] = useState(false);
+
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  type ModalType = null | "disableAdvanced" | "confirmSave" | "unsavedChanges";
+  const [modalType, setModalType] = useState<ModalType>(null);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  // Load both general and advanced pricing data from API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!lotId) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Load general pricing first
+        const generalData = await lotPricingService.getLatestPricingByLotId(lotId);
+        setGeneralPricing(generalData);
+
+        // Then load advanced pricing
+        const advancedData = await lotPricingService.getAdvancedPricingByLotId(lotId);
+        setAdvancedPricing(advancedData);
+
+        // FIX: Load advanced settings state
+        const isAdvancedEnabled = await lotPricingService.getAdvancedSettingsState(lotId);
+        setAdvancedEnabled(isAdvancedEnabled || advancedData.length > 0);
+
+        // Initialize all day blocks
+        const gRate = generalData?.hourlyRate !== undefined ? String(generalData.hourlyRate) : "";
+        const gMax = generalData?.dailyMaximumPrice !== undefined ? String(generalData.dailyMaximumPrice) : "";
+
+        // Parse data for each day
+        setMondayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "MONDAY"), gRate, gMax));
+        setTuesdayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "TUESDAY"), gRate, gMax));
+        setWednesdayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "WEDNESDAY"), gRate, gMax));
+        setThursdayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "THURSDAY"), gRate, gMax));
+        setFridayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "FRIDAY"), gRate, gMax));
+        setSaturdayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "SATURDAY"), gRate, gMax));
+        setSundayBlocks(parseDayPricing(mapApiToFrontendFormat(advancedData, "SUNDAY"), gRate, gMax));
+
+      } catch (err) {
+        console.error("Error loading pricing data:", err);
+        setError("Failed to load pricing data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [lotId]);
+
+  // Update day blocks when general pricing changes
+  useEffect(() => {
+    if (generalPricing) {
+      const gRate = String(generalPricing.hourlyRate || "");
+      const gMax = String(generalPricing.dailyMaximumPrice || "");
+
+      // Only update rates for default blocks to avoid overwriting custom rates
+      const updateDefaultRates = (blocks: DayData): DayData => {
+        return blocks.map(block => {
+          if (block.blockMode === "default") {
+            return { ...block, customRate: gRate, customMax: gMax };
+          }
+          return block;
+        }) as DayData;
+      };
+
+      setMondayBlocks(prev => updateDefaultRates(prev));
+      setTuesdayBlocks(prev => updateDefaultRates(prev));
+      setWednesdayBlocks(prev => updateDefaultRates(prev));
+      setThursdayBlocks(prev => updateDefaultRates(prev));
+      setFridayBlocks(prev => updateDefaultRates(prev));
+      setSaturdayBlocks(prev => updateDefaultRates(prev));
+      setSundayBlocks(prev => updateDefaultRates(prev));
+    }
+  }, [generalPricing]);
 
   const dayStates = [
     { label: "Monday", blocks: mondayBlocks, setter: setMondayBlocks },
@@ -174,17 +362,6 @@ const AdvancedSettings: React.FC = () => {
     { label: "Saturday", blocks: saturdayBlocks, setter: setSaturdayBlocks },
     { label: "Sunday", blocks: sundayBlocks, setter: setSundayBlocks },
   ];
-
-  // Determine if advanced is on/off
-  const [advancedEnabled, setAdvancedEnabled] = useState(() => {
-    return dayStates.some((day) => day.blocks.some((b) => b.blockMode === "allDay" || b.blockMode === "setTime"));
-  });
-
-  const [isDirty, setIsDirty] = useState(false);
-
-  type ModalType = null | "disableAdvanced" | "confirmSave" | "unsavedChanges";
-  const [modalType, setModalType] = useState<ModalType>(null);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // ------------- HANDLERS -------------
   const handleToggleAdvanced = () => {
@@ -198,6 +375,8 @@ const AdvancedSettings: React.FC = () => {
 
   async function confirmDisableAdvanced() {
     try {
+      setIsSaving(true);
+
       // Reset each day => top block default, bottom blocks newBlock
       dayStates.forEach((day) => {
         day.setter([
@@ -208,38 +387,19 @@ const AdvancedSettings: React.FC = () => {
       });
       setAdvancedEnabled(false);
 
-      // Send empty arrays to server
-      const updatedPricing = {
-        lotId,
-        hourlyRate: pricing?.hourlyRate ?? "",
-        maximumAmount: pricing?.maximumAmount ?? "",
-        gracePeriod: pricing?.gracePeriod ?? "",
-        maximumTime: pricing?.maximumTime ?? "",
-        ticketAmount: pricing?.ticketAmount ?? "",
-        freeParking: pricing?.freeParking ?? false,
-        allowValidation: pricing?.allowValidation ?? false,
-        availableSlots: pricing?.availableSlots ?? 0,
-        modifiedBy: "",
-        modifiedOn: new Date().toISOString(),
-        mondayPricing: [],
-        tuesdayPricing: [],
-        wednesdayPricing: [],
-        thursdayPricing: [],
-        fridayPricing: [],
-        saturdayPricing: [],
-        sundayPricing: [],
-      };
+      // Delete all advanced pricing entries in the database
+      if (lotId) {
+        await lotPricingService.deleteAllAdvancedPricing(lotId);
+        // FIX: Save advanced settings state
+        await lotPricingService.setAdvancedSettingsState(lotId, false);
+      }
 
-      const resp = await fetch("http://localhost:5000/update-lot-pricing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedPricing),
-      });
-      if (!resp.ok) throw new Error("Failed to disable advanced settings");
       setIsDirty(false);
     } catch (error) {
       alert("Error disabling advanced settings.");
       console.error(error);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -248,41 +408,48 @@ const AdvancedSettings: React.FC = () => {
   }
 
   async function doSave() {
-    // build the arrays
-    const updatedPricing = {
-      lotId,
-      hourlyRate: pricing?.hourlyRate ?? "",
-      maximumAmount: pricing?.maximumAmount ?? "",
-      gracePeriod: pricing?.gracePeriod ?? "",
-      maximumTime: pricing?.maximumTime ?? "",
-      ticketAmount: pricing?.ticketAmount ?? "",
-      freeParking: pricing?.freeParking ?? false,
-      allowValidation: pricing?.allowValidation ?? false,
-      availableSlots: pricing?.availableSlots ?? 0,
-      modifiedBy: "",
-      modifiedOn: new Date().toISOString(),
-      mondayPricing: buildDayPricing(mondayBlocks, globalRate, globalMax),
-      tuesdayPricing: buildDayPricing(tuesdayBlocks, globalRate, globalMax),
-      wednesdayPricing: buildDayPricing(wednesdayBlocks, globalRate, globalMax),
-      thursdayPricing: buildDayPricing(thursdayBlocks, globalRate, globalMax),
-      fridayPricing: buildDayPricing(fridayBlocks, globalRate, globalMax),
-      saturdayPricing: buildDayPricing(saturdayBlocks, globalRate, globalMax),
-      sundayPricing: buildDayPricing(sundayBlocks, globalRate, globalMax),
-    };
+    if (!lotId) {
+      alert("No lot ID found");
+      return;
+    }
 
     try {
-      const resp = await fetch("http://localhost:5000/update-lot-pricing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedPricing),
-      });
-      if (!resp.ok) throw new Error("Failed to update advanced settings");
+      setIsSaving(true);
+
+      // Prepare all day blocks for the API
+      const allPricingDTOs = [
+        ...buildDayPricing(mondayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "MONDAY")[0]),
+        ...buildDayPricing(tuesdayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "TUESDAY")[0]),
+        ...buildDayPricing(wednesdayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "WEDNESDAY")[0]),
+        ...buildDayPricing(thursdayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "THURSDAY")[0]),
+        ...buildDayPricing(fridayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "FRIDAY")[0]),
+        ...buildDayPricing(saturdayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "SATURDAY")[0]),
+        ...buildDayPricing(sundayBlocks, globalRate, globalMax).map(p => mapFrontendToApiFormat([p], "SUNDAY")[0]),
+      ];
+
+      // Only proceed if we have at least one pricing block
+      if (allPricingDTOs.length > 0) {
+        // Update all advanced pricing settings in one call
+        await lotPricingService.updateAdvancedPricing(lotId, allPricingDTOs);
+        // FIX: Save advanced settings state
+        await lotPricingService.setAdvancedSettingsState(lotId, true);
+      } else {
+        // If no advanced pricing, delete any existing ones
+        await lotPricingService.deleteAllAdvancedPricing(lotId);
+        // FIX: Save advanced settings state
+        await lotPricingService.setAdvancedSettingsState(lotId, false);
+      }
+
       setIsDirty(false);
       setModalType(null);
+
+      // Show success message
     } catch (error) {
       console.error(error);
       alert("Failed to update advanced settings.");
       setModalType(null);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -316,17 +483,17 @@ const AdvancedSettings: React.FC = () => {
     // If top/mid both setTime, compute coverage
     if (top.blockMode === "setTime" && mid.blockMode === "setTime") {
       const startA = parseTime(top.startTime ?? "");
-      const endA   = parseTime(top.endTime ?? "");
-      const durA   = (endA - startA + 1440) % 1440;
+      const endA = parseTime(top.endTime ?? "");
+      const durA = (endA - startA + 1440) % 1440;
 
       const startB = parseTime(mid.startTime ?? "");
-      const endB   = parseTime(mid.endTime ?? "");
-      const durB   = (endB - startB + 1440) % 1440;
+      const endB = parseTime(mid.endTime ?? "");
+      const durB = (endB - startB + 1440) % 1440;
 
       if (durA + durB === 1440) {
         // covers full day => bottom => noTime
         if (bottom.blockMode !== "noTime") {
-          blocks[2] = { blockMode: "noTime" }; // “No Remaining Time Available”
+          blocks[2] = { blockMode: "noTime" }; // "No Remaining Time Available"
         }
       } else {
         // partial coverage => bottom => default remainder
@@ -587,6 +754,33 @@ const AdvancedSettings: React.FC = () => {
     return null;
   }
 
+  // Show loading indicator while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="content">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading advanced settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error message if there was a problem loading data
+  if (error) {
+    return (
+      <div className="content">
+        <div className="error-container">
+          <h2>Error</h2>
+          <p>{error}</p>
+          <button className="button primary" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="content">
       <div className="advanced-settings-header">
@@ -631,10 +825,18 @@ const AdvancedSettings: React.FC = () => {
           </div>
 
           <div className="advanced-settings-buttons">
-            <button className="button primary" onClick={handleSaveClick}>
-              Save
+            <button
+              className="button primary"
+              onClick={handleSaveClick}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save"}
             </button>
-            <button className="button secondary" onClick={handleGeneralSettings}>
+            <button
+              className="button secondary"
+              onClick={handleGeneralSettings}
+              disabled={isSaving}
+            >
               General Settings
             </button>
           </div>
@@ -664,7 +866,6 @@ const AdvancedSettings: React.FC = () => {
           cancelText="Return"
           onConfirm={() => {
             doSave();
-            setModalType(null);
           }}
           onCancel={() => setModalType(null)}
         />

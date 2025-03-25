@@ -144,6 +144,58 @@ export const lotPricingService = {
       throw error;
     }
   },
+
+  // Get advanced pricing for a lot
+  getAdvancedPricingByLotId: async (lotId: string) => {
+    try {
+      const response = await api.get(
+        `/lotadvancedpricing/get-advanced-pricing-by-lot-id/${lotId}`
+      );
+      return response.data;
+    } catch (error: any) {
+      // Return empty array if 404 (no pricing found)
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  // Update all advanced pricing for a lot (replaces existing entries)
+  updateAdvancedPricing: async (lotId: string, pricingData: any[]) => {
+    const response = await api.put(
+      `/lotadvancedpricing/update-lot-advanced-pricing/${lotId}`,
+      pricingData
+    );
+    return response.data;
+  },
+
+  // Delete all advanced pricing for a lot
+  deleteAllAdvancedPricing: async (lotId: string) => {
+    await api.delete(`/lotadvancedpricing/delete-all-by-lot-id/${lotId}`);
+  },
+
+  // New methods for advanced settings state
+  getAdvancedSettingsState: async (lotId: string) => {
+    try {
+      const response = await api.get(
+        `/lotadvancedpricing/advanced-settings-state/${lotId}`
+      );
+      return response.data.enabled;
+    } catch (error) {
+      // Default to false if error
+      console.error("Error getting advanced settings state:", error);
+      return false;
+    }
+  },
+
+  setAdvancedSettingsState: async (lotId: string, enabled: boolean) => {
+    const response = await api.put(
+      `/lotadvancedpricing/advanced-settings-state/${lotId}`,
+      { enabled }
+    );
+    return response.data.enabled;
+  },
 };
 
 export default api;
