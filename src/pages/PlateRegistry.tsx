@@ -17,9 +17,9 @@ interface VehicleRegistryEntry {
 }
 
 export interface RegistryRow extends VehicleRegistryEntry {
-  isPlaceholder?: boolean; // "Add new" row
-  isEditing?: boolean;     // row-level edit mode
-  isTemporary?: boolean;   // New entry not yet saved
+  isPlaceholder: boolean; // "Add new" row
+  isEditing: boolean;     // row-level edit mode
+  isTemporary: boolean;   // New entry not yet saved
 }
 
 type ModalType =
@@ -28,6 +28,18 @@ type ModalType =
   | "removeVehicle"
   | "confirmSave"
   | null;
+
+// Add these interfaces near the top with other interfaces
+interface ValidationError {
+  plateNumber: string;
+  field: string;
+  message: string;
+}
+
+interface ValidationState {
+  errors: ValidationError[];
+  invalidFields: { [key: string]: { [field: string]: boolean } };
+}
 
 const PlateRegistry: React.FC = () => {
   const { lotId } = useParams<{ lotId: string }>();
@@ -55,6 +67,15 @@ const PlateRegistry: React.FC = () => {
 
   // Track if user toggled from off -> on
   const turnedRegistryOn = useRef(false);
+
+  // Add this state near other state declarations
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+  // Add this state near other state declarations
+  const [validationState, setValidationState] = useState<ValidationState>({
+    errors: [],
+    invalidFields: {}
+  });
 
   // On mount: load table data, registry status, and add a placeholder row
   useEffect(() => {
@@ -108,7 +129,7 @@ const PlateRegistry: React.FC = () => {
     return {
       lotId: lotId || "",
       vehicleId: `TEMP_${Math.floor(Math.random() * 100000)}`,
-      registryId: undefined, // Explicitly set to undefined for new entries
+      registryId: undefined,
       plateNumber: "",
       name: "",
       email: "",
@@ -169,9 +190,10 @@ const PlateRegistry: React.FC = () => {
   const getFilteredAndSortedRows = (): RegistryRow[] => {
     let working = [...rows];
 
-    // Always keep the placeholder row
+    // Find the placeholder row and any rows in edit mode
     const placeholderRow = working.find(r => r.isPlaceholder);
-    working = working.filter(r => !r.isPlaceholder);
+    const editingRows = working.filter(r => r.isEditing);
+    working = working.filter(r => !r.isPlaceholder && !r.isEditing);
 
     // Filter out non-placeholder rows if registry is off
     if (!registryOn) {
@@ -205,12 +227,12 @@ const PlateRegistry: React.FC = () => {
       return sortOrder === "asc" ? cmp : -cmp;
     });
 
-    // Always add the placeholder row at the top
+    // Add editing rows at the top
+    working.unshift(...editingRows);
+
+    // Add placeholder row at the very top if it exists
     if (placeholderRow) {
       working.unshift(placeholderRow);
-    } else {
-      // If no placeholder row exists, create one
-      working.unshift(createPlaceholderRow());
     }
 
     return working;
@@ -224,8 +246,8 @@ const PlateRegistry: React.FC = () => {
   // ------------------- EDIT MODE -------------------
   // Toggle editing state for a row
   const toggleEditRow = (vehicleId: string) => {
-    setRows((prev) =>
-      prev
+    setRows((prev) => {
+      const updatedRows = prev
         .map((row) => {
           if (row.vehicleId === vehicleId) {
             if (row.isEditing) {
@@ -245,8 +267,15 @@ const PlateRegistry: React.FC = () => {
           }
           return { ...row, isEditing: false };
         })
-        .filter((r) => r.vehicleId !== "TO_BE_REMOVED")
-    );
+        .filter((r) => r.vehicleId !== "TO_BE_REMOVED");
+
+      // If no row is in edit mode, add back the placeholder row
+      if (!updatedRows.some(r => r.isEditing)) {
+        updatedRows.unshift(createPlaceholderRow());
+      }
+
+      return updatedRows;
+    });
   };
 
   const handleGlobalClick = (e: MouseEvent) => {
@@ -273,6 +302,12 @@ const PlateRegistry: React.FC = () => {
           !row.phone.trim();
         return !allEmpty;
       });
+
+      // If no row is in edit mode, add back the placeholder row
+      if (!newRows.some(r => r.isEditing)) {
+        newRows.unshift(createPlaceholderRow());
+      }
+
       return newRows;
     });
   };
@@ -288,21 +323,24 @@ const PlateRegistry: React.FC = () => {
     field: keyof VehicleRegistryEntry,
     value: string
   ) => {
-    setRows((prev) =>
-      prev.map((r) => {
+    setRows((prev) => {
+      const updatedRows = prev.map((r) => {
         if (r.vehicleId === rowId) {
-          const updated = { ...r, [field]: value };
+          const updated = { ...r, [field]: value, isEditing: true };
           if (r.isPlaceholder && value.trim() !== "") {
             // When placeholder row gets content, convert it to a temporary edit row
             updated.isPlaceholder = false;
-            updated.isEditing = true;
             updated.isTemporary = true;
+            // Remove the placeholder row when converting to edit mode
+            return updated;
           }
           return updated;
         }
         return r;
-      })
-    );
+      });
+      // Remove any placeholder rows when converting to edit mode
+      return updatedRows.filter(r => !r.isPlaceholder || r.vehicleId === rowId);
+    });
     setIsDirty(true);
   };
 
@@ -341,6 +379,7 @@ const PlateRegistry: React.FC = () => {
   const isValidPhone = (phone: string) => phone.replace(/\D/g, "").length >= 7;
 
   const handleSave = () => {
+    setShowValidationErrors(false); // Reset validation errors when opening modal
     setModalType("confirmSave");
     setModalOpen(true);
   };
@@ -348,22 +387,33 @@ const PlateRegistry: React.FC = () => {
   const confirmSaveChanges = async () => {
     try {
       // Validate all non-placeholder rows
-      for (const row of rows.filter((r) => !r.isPlaceholder)) {
-        if (!isValidEmail(row.email)) {
-          alert(`Invalid email address in row with plate "${row.plateNumber}"`);
-          return;
+      const allErrors: ValidationError[] = [];
+      const invalidFields: { [key: string]: { [field: string]: boolean } } = {};
+
+      rows.filter(r => !r.isPlaceholder).forEach(row => {
+        const errors = validateRow(row);
+        allErrors.push(...errors);
+
+        if (errors.length > 0) {
+          invalidFields[row.vehicleId] = {};
+          errors.forEach(error => {
+            invalidFields[row.vehicleId][error.field] = true;
+          });
         }
-        if (!isValidPhone(row.phone)) {
-          alert(`Invalid phone number in row with plate "${row.plateNumber}"`);
-          return;
-        }
+      });
+
+      setValidationState({ errors: allErrors, invalidFields });
+      setShowValidationErrors(true);
+
+      if (allErrors.length > 0) {
+        return; // Don't proceed with save if there are errors
       }
 
       // Process each row
       for (const row of rows.filter((r) => !r.isPlaceholder)) {
         const entry = {
           lotId: row.lotId,
-          plateNumber: row.plateNumber.toUpperCase(), // Match the DTO field name and ensure uppercase
+          plateNumber: row.plateNumber.toUpperCase(),
           name: row.name.trim(),
           email: row.email.trim(),
           phone: row.phone.trim()
@@ -371,24 +421,20 @@ const PlateRegistry: React.FC = () => {
 
         try {
           if (row.registryId) {
-            // Update existing entry
             await registryService.updateRegistryEntry(row.registryId, entry);
           } else {
-            // For new entries, try to find if plate exists
             const existingEntries = await registryService.getRegistryByLot(row.lotId);
             const existingEntry = existingEntries.find((e: VehicleRegistryEntry) => e.plateNumber === row.plateNumber);
 
             if (existingEntry) {
-              // If plate exists, update the existing entry
               await registryService.updateRegistryEntry(existingEntry.registryId, entry);
             } else {
-              // Create new entry only if plate doesn't exist
               await registryService.createRegistryEntry(entry);
             }
           }
         } catch (error: any) {
           console.error("Error processing row:", error);
-          throw error; // Re-throw to be caught by outer try-catch
+          throw error;
         }
       }
 
@@ -410,11 +456,56 @@ const PlateRegistry: React.FC = () => {
       closeModal();
     } catch (error: any) {
       console.error("Error saving changes:", error);
-      // Show more specific error message if available
       const errorMessage = error.response?.data?.message || "Error saving changes. Please try again.";
-      alert(errorMessage);
-      closeModal();
+      setValidationState(prev => ({
+        ...prev,
+        errors: [{
+          plateNumber: "ERROR",
+          field: "general",
+          message: errorMessage
+        }]
+      }));
+      setShowValidationErrors(true);
     }
+  };
+
+  // Add this function near other validation functions
+  const validateRow = (row: RegistryRow): ValidationError[] => {
+    const errors: ValidationError[] = [];
+
+    if (!row.plateNumber.trim()) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "plateNumber",
+        message: "Please enter a plate number"
+      });
+    }
+
+    if (!row.name.trim()) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "name",
+        message: "Please enter a name"
+      });
+    }
+
+    if (row.email.trim() && !isValidEmail(row.email)) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "email",
+        message: "Please enter a valid email address"
+      });
+    }
+
+    if (row.phone.trim() && !isValidPhone(row.phone)) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "phone",
+        message: "Please enter a valid phone number"
+      });
+    }
+
+    return errors;
   };
 
   // ------------------- UTILS -------------------
@@ -422,6 +513,8 @@ const PlateRegistry: React.FC = () => {
     setModalOpen(false);
     setModalType(null);
     setRemovalVehicleId(null);
+    setShowValidationErrors(false);
+    setValidationState({ errors: [], invalidFields: {} });
   };
 
   const workingRows = getFilteredAndSortedRows();
@@ -703,14 +796,24 @@ const PlateRegistry: React.FC = () => {
         <Modal
           isOpen
           title="Confirm Changes"
-          description="You're about to update the plate registry on the server."
+          description={
+            showValidationErrors && validationState.errors.length > 0 ? (
+              <div className="validation-errors">
+                {validationState.errors.map((error, index) => (
+                  <div key={index} className="error-message">
+                    {error.message} for {error.plateNumber}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              "You're about to update the plate registry on the server."
+            )
+          }
           confirmText="Save Registry"
           cancelText="Return"
-          onConfirm={() => {
-            confirmSaveChanges();
-            setModalType(null);
-          }}
+          onConfirm={confirmSaveChanges}
           onCancel={closeModal}
+          disableConfirm={showValidationErrors && validationState.errors.length > 0}
         />
       )}
     </div>
