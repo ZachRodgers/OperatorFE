@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import lotsData from "../data/lots_master.json";
-import vehicleRegistryData from "../data/vehicle_registry.json";
 import Modal from "../components/Modal";
 import Slider from "../components/Slider";
 import Tooltip from "../components/Tooltip";
-import { lotService } from "../utils/api";
+import { lotService, registryService } from "../utils/api";
 import "./PlateRegistry.css";
 
 interface VehicleRegistryEntry {
   lotId: string;
   vehicleId: string;
-  plate: string;
+  plateNumber: string;
   name: string;
   email: string;
   phone: string;
+  registryId?: string; // Only present for saved entries
 }
 
 export interface RegistryRow extends VehicleRegistryEntry {
   isPlaceholder?: boolean; // "Add new" row
   isEditing?: boolean;     // row-level edit mode
+  isTemporary?: boolean;   // New entry not yet saved
 }
 
 type ModalType =
@@ -31,7 +31,6 @@ type ModalType =
 
 const PlateRegistry: React.FC = () => {
   const { lotId } = useParams<{ lotId: string }>();
-  const currentLot = lotsData.find((lot) => lot.lotId === lotId);
 
   // Server registry state
   const [serverRegistryOn, setServerRegistryOn] = useState<boolean>(false);
@@ -65,18 +64,37 @@ const PlateRegistry: React.FC = () => {
           const status = await lotService.getRegistryStatus(lotId);
           setServerRegistryOn(status);
           setRegistryOn(status);
+
+          // Initialize with just the placeholder row
+          setRows([createPlaceholderRow()]);
+
+          try {
+            // Try to load registry entries from the server
+            const entries = await registryService.getRegistryByLot(lotId);
+            if (entries && entries.length > 0) {
+              const realRows: RegistryRow[] = entries.map((entry: any) => ({
+                ...entry,
+                vehicleId: entry.registryId, // Use registryId as vehicleId for saved entries
+                registryId: entry.registryId, // Explicitly set registryId
+                isPlaceholder: false,
+                isEditing: false,
+                isTemporary: false
+              }));
+              realRows.sort((a, b) => a.plateNumber.localeCompare(b.plateNumber));
+              // Add the placeholder row at the end
+              realRows.push(createPlaceholderRow());
+              setRows(realRows);
+            }
+          } catch (error) {
+            console.error("Error loading registry entries:", error);
+            // Keep the placeholder row even if loading fails
+            setRows([createPlaceholderRow()]);
+          }
         }
-        const relevant = vehicleRegistryData.filter((v) => v.lotId === lotId);
-        const realRows: RegistryRow[] = relevant.map((r) => ({
-          ...r,
-          isPlaceholder: false,
-          isEditing: false,
-        }));
-        realRows.sort((a, b) => a.plate.localeCompare(b.plate));
-        realRows.push(createPlaceholderRow());
-        setRows(realRows);
       } catch (error) {
         console.error("Error loading initial data:", error);
+        // Ensure we at least have the placeholder row
+        setRows([createPlaceholderRow()]);
       } finally {
         setIsLoading(false);
       }
@@ -89,13 +107,15 @@ const PlateRegistry: React.FC = () => {
   function createPlaceholderRow(): RegistryRow {
     return {
       lotId: lotId || "",
-      vehicleId: `PL_${Math.floor(Math.random() * 100000)}`,
-      plate: "",
+      vehicleId: `TEMP_${Math.floor(Math.random() * 100000)}`,
+      registryId: undefined, // Explicitly set to undefined for new entries
+      plateNumber: "",
       name: "",
       email: "",
       phone: "",
       isPlaceholder: true,
       isEditing: false,
+      isTemporary: true
     };
   }
 
@@ -148,24 +168,29 @@ const PlateRegistry: React.FC = () => {
   // ------------------- SORT + SEARCH -------------------
   const getFilteredAndSortedRows = (): RegistryRow[] => {
     let working = [...rows];
+
+    // Always keep the placeholder row
+    const placeholderRow = working.find(r => r.isPlaceholder);
+    working = working.filter(r => !r.isPlaceholder);
+
+    // Filter out non-placeholder rows if registry is off
     if (!registryOn) {
       working = working.filter((r) => !r.isPlaceholder);
     }
+
+    // Apply search filter
     working = working.filter((r) => {
-      const str = `${r.plate} ${r.name} ${r.email} ${r.phone}`.toLowerCase();
+      const str = `${r.plateNumber} ${r.name} ${r.email} ${r.phone}`.toLowerCase();
       return str.includes(searchQuery.toLowerCase());
     });
+
+    // Sort non-placeholder rows
     working.sort((a, b) => {
-      if (a.isPlaceholder && b.isPlaceholder) {
-        return a.vehicleId.localeCompare(b.vehicleId);
-      }
-      if (a.isPlaceholder && !b.isPlaceholder) return 1;
-      if (!a.isPlaceholder && b.isPlaceholder) return -1;
       let valA = "";
       let valB = "";
       if (sortBy === "plate") {
-        valA = a.plate;
-        valB = b.plate;
+        valA = a.plateNumber;
+        valB = b.plateNumber;
       } else if (sortBy === "name") {
         valA = a.name;
         valB = b.name;
@@ -179,12 +204,15 @@ const PlateRegistry: React.FC = () => {
       const cmp = valA.localeCompare(valB);
       return sortOrder === "asc" ? cmp : -cmp;
     });
-    // Force the placeholder row to the top
-    const placeholderIndex = working.findIndex((r) => r.isPlaceholder);
-    if (placeholderIndex >= 0) {
-      const [placeholderRow] = working.splice(placeholderIndex, 1);
+
+    // Always add the placeholder row at the top
+    if (placeholderRow) {
       working.unshift(placeholderRow);
+    } else {
+      // If no placeholder row exists, create one
+      working.unshift(createPlaceholderRow());
     }
+
     return working;
   };
 
@@ -203,7 +231,7 @@ const PlateRegistry: React.FC = () => {
             if (row.isEditing) {
               // If turning off edit, remove the row if all fields are empty (and not a placeholder)
               const allEmpty =
-                !row.plate.trim() &&
+                !row.plateNumber.trim() &&
                 !row.name.trim() &&
                 !row.email.trim() &&
                 !row.phone.trim();
@@ -239,7 +267,7 @@ const PlateRegistry: React.FC = () => {
       newRows = newRows.filter((row) => {
         if (row.isPlaceholder) return true;
         const allEmpty =
-          !row.plate.trim() &&
+          !row.plateNumber.trim() &&
           !row.name.trim() &&
           !row.email.trim() &&
           !row.phone.trim();
@@ -265,8 +293,10 @@ const PlateRegistry: React.FC = () => {
         if (r.vehicleId === rowId) {
           const updated = { ...r, [field]: value };
           if (r.isPlaceholder && value.trim() !== "") {
+            // When placeholder row gets content, convert it to a temporary edit row
             updated.isPlaceholder = false;
             updated.isEditing = true;
+            updated.isTemporary = true;
           }
           return updated;
         }
@@ -283,10 +313,24 @@ const PlateRegistry: React.FC = () => {
     setModalOpen(true);
   };
 
-  const confirmRemoveVehicle = () => {
+  const confirmRemoveVehicle = async () => {
     if (removalVehicleId) {
-      setRows((prev) => prev.filter((r) => r.vehicleId !== removalVehicleId));
-      setIsDirty(true);
+      const row = rows.find(r => r.vehicleId === removalVehicleId);
+      if (row) {
+        if (row.registryId) {
+          // If it's a saved entry, delete it from the server
+          try {
+            await registryService.deleteRegistryEntry(row.registryId);
+          } catch (error) {
+            console.error("Error deleting registry entry:", error);
+            alert("Failed to delete entry. Please try again.");
+            return;
+          }
+        }
+        // Remove from local state
+        setRows((prev) => prev.filter((r) => r.vehicleId !== removalVehicleId));
+        setIsDirty(true);
+      }
     }
     closeModal();
   };
@@ -302,53 +346,73 @@ const PlateRegistry: React.FC = () => {
   };
 
   const confirmSaveChanges = async () => {
-    // Validate all non-placeholder rows
-    for (const row of rows.filter((r) => !r.isPlaceholder)) {
-      if (!isValidEmail(row.email)) {
-        alert(`Invalid email address in row with plate "${row.plate}"`);
-        return;
-      }
-      if (!isValidPhone(row.phone)) {
-        alert(`Invalid phone number in row with plate "${row.plate}"`);
-        return;
-      }
-    }
     try {
-      const finalRows = rows
-        .filter((r) => !r.isPlaceholder)
-        .map((r) => ({
-          lotId: r.lotId,
-          vehicleId: r.vehicleId,
-          plate: r.plate,
-          name: r.name,
-          email: r.email,
-          phone: r.phone,
-        }));
-      const resp = await fetch("http://localhost:5000/update-vehicle-registry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalRows),
-      });
-      if (!resp.ok) throw new Error("Failed to update registry.");
-      if (!serverRegistryOn && turnedRegistryOn.current) {
-        const lotUpdateResp = await fetch("http://localhost:5000/update-lot", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lotId,
-            updatedData: { registryOn: true },
-          }),
-        });
-        if (!lotUpdateResp.ok)
-          throw new Error("Failed to enable registry on server.");
-        setServerRegistryOn(true);
+      // Validate all non-placeholder rows
+      for (const row of rows.filter((r) => !r.isPlaceholder)) {
+        if (!isValidEmail(row.email)) {
+          alert(`Invalid email address in row with plate "${row.plateNumber}"`);
+          return;
+        }
+        if (!isValidPhone(row.phone)) {
+          alert(`Invalid phone number in row with plate "${row.plateNumber}"`);
+          return;
+        }
       }
+
+      // Process each row
+      for (const row of rows.filter((r) => !r.isPlaceholder)) {
+        const entry = {
+          lotId: row.lotId,
+          plateNumber: row.plateNumber.toUpperCase(), // Match the DTO field name and ensure uppercase
+          name: row.name.trim(),
+          email: row.email.trim(),
+          phone: row.phone.trim()
+        };
+
+        try {
+          if (row.registryId) {
+            // Update existing entry
+            await registryService.updateRegistryEntry(row.registryId, entry);
+          } else {
+            // For new entries, try to find if plate exists
+            const existingEntries = await registryService.getRegistryByLot(row.lotId);
+            const existingEntry = existingEntries.find((e: VehicleRegistryEntry) => e.plateNumber === row.plateNumber);
+
+            if (existingEntry) {
+              // If plate exists, update the existing entry
+              await registryService.updateRegistryEntry(existingEntry.registryId, entry);
+            } else {
+              // Create new entry only if plate doesn't exist
+              await registryService.createRegistryEntry(entry);
+            }
+          }
+        } catch (error: any) {
+          console.error("Error processing row:", error);
+          throw error; // Re-throw to be caught by outer try-catch
+        }
+      }
+
+      // Reload the data from the server
+      const entries = await registryService.getRegistryByLot(lotId!);
+      const realRows: RegistryRow[] = entries.map((entry: any) => ({
+        ...entry,
+        vehicleId: entry.registryId,
+        isPlaceholder: false,
+        isEditing: false,
+        isTemporary: false
+      }));
+      realRows.sort((a, b) => a.plateNumber.localeCompare(b.plateNumber));
+      realRows.push(createPlaceholderRow());
+      setRows(realRows);
+
       setIsDirty(false);
       turnedRegistryOn.current = false;
       closeModal();
-    } catch (error) {
-      console.error(error);
-      alert("Error saving changes.");
+    } catch (error: any) {
+      console.error("Error saving changes:", error);
+      // Show more specific error message if available
+      const errorMessage = error.response?.data?.message || "Error saving changes. Please try again.";
+      alert(errorMessage);
       closeModal();
     }
   };
@@ -482,8 +546,8 @@ const PlateRegistry: React.FC = () => {
                         className="placeholder-input plate-placeholder"
                         placeholder="+ Plate"
                         style={{ fontFamily: "'Oxanium', sans-serif" }}
-                        value={row.plate}
-                        onChange={(e) => handleFieldChange(row.vehicleId, "plate", e.target.value)}
+                        value={row.plateNumber}
+                        onChange={(e) => handleFieldChange(row.vehicleId, "plateNumber", e.target.value)}
                       />
                     </td>
                     <td>
@@ -524,12 +588,12 @@ const PlateRegistry: React.FC = () => {
                         <input
                           type="text"
                           className="registry-input"
-                          value={row.plate}
-                          onChange={(e) => handleFieldChange(row.vehicleId, "plate", e.target.value)}
+                          value={row.plateNumber}
+                          onChange={(e) => handleFieldChange(row.vehicleId, "plateNumber", e.target.value)}
                           style={{ fontFamily: "'Oxanium', sans-serif" }}
                         />
                       ) : (
-                        <div className="plate-badge-reg">{row.plate}</div>
+                        <div className="plate-badge-reg">{row.plateNumber}</div>
                       )}
                     </td>
                     <td>

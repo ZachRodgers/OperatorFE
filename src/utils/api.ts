@@ -295,4 +295,41 @@ export const sessionService = {
   },
 };
 
+// Registry service functions
+export const registryService = {
+  // Get all registry entries for a lot
+  getRegistryByLot: async (lotId: string) => {
+    const response = await api.get(`/lotplateRegistry/get-by-lot/${lotId}`);
+    return response.data;
+  },
+
+  // Create a new registry entry
+  createRegistryEntry: async (entry: any) => {
+    const response = await api.post("/lotplateRegistry/create", entry);
+    return response.data;
+  },
+
+  // Update an existing registry entry
+  updateRegistryEntry: async (registryId: string, entry: any) => {
+    const response = await api.put(
+      `/lotplateRegistry/update/${registryId}`,
+      entry
+    );
+    return response.data;
+  },
+
+  // Delete a registry entry
+  deleteRegistryEntry: async (registryId: string) => {
+    await api.delete(`/lotplateRegistry/delete/${registryId}`);
+  },
+
+  // Check if a plate is registered for a lot
+  isPlateRegistered: async (lotId: string, plateNumber: string) => {
+    const response = await api.get(
+      `/lotplateRegistry/is-registered/${lotId}/${plateNumber}`
+    );
+    return response.data;
+  },
+};
+
 export default api;
