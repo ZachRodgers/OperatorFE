@@ -5,6 +5,7 @@ import vehicleRegistryData from "../data/vehicle_registry.json";
 import Modal from "../components/Modal";
 import Slider from "../components/Slider";
 import Tooltip from "../components/Tooltip";
+import { lotService } from "../utils/api";
 import "./PlateRegistry.css";
 
 interface VehicleRegistryEntry {
@@ -33,12 +34,11 @@ const PlateRegistry: React.FC = () => {
   const currentLot = lotsData.find((lot) => lot.lotId === lotId);
 
   // Server registry state
-  const [serverRegistryOn, setServerRegistryOn] = useState<boolean>(
-    currentLot?.registryOn ?? false
-  );
-
+  const [serverRegistryOn, setServerRegistryOn] = useState<boolean>(false);
   // Local slider state
-  const [registryOn, setRegistryOn] = useState<boolean>(serverRegistryOn);
+  const [registryOn, setRegistryOn] = useState<boolean>(false);
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   // Table rows state
   const [rows, setRows] = useState<RegistryRow[]>([]);
@@ -57,17 +57,32 @@ const PlateRegistry: React.FC = () => {
   // Track if user toggled from off -> on
   const turnedRegistryOn = useRef(false);
 
-  // On mount: load table data and add a placeholder row
+  // On mount: load table data, registry status, and add a placeholder row
   useEffect(() => {
-    const relevant = vehicleRegistryData.filter((v) => v.lotId === lotId);
-    const realRows: RegistryRow[] = relevant.map((r) => ({
-      ...r,
-      isPlaceholder: false,
-      isEditing: false,
-    }));
-    realRows.sort((a, b) => a.plate.localeCompare(b.plate));
-    realRows.push(createPlaceholderRow());
-    setRows(realRows);
+    const loadInitialData = async () => {
+      try {
+        if (lotId) {
+          const status = await lotService.getRegistryStatus(lotId);
+          setServerRegistryOn(status);
+          setRegistryOn(status);
+        }
+        const relevant = vehicleRegistryData.filter((v) => v.lotId === lotId);
+        const realRows: RegistryRow[] = relevant.map((r) => ({
+          ...r,
+          isPlaceholder: false,
+          isEditing: false,
+        }));
+        realRows.sort((a, b) => a.plate.localeCompare(b.plate));
+        realRows.push(createPlaceholderRow());
+        setRows(realRows);
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
   }, [lotId]);
 
   /** Create a fresh placeholder row */
@@ -85,11 +100,18 @@ const PlateRegistry: React.FC = () => {
   }
 
   // ------------------- REGISTRY TOGGLE -------------------
-  const handleToggleRegistry = () => {
+  const handleToggleRegistry = async () => {
     if (!registryOn) {
       if (!serverRegistryOn) {
-        turnedRegistryOn.current = true;
-        setIsDirty(true);
+        try {
+          await lotService.enableRegistry(lotId!);
+          setServerRegistryOn(true);
+          setIsDirty(true);
+        } catch (error) {
+          console.error("Error enabling registry:", error);
+          alert("Failed to enable registry. Please try again.");
+          return;
+        }
       }
       setRegistryOn(true);
     } else {
@@ -105,25 +127,15 @@ const PlateRegistry: React.FC = () => {
 
   const confirmDisableRegistry = async () => {
     try {
-      if (serverRegistryOn) {
-        const resp = await fetch("http://localhost:5000/update-lot", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lotId,
-            updatedData: { registryOn: false },
-          }),
-        });
-        if (!resp.ok) throw new Error("Failed to disable registry on server.");
-      }
+      await lotService.disableRegistry(lotId!);
       setServerRegistryOn(false);
       setRegistryOn(false);
       setIsDirty(false);
       turnedRegistryOn.current = false;
       closeModal();
     } catch (error) {
-      console.error(error);
-      alert("Error disabling registry.");
+      console.error("Error disabling registry:", error);
+      alert("Error disabling registry. Please try again.");
       closeModal();
     }
   };
@@ -351,6 +363,10 @@ const PlateRegistry: React.FC = () => {
   const workingRows = getFilteredAndSortedRows();
   const someRowIsEditing = rows.some((r) => r.isEditing);
 
+  if (isLoading) {
+    return <div className="content">Loading...</div>;
+  }
+
   return (
     <div className="content">
       <div className="top-row">
@@ -411,9 +427,8 @@ const PlateRegistry: React.FC = () => {
                 >
                   Plate
                   <img
-                    src={`/assets/${
-                      sortBy === "plate" ? "SortArrowSelected.svg" : "SortArrow.svg"
-                    }`}
+                    src={`/assets/${sortBy === "plate" ? "SortArrowSelected.svg" : "SortArrow.svg"
+                      }`}
                     alt="Sort"
                     className={`sort-arrow ${sortOrder}`}
                   />
@@ -424,9 +439,8 @@ const PlateRegistry: React.FC = () => {
                 >
                   Name
                   <img
-                    src={`/assets/${
-                      sortBy === "name" ? "SortArrowSelected.svg" : "SortArrow.svg"
-                    }`}
+                    src={`/assets/${sortBy === "name" ? "SortArrowSelected.svg" : "SortArrow.svg"
+                      }`}
                     alt="Sort"
                     className={`sort-arrow ${sortOrder}`}
                   />
@@ -437,9 +451,8 @@ const PlateRegistry: React.FC = () => {
                 >
                   Email
                   <img
-                    src={`/assets/${
-                      sortBy === "email" ? "SortArrowSelected.svg" : "SortArrow.svg"
-                    }`}
+                    src={`/assets/${sortBy === "email" ? "SortArrowSelected.svg" : "SortArrow.svg"
+                      }`}
                     alt="Sort"
                     className={`sort-arrow ${sortOrder}`}
                   />
@@ -450,9 +463,8 @@ const PlateRegistry: React.FC = () => {
                 >
                   Phone Number
                   <img
-                    src={`/assets/${
-                      sortBy === "phone" ? "SortArrowSelected.svg" : "SortArrow.svg"
-                    }`}
+                    src={`/assets/${sortBy === "phone" ? "SortArrowSelected.svg" : "SortArrow.svg"
+                      }`}
                     alt="Sort"
                     className={`sort-arrow ${sortOrder}`}
                   />

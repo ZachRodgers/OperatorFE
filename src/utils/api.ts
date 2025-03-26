@@ -93,6 +93,24 @@ export const lotService = {
     const response = await api.put(`/parkinglots/update/${lotId}`, lotData);
     return response.data;
   },
+
+  // Enable registry for a lot
+  enableRegistry: async (lotId: string) => {
+    const response = await api.post(`/parkinglots/enable-registry/${lotId}`);
+    return response.data;
+  },
+
+  // Disable registry for a lot
+  disableRegistry: async (lotId: string) => {
+    const response = await api.post(`/parkinglots/disable-registry/${lotId}`);
+    return response.data;
+  },
+
+  // Get registry status for a lot
+  getRegistryStatus: async (lotId: string) => {
+    const response = await api.get(`/parkinglots/get-registry-status/${lotId}`);
+    return response.data;
+  },
 };
 
 // Lot Pricing service functions
