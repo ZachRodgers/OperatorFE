@@ -41,6 +41,30 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
         'Almost Done...'
     ];
 
+    // Add possible header names for each column
+    const possiblePlateHeaders = ['plate', 'license', 'vehicle', 'id', 'user', 'parker', 'guest', 'registration', 'tag', 'number'];
+    const possibleNameHeaders = ['name', 'owner', 'contact', 'person', 'driver', 'user', 'parker', 'guest'];
+    const possibleEmailHeaders = ['email', 'e-mail', 'mail', 'contact'];
+    const possiblePhoneHeaders = ['phone', 'number', 'tel', 'telephone', 'mobile', 'cell', 'contact'];
+
+    const downloadTemplate = () => {
+        const headers = ['Plate', 'Name', 'Email', 'Phone'];
+        const csvContent = [
+            headers.join(','),
+            'ABC123,John Doe,john@example.com,555-555-5555'
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'plate_registry_template.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -66,7 +90,10 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                     const workbook = read(data, { type: 'binary' });
                     const sheetName = workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
-                    const jsonData = utils.sheet_to_json(sheet);
+
+                    // Try to detect if the file is tab-delimited
+                    const rawData = utils.sheet_to_txt(sheet, { FS: '\t' });
+                    const jsonData = utils.sheet_to_json(sheet, { raw: false });
 
                     if (!jsonData || jsonData.length === 0) {
                         throw new Error('Spreadsheet is empty or has no data');
@@ -78,21 +105,31 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                         throw new Error('Could not find column headers in the spreadsheet');
                     }
 
+                    // Log the raw headers for debugging
+                    console.log('Raw headers:', headers);
+
+                    // Clean and normalize headers
+                    const normalizedHeaders = headers.map(h => h.trim().toLowerCase());
+                    console.log('Normalized headers:', normalizedHeaders);
+
                     const plateIndex = headers.findIndex(h =>
-                        h.toLowerCase().includes('plate') || h.toLowerCase().includes('license'));
+                        possiblePlateHeaders.some(possible => h.toLowerCase().trim().includes(possible.toLowerCase())));
                     const nameIndex = headers.findIndex(h =>
-                        h.toLowerCase().includes('name'));
+                        possibleNameHeaders.some(possible => h.toLowerCase().trim().includes(possible.toLowerCase())));
                     const emailIndex = headers.findIndex(h =>
-                        h.toLowerCase().includes('email'));
+                        possibleEmailHeaders.some(possible => h.toLowerCase().trim().includes(possible.toLowerCase())));
                     const phoneIndex = headers.findIndex(h =>
-                        h.toLowerCase().includes('phone') || h.toLowerCase().includes('number'));
+                        possiblePhoneHeaders.some(possible => h.toLowerCase().trim().includes(possible.toLowerCase())));
+
+                    // Log the found indices
+                    console.log('Found indices:', { plateIndex, nameIndex, emailIndex, phoneIndex });
 
                     if (plateIndex === -1) {
-                        throw new Error('Could not find a column for license plate numbers. Please make sure you have a column with "plate" or "license" in the header.');
+                        throw new Error('Could not find a column for license plate numbers. Please make sure you have a column with "Plate" in the header.');
                     }
 
                     if (nameIndex === -1) {
-                        throw new Error('Could not find a column for names. Please make sure you have a column with "name" in the header.');
+                        throw new Error('Could not find a column for names. Please make sure you have a column with "Name" in the header.');
                     }
 
                     // Parse entries
@@ -100,11 +137,21 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                     const newErrors: string[] = [];
                     const overlappingPlates: string[] = [];
 
+                    // Log headers for debugging
+                    console.log('Found headers:', headers);
+                    console.log('Indices:', { plateIndex, nameIndex, emailIndex, phoneIndex });
+
                     jsonData.forEach((row: any, index: number) => {
+                        // Log raw row data for debugging
+                        console.log(`Row ${index + 1}:`, row);
+
                         const plate = String(row[headers[plateIndex]] || '').trim().toUpperCase();
                         const name = String(row[headers[nameIndex]] || '').trim();
                         const email = String(row[headers[emailIndex]] || '').trim();
                         const phone = String(row[headers[phoneIndex]] || '').trim();
+
+                        // Log processed values for debugging
+                        console.log(`Processed values for row ${index + 1}:`, { plate, name, email, phone });
 
                         if (!plate || !name) {
                             newErrors.push(`Row ${index + 1}: Missing required fields (plate and name)`);
@@ -167,7 +214,7 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
             };
 
             reader.onerror = () => {
-                setErrors(['Failed to read the file. Please make sure it\'s a valid spreadsheet file (XLSX, XLS, or CSV).']);
+                setErrors(['Failed to read the file. Please make sure it\'s a valid CSV file.']);
                 setIsLoading(false);
                 clearInterval(messageInterval);
             };
@@ -222,6 +269,7 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                         </div>
                         <div className="upload-spreadsheet-actions">
                             <button className="button secondary" onClick={onClose}>Cancel</button>
+                            <button className="button secondary" onClick={downloadTemplate}>Download Template</button>
                             <button className="button primary" onClick={() => {
                                 setErrors([]);
                                 setParsedEntries([]);
@@ -280,6 +328,7 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                         </div>
                         <div className="upload-spreadsheet-actions">
                             <button className="button secondary" onClick={onClose}>Cancel</button>
+                            <button className="button secondary" onClick={downloadTemplate}>Download Template</button>
                             <button className="button primary" onClick={handleAddToRegistry}>
                                 Add to Registry
                             </button>
@@ -296,16 +345,17 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileSelect}
-                            accept=".xlsx,.xls,.csv"
+                            accept=".csv"
                             style={{ display: 'none' }}
                         />
                         <div className="upload-spreadsheet-actions">
                             <button className="button secondary" onClick={onClose}>Cancel</button>
+                            <button className="button secondary" onClick={downloadTemplate}>Download Template</button>
                             <button className="button primary" onClick={() => fileInputRef.current?.click()}>
                                 Select File
                             </button>
                         </div>
-                        <p className="file-types">Supported formats: XLSX, XLS, CSV</p>
+                        <p className="file-types">Please use CSV format only.</p>
                     </div>
                 )}
             </div>
