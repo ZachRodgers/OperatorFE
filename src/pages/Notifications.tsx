@@ -6,16 +6,17 @@ import RecipientModal from "../components/RecipientModal";
 import "./Notifications.css";
 
 interface NotificationItem {
+  notificationId: string;
   lotId: string;
   type: string;
   title: string;
   message: string;
-  badges: string[];
-  isRead: boolean;
-  isDeleted: boolean;
+  read: boolean;
+  deleted: boolean;
   date: string;
   location: string;
-  link: string;
+  link: string | null;
+  visibleBy: string;
 }
 
 interface DisplayNotification extends NotificationItem {
@@ -48,20 +49,46 @@ const Notifications: React.FC = () => {
   const markReadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // 1) Load notifications for this lot
-    const relevant = (notificationsData as NotificationItem[])
-      .filter((n) => n.lotId === lotId && !n.isDeleted)
-      .map((n, index) => ({
-        ...n,
-        id: `notif_${index}`,
-        isSelected: false,
-      }));
-    setNotifications(relevant);
+    // 1) Load notifications for this lot from backend
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch(`http://localhost:8085/ParkingWithParallel/notifications/lot/${lotId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch notifications');
+        }
+        const data = await response.json();
+        const relevant = data
+          .filter((n: NotificationItem) => !n.deleted)
+          .map((n: NotificationItem, index: number) => ({
+            ...n,
+            id: `notif_${index}`,
+            isSelected: false,
+          }));
+        setNotifications(relevant);
 
-    // 2) After 2 seconds, mark all unread notifications as read on the server.
-    markReadTimerRef.current = setTimeout(() => {
-      markAllUnreadOnServer(relevant);
-    }, 2000);
+        // 2) After 4 seconds, mark all unread notifications as read on the server
+        markReadTimerRef.current = setTimeout(() => {
+          const unreadIds = relevant
+            .filter((n: NotificationItem) => !n.read)
+            .map((n: NotificationItem) => n.notificationId);
+          if (unreadIds.length > 0) {
+            fetch('http://localhost:8085/ParkingWithParallel/notifications/mark-read', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(unreadIds),
+            }).catch(error => console.error('Error marking notifications as read:', error));
+          }
+        }, 4000);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    if (lotId) {
+      fetchNotifications();
+    }
 
     // 3) Load recipients from lots_master
     const matchingLot = (lotsData as LotEntry[]).find((lot) => lot.lotId === lotId);
@@ -76,23 +103,15 @@ const Notifications: React.FC = () => {
     };
   }, [lotId]);
 
-  // Mark notifications as read on the server (local isRead remains unchanged)
-  const markAllUnreadOnServer = async (items: DisplayNotification[]) => {
-    const updated = items.map((item) =>
-      item.isRead ? item : { ...item, isRead: true }
-    );
-    updateNotificationsOnServer(updated);
-  };
-
   useEffect(() => {
     const count = notifications.filter((n) => n.isSelected).length;
     setSelectedCount(count);
   }, [notifications]);
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (notificationId: string) => {
     setNotifications((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, isSelected: !item.isSelected } : item
+        item.notificationId === notificationId ? { ...item, isSelected: !item.isSelected } : item
       )
     );
   };
@@ -105,25 +124,96 @@ const Notifications: React.FC = () => {
     setNotifications((prev) => prev.map((item) => ({ ...item, isSelected: false })));
   };
 
-  const handleDismiss = () => {
-    setNotifications((prev) => {
-      const updated = prev.map((item) =>
-        item.isSelected ? { ...item, isDeleted: true } : item
+  const handleDismiss = async () => {
+    const selectedIds = notifications
+      .filter(item => item.isSelected)
+      .map(item => item.notificationId);
+
+    if (selectedIds.length === 0) return;
+
+    try {
+      // Delete each selected notification
+      await Promise.all(
+        selectedIds.map(id =>
+          fetch(`http://localhost:8085/ParkingWithParallel/notifications/${id}`, {
+            method: 'DELETE'
+          })
+        )
       );
-      const filtered = updated.filter((item) => !item.isDeleted);
-      updateNotificationsOnServer(updated);
-      return filtered;
-    });
+
+      // Update local state
+      setNotifications(prev =>
+        prev.filter(item => !selectedIds.includes(item.notificationId))
+      );
+    } catch (error) {
+      console.error('Error dismissing notifications:', error);
+    }
   };
 
-  const handleMarkAsRead = () => {
-    setNotifications((prev) => {
-      const updatedForServer = prev.map((item) =>
-        item.isSelected && !item.isRead ? { ...item, isRead: true } : item
+  const handleMarkAsRead = async () => {
+    const selectedUnreadIds = notifications
+      .filter(item => item.isSelected && !item.read)
+      .map(item => item.notificationId);
+
+    if (selectedUnreadIds.length === 0) return;
+
+    try {
+      const response = await fetch('http://localhost:8085/ParkingWithParallel/notifications/mark-read', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(selectedUnreadIds),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark notifications as read');
+      }
+
+      // Update local state to reflect the changes
+      setNotifications(prev =>
+        prev.map(item =>
+          selectedUnreadIds.includes(item.notificationId)
+            ? { ...item, read: true }
+            : item
+        )
       );
-      updateNotificationsOnServer(updatedForServer);
-      return prev;
-    });
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
+
+  const handleMarkAsUnread = async () => {
+    const selectedReadIds = notifications
+      .filter(item => item.isSelected && item.read)
+      .map(item => item.notificationId);
+
+    if (selectedReadIds.length === 0) return;
+
+    try {
+      const response = await fetch('http://localhost:8085/ParkingWithParallel/notifications/mark-unread', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(selectedReadIds),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark notifications as unread');
+      }
+
+      // Update local state to reflect the changes
+      setNotifications(prev =>
+        prev.map(item =>
+          selectedReadIds.includes(item.notificationId)
+            ? { ...item, read: false }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notifications as unread:', error);
+    }
   };
 
   // Recipients modal controls
@@ -137,13 +227,10 @@ const Notifications: React.FC = () => {
   const handleUpdateRecipients = async (newRecipients: string[]) => {
     setCurrentRecipients(newRecipients);
     try {
-      const resp = await fetch("http://localhost:5000/update-lot", {
-        method: "POST",
+      const resp = await fetch(`http://localhost:8085/ParkingWithParallel/lots/${lotId}/recipients`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lotId,
-          updatedData: { notificationRecipients: newRecipients },
-        }),
+        body: JSON.stringify({ recipients: newRecipients }),
       });
       if (!resp.ok) {
         console.error("Failed to update recipients on server");
@@ -153,40 +240,16 @@ const Notifications: React.FC = () => {
     }
   };
 
-  const updateNotificationsOnServer = async (updatedList: DisplayNotification[]) => {
-    const toWrite = updatedList.map((item) => ({
-      lotId: item.lotId,
-      type: item.type,
-      title: item.title,
-      message: item.message,
-      badges: item.badges,
-      isRead: item.isRead,
-      isDeleted: item.isDeleted,
-      date: item.date,
-      location: item.location,
-      link: item.link,
-    }));
-    try {
-      await fetch("http://localhost:5000/update-lot-notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toWrite),
-      });
-    } catch (err) {
-      console.error("Failed to update notifications on server:", err);
-    }
-  };
-
   const sortNotifications = (items: DisplayNotification[]) => {
-    const unread = items.filter((i) => !i.isRead);
-    const read = items.filter((i) => i.isRead);
+    const unread = items.filter((i) => !i.read);
+    const read = items.filter((i) => i.read);
     unread.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     read.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return [...unread, ...read];
   };
 
   const visible = sortNotifications(
-    notifications.filter((n) => !n.isDeleted)
+    notifications.filter((n) => !n.deleted)
   );
 
   const handleNotificationButton = (notif: DisplayNotification) => {
@@ -207,28 +270,43 @@ const Notifications: React.FC = () => {
     setModalNotifId(null);
   };
 
-  const handleDismissFromModal = () => {
+  const handleDismissFromModal = async () => {
     if (!modalNotifId) return;
-    setNotifications((prev) => {
-      const updated = prev.map((item) =>
-        item.id === modalNotifId ? { ...item, isDeleted: true } : item
+
+    try {
+      const response = await fetch(`http://localhost:8085/ParkingWithParallel/notifications/${modalNotifId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to dismiss notification');
+      }
+
+      // Update local state
+      setNotifications(prev =>
+        prev.filter(item => item.notificationId !== modalNotifId)
       );
-      const filtered = updated.filter((item) => !item.isDeleted);
-      updateNotificationsOnServer(updated);
-      return filtered;
-    });
-    handleCloseModal();
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error dismissing notification:', error);
+    }
   };
 
   const renderTopBar = () => {
     const recipientsCount = currentRecipients.length;
     if (selectedCount > 0) {
+      // Get selected notifications
+      const selectedNotifications = notifications.filter(n => n.isSelected);
+      const allSelectedRead = selectedNotifications.every(n => n.read);
+      const allSelectedUnread = selectedNotifications.every(n => !n.read);
+
       return (
         <div className="notif-topbar">
           <button onClick={handleUnselectAll}>Unselect All</button>
           <button onClick={handleSelectAll}>Select All</button>
           <button onClick={handleDismiss}>Dismiss</button>
-          <button onClick={handleMarkAsRead}>Mark as Read</button>
+          {!allSelectedRead && <button onClick={handleMarkAsRead}>Mark as Read</button>}
+          {!allSelectedUnread && <button onClick={handleMarkAsUnread}>Mark as Unread</button>}
           <button className="recipients-btn" onClick={handleOpenRecipients}>
             <img src="/assets/AddPerson.svg" alt="Add Person" className="icon-person" />
             Recipients ({recipientsCount})
@@ -264,14 +342,14 @@ const Notifications: React.FC = () => {
             }
 
             return (
-              <tr key={item.id}>
+              <tr key={item.notificationId}>
                 <td className="checkbox-col">
                   <label className="custom-checkbox">
                     <input
                       type="checkbox"
                       className="hidden-checkbox"
                       checked={item.isSelected}
-                      onChange={() => toggleSelect(item.id)}
+                      onChange={() => toggleSelect(item.notificationId)}
                     />
                     <span className="checkbox-styler"></span>
                   </label>
@@ -280,14 +358,8 @@ const Notifications: React.FC = () => {
                 <td className="notif-info-col">
                   <div className="notif-title-row">
                     <span className="notif-title">{item.title}</span>
-                    {!item.isRead && <span className="new-badge">NEW</span>}
-                    {item.badges.map((b, idx) =>
-                      b.trim() ? (
-                        <span key={idx} className="violation-badge">
-                          {b}
-                        </span>
-                      ) : null
-                    )}
+                    {!item.read && <span className="new-badge">NEW</span>}
+                    {item.type === "VIOLATION" && <span className="violation-badge">Violation</span>}
                     <span className="notif-date-loc">
                       {new Date(item.date).toLocaleString("en-US", {
                         weekday: "short",
