@@ -213,7 +213,7 @@ const UploadSpreadsheet: React.FC<UploadSpreadsheetProps> = ({ isOpen, onClose, 
                     <div className="upload-spreadsheet-error">
                         <div className="error-icon">⚠️</div>
                         <h3>Upload Issues</h3>
-                        <div className="error-messages">
+                        <div className="error-messages2">
                             {errors.map((error, index) => (
                                 <p key={index} className="error-message">
                                     {error}
