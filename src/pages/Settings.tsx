@@ -375,10 +375,10 @@ const Settings: React.FC = () => {
 
 
 
-        <button className="button secondary" onClick={() => handleNavigation(`/${customerId}/${lotId}/advanced`)}>
+        <button className="button secondary" onClick={() => handleNavigation(`/lot/${lotId}/advanced`)}>
           Advanced Settings
         </button>
-        <button className="button secondary" onClick={() => handleNavigation(`/${customerId}/${lotId}/registry`)}>
+        <button className="button secondary" onClick={() => handleNavigation(`/lot/${lotId}/registry`)}>
           Plate Registry
         </button>
       </div>

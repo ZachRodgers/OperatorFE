@@ -832,13 +832,6 @@ const AdvancedSettings: React.FC = () => {
             >
               {isSaving ? "Saving..." : "Save"}
             </button>
-            <button
-              className="button secondary"
-              onClick={handleGeneralSettings}
-              disabled={isSaving}
-            >
-              General Settings
-            </button>
           </div>
         </>
       )}
