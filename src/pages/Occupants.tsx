@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Modal from "../components/Modal";
 import "./Occupants.css";
-import { sessionService } from "../utils/api";
-import lotPricing from "../data/lot_pricing.json"; // Still using this until we implement pricing API
+import { sessionService, lotPricingService } from "../utils/api";
 import lotsData from "../data/lots_master.json"; // Still using this until we implement lots API
 import axios, { AxiosError } from 'axios';
 import { useLot } from "../contexts/LotContext"; // Import the lot context hook
@@ -34,6 +33,7 @@ const Occupants: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lotPricing, setLotPricing] = useState<any>(null);
 
   // For modal control
   const [modalOpen, setModalOpen] = useState(false);
@@ -42,6 +42,18 @@ const Occupants: React.FC = () => {
 
   // Get lot capacity from the context instead of the hardcoded JSON
   const lotCapacity = lotData?.lotCapacity ?? 0;
+
+  // Fetch lot pricing data
+  const fetchLotPricing = async () => {
+    if (!lotId) return;
+    try {
+      const pricingData = await lotPricingService.getLatestPricingByLotId(lotId);
+      setLotPricing(pricingData);
+    } catch (err) {
+      console.error("Failed to fetch lot pricing:", err);
+      setError("Failed to load lot pricing data. Please try again.");
+    }
+  };
 
   // Fetch sessions from the backend
   const fetchSessions = async () => {
@@ -85,6 +97,7 @@ const Occupants: React.FC = () => {
 
   useEffect(() => {
     fetchSessions();
+    fetchLotPricing();
     // Setup a refresh interval to keep data current
     const interval = setInterval(fetchSessions, 30000); // refresh every 30 seconds
     return () => clearInterval(interval);
@@ -131,9 +144,8 @@ const Occupants: React.FC = () => {
 
   const occupantCount = sessions.length;
 
-  // Check if validation is allowed
-  const pricing = lotPricing.find((entry) => entry.lotId === lotId);
-  const allowValidation = pricing?.allowValidation ?? false;
+  // Check if validation is allowed using the API data
+  const allowValidation = lotPricing?.allowValidation ?? false;
 
   // Helper to set occupant validated
   const handleValidate = async (sessionId: string) => {
