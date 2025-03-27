@@ -5,6 +5,7 @@ import Slider from "../components/Slider";
 import Tooltip from "../components/Tooltip";
 import { lotService, registryService } from "../utils/api";
 import "./PlateRegistry.css";
+import UploadSpreadsheet from "../components/UploadSpreadsheet";
 
 interface VehicleRegistryEntry {
   lotId: string;
@@ -76,6 +77,9 @@ const PlateRegistry: React.FC = () => {
     errors: [],
     invalidFields: {}
   });
+
+  // Add new state near other state declarations
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   // On mount: load table data, registry status, and add a placeholder row
   useEffect(() => {
@@ -190,10 +194,10 @@ const PlateRegistry: React.FC = () => {
   const getFilteredAndSortedRows = (): RegistryRow[] => {
     let working = [...rows];
 
-    // Find the placeholder row and any rows in edit mode
+    // Find the placeholder row and any temporary rows (new entries)
     const placeholderRow = working.find(r => r.isPlaceholder);
-    const editingRows = working.filter(r => r.isEditing);
-    working = working.filter(r => !r.isPlaceholder && !r.isEditing);
+    const temporaryRows = working.filter(r => r.isTemporary);
+    working = working.filter(r => !r.isPlaceholder && !r.isTemporary);
 
     // Filter out non-placeholder rows if registry is off
     if (!registryOn) {
@@ -206,7 +210,7 @@ const PlateRegistry: React.FC = () => {
       return str.includes(searchQuery.toLowerCase());
     });
 
-    // Sort non-placeholder rows
+    // Sort existing rows by the current sort criteria
     working.sort((a, b) => {
       let valA = "";
       let valB = "";
@@ -227,11 +231,11 @@ const PlateRegistry: React.FC = () => {
       return sortOrder === "asc" ? cmp : -cmp;
     });
 
-    // Add editing rows at the top
-    working.unshift(...editingRows);
+    // Add temporary rows (new entries) at the top
+    working.unshift(...temporaryRows);
 
-    // Add placeholder row at the very top if it exists
-    if (placeholderRow) {
+    // Only add placeholder row if we're not currently editing a new entry
+    if (placeholderRow && !temporaryRows.length) {
       working.unshift(placeholderRow);
     }
 
@@ -260,6 +264,10 @@ const PlateRegistry: React.FC = () => {
               if (allEmpty && !row.isPlaceholder) {
                 return { ...row, isEditing: false, vehicleId: "TO_BE_REMOVED" };
               }
+              // If the row was newly created (temporary), mark it as non-temporary so it will be sorted
+              if (row.isTemporary) {
+                return { ...row, isEditing: false, isTemporary: false };
+              }
               return { ...row, isEditing: false };
             } else {
               return { ...row, isEditing: true };
@@ -268,12 +276,6 @@ const PlateRegistry: React.FC = () => {
           return { ...row, isEditing: false };
         })
         .filter((r) => r.vehicleId !== "TO_BE_REMOVED");
-
-      // If no row is in edit mode, add back the placeholder row
-      if (!updatedRows.some(r => r.isEditing)) {
-        updatedRows.unshift(createPlaceholderRow());
-      }
-
       return updatedRows;
     });
   };
@@ -290,9 +292,16 @@ const PlateRegistry: React.FC = () => {
       return;
     }
     setRows((prev) => {
-      let newRows = prev.map((row) =>
-        row.isPlaceholder ? row : { ...row, isEditing: false }
-      );
+      let newRows = prev.map((row) => {
+        if (row.isPlaceholder) return row;
+        // Check if row has any data
+        const hasData = row.plateNumber.trim() || row.name.trim() || row.email.trim() || row.phone.trim();
+        // If row is temporary and has data, mark it as non-temporary so it will be sorted
+        if (row.isTemporary && hasData) {
+          return { ...row, isEditing: false, isTemporary: false };
+        }
+        return { ...row, isEditing: false };
+      });
       newRows = newRows.filter((row) => {
         if (row.isPlaceholder) return true;
         const allEmpty =
@@ -303,9 +312,9 @@ const PlateRegistry: React.FC = () => {
         return !allEmpty;
       });
 
-      // If no row is in edit mode, add back the placeholder row
-      if (!newRows.some(r => r.isEditing)) {
-        newRows.unshift(createPlaceholderRow());
+      // Add back the placeholder row if it's not present
+      if (!newRows.some((r) => r.isPlaceholder)) {
+        newRows.push(createPlaceholderRow());
       }
 
       return newRows;
@@ -338,8 +347,15 @@ const PlateRegistry: React.FC = () => {
         }
         return r;
       });
-      // Remove any placeholder rows when converting to edit mode
-      return updatedRows.filter(r => !r.isPlaceholder || r.vehicleId === rowId);
+
+      // If we're exiting create mode (temporary row becoming non-editing)
+      const row = updatedRows.find(r => r.vehicleId === rowId);
+      if (row && row.isTemporary && !row.isEditing) {
+        // Add back the placeholder row
+        updatedRows.push(createPlaceholderRow());
+      }
+
+      return updatedRows;
     });
     setIsDirty(true);
   };
@@ -384,6 +400,46 @@ const PlateRegistry: React.FC = () => {
     setModalOpen(true);
   };
 
+  const validateRow = (row: RegistryRow): ValidationError[] => {
+    const errors: ValidationError[] = [];
+
+    if (!row.plateNumber.trim()) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "plateNumber",
+        message: "Please enter a plate number"
+      });
+    }
+
+    if (!row.name.trim()) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "name",
+        message: "Please enter a name"
+      });
+    }
+
+    if (row.email.trim() && !isValidEmail(row.email)) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "email",
+        message: "Please enter a valid email address"
+      });
+    }
+
+    // Only validate phone if it's not empty and contains invalid characters
+    const phone = row.phone?.trim() || "";
+    if (phone && !/^[\d\s\-()]+$/.test(phone)) {
+      errors.push({
+        plateNumber: row.plateNumber || "BLANK",
+        field: "phone",
+        message: "Phone number can only contain numbers, spaces, hyphens, and parentheses"
+      });
+    }
+
+    return errors;
+  };
+
   const confirmSaveChanges = async () => {
     try {
       // Validate all non-placeholder rows
@@ -416,7 +472,7 @@ const PlateRegistry: React.FC = () => {
           plateNumber: row.plateNumber.toUpperCase(),
           name: row.name.trim(),
           email: row.email.trim(),
-          phone: row.phone.trim()
+          phone: row.phone?.trim() || null // Handle null/empty phone numbers
         };
 
         try {
@@ -469,45 +525,6 @@ const PlateRegistry: React.FC = () => {
     }
   };
 
-  // Add this function near other validation functions
-  const validateRow = (row: RegistryRow): ValidationError[] => {
-    const errors: ValidationError[] = [];
-
-    if (!row.plateNumber.trim()) {
-      errors.push({
-        plateNumber: row.plateNumber || "BLANK",
-        field: "plateNumber",
-        message: "Please enter a plate number"
-      });
-    }
-
-    if (!row.name.trim()) {
-      errors.push({
-        plateNumber: row.plateNumber || "BLANK",
-        field: "name",
-        message: "Please enter a name"
-      });
-    }
-
-    if (row.email.trim() && !isValidEmail(row.email)) {
-      errors.push({
-        plateNumber: row.plateNumber || "BLANK",
-        field: "email",
-        message: "Please enter a valid email address"
-      });
-    }
-
-    if (row.phone.trim() && !isValidPhone(row.phone)) {
-      errors.push({
-        plateNumber: row.plateNumber || "BLANK",
-        field: "phone",
-        message: "Please enter a valid phone number"
-      });
-    }
-
-    return errors;
-  };
-
   // ------------------- UTILS -------------------
   const closeModal = () => {
     setModalOpen(false);
@@ -515,6 +532,51 @@ const PlateRegistry: React.FC = () => {
     setRemovalVehicleId(null);
     setShowValidationErrors(false);
     setValidationState({ errors: [], invalidFields: {} });
+  };
+
+  // Add new function to handle adding entries from upload
+  const handleAddUploadedEntries = (entries: { plateNumber: string; name: string; email: string; phone: string | null; matchType?: string }[]) => {
+    setRows(prev => {
+      // Remove any placeholder rows
+      const nonPlaceholderRows = prev.filter(r => !r.isPlaceholder);
+
+      // Process each entry
+      const updatedRows = [...nonPlaceholderRows];
+
+      entries.forEach(entry => {
+        // Find existing row with matching plate number
+        const existingRowIndex = updatedRows.findIndex(r =>
+          r.plateNumber.toUpperCase() === entry.plateNumber.toUpperCase()
+        );
+
+        if (existingRowIndex !== -1) {
+          // Update existing row
+          updatedRows[existingRowIndex] = {
+            ...updatedRows[existingRowIndex],
+            name: entry.name,
+            email: entry.email,
+            phone: entry.phone || "",
+            isEditing: true,
+            isTemporary: false
+          };
+        } else {
+          // Add new row
+          updatedRows.push({
+            ...entry,
+            lotId: lotId || "",
+            vehicleId: `TEMP_${Math.floor(Math.random() * 100000)}`,
+            registryId: undefined,
+            isPlaceholder: false,
+            isEditing: true,
+            isTemporary: true,
+            phone: entry.phone || "" // Convert null to empty string for display
+          });
+        }
+      });
+
+      return updatedRows;
+    });
+    setIsDirty(true);
   };
 
   const workingRows = getFilteredAndSortedRows();
@@ -555,7 +617,7 @@ const PlateRegistry: React.FC = () => {
               />
             </div>
             <div className="upload-wrapper">
-              <button className="button secondary" onClick={() => alert("Not implemented!")}>
+              <button className="button secondary" onClick={() => setShowUploadModal(true)}>
                 Upload Sheet
               </button>
               <div className="tooltip-icon-container">
@@ -798,7 +860,7 @@ const PlateRegistry: React.FC = () => {
           title="Confirm Changes"
           description={
             showValidationErrors && validationState.errors.length > 0 ? (
-              <div className="validation-errors">
+              <div className="validation-errorsOLD">
                 {validationState.errors.map((error, index) => (
                   <div key={index} className="error-message">
                     {error.message} for {error.plateNumber}
@@ -814,6 +876,22 @@ const PlateRegistry: React.FC = () => {
           onConfirm={confirmSaveChanges}
           onCancel={closeModal}
           disableConfirm={showValidationErrors && validationState.errors.length > 0}
+        />
+      )}
+
+      {showUploadModal && (
+        <UploadSpreadsheet
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onAddToRegistry={handleAddUploadedEntries}
+          existingEntries={rows
+            .filter(r => !r.isPlaceholder)
+            .map(r => ({
+              plateNumber: r.plateNumber,
+              name: r.name,
+              email: r.email,
+              phone: r.phone
+            }))}
         />
       )}
     </div>

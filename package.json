@@ -14,7 +14,8 @@
     "react-router-dom": "^7.1.5",
     "react-scripts": "^5.0.1",
     "recharts": "^2.15.1",
-    "web-vitals": "^4.2.4"
+    "web-vitals": "^4.2.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -41,6 +42,7 @@
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.0.3",
     "@types/react-router-dom": "^5.3.3",
+    "@types/xlsx": "^0.0.35",
     "typescript": "^4.9.5"
   }
 }
