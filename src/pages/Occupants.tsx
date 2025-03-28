@@ -3,9 +3,8 @@ import { useParams } from "react-router-dom";
 import Modal from "../components/Modal";
 import "./Occupants.css";
 import { sessionService, lotPricingService } from "../utils/api";
-import lotsData from "../data/lots_master.json"; // Still using this until we implement lots API
 import axios, { AxiosError } from 'axios';
-import { useLot } from "../contexts/LotContext"; // Import the lot context hook
+import { useLot } from "../contexts/LotContext";
 import LoadingWheel from "../components/LoadingWheel";
 
 interface ParkingSession {
@@ -19,7 +18,7 @@ interface ParkingSession {
   totalAmount: number;
   isValidated: boolean;
   isInRegistry: boolean;
-  plate?: string; // Will come from the vehicle data
+  plate?: string;
 }
 
 type ModalType = "removeVehicle" | "removeValidation" | null;
@@ -63,7 +62,7 @@ const Occupants: React.FC = () => {
     setLoading(true);
     try {
       const response = await sessionService.getSessionsByLot(lotId);
-      console.log("Sessions response:", response); // Updated log to reflect direct data access
+      console.log("Sessions response:", response);
 
       // Get active sessions (we need to make sure we only show active vehicles)
       const activeSessions = response.filter(
@@ -79,18 +78,11 @@ const Occupants: React.FC = () => {
       }));
 
       setSessions(sessionsWithPlate);
+      setError(null);
     } catch (err) {
       console.error("Failed to fetch sessions:", err);
       setError("Failed to load occupant data. Please try again.");
-
-      // Fallback to JSON data for testing if API fails
-      import("../data/parking_sessions.json").then(data => {
-        const relevantSessions = data.default.filter(s => s.lotId === lotId && s.parkingStatus === "Active");
-        setSessions(relevantSessions);
-        setError(null);
-      }).catch(err => {
-        console.error("Failed to load fallback data:", err);
-      });
+      setSessions([]); // Clear sessions on error
     } finally {
       setLoading(false);
     }

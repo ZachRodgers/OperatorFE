@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import notificationsData from "../data/lot_notifications.json";
-import lotsData from "../data/lots_master.json";
 import RecipientModal from "../components/RecipientModal";
 import "./Notifications.css";
 import LoadingWheel from "../components/LoadingWheel";
@@ -90,16 +88,24 @@ const Notifications: React.FC = () => {
       }
     };
 
+    // 3) Load recipients from the API
+    const fetchRecipients = async () => {
+      try {
+        const response = await fetch(`http://localhost:8085/ParkingWithParallel/lots/${lotId}/recipients`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch recipients');
+        }
+        const data = await response.json();
+        setCurrentRecipients(data);
+      } catch (error) {
+        console.error('Error fetching recipients:', error);
+        setCurrentRecipients([]);
+      }
+    };
+
     if (lotId) {
       fetchNotifications();
-    }
-
-    // 3) Load recipients from lots_master
-    const matchingLot = (lotsData as LotEntry[]).find((lot) => lot.lotId === lotId);
-    if (matchingLot && matchingLot.notificationRecipients) {
-      setCurrentRecipients(matchingLot.notificationRecipients);
-    } else {
-      setCurrentRecipients([]);
+      fetchRecipients();
     }
 
     return () => {
