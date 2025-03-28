@@ -393,4 +393,18 @@ export const lotDailyDataService = {
   },
 };
 
+// Devices service functions
+export const devicesService = {
+  // Get all devices for a lot
+  getDevicesByLot: async (lotId: string) => {
+    try {
+      const response = await api.get(`/devices/get-by-lot/${lotId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching devices by lot ID:", error);
+      throw error;
+    }
+  },
+};
+
 export default api;

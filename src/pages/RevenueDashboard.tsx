@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { motion, useSpring, useMotionValue, useTransform } from "framer-motion";
+import { motion, useSpring, useMotionValue, useTransform, MotionValue } from "framer-motion";
 import "./RevenueDashboard.css";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import LoadingWheelSmall from "../components/LoadingWheelSmall";
-import { lotDailyDataService, lotService } from "../utils/api";
+import { lotDailyDataService, lotService, devicesService } from "../utils/api";
 
 interface DashboardMetrics {
   date: string;
@@ -25,6 +25,30 @@ interface LotEntry {
   subscriberRevenue: number;
 }
 
+interface Device {
+  deviceId: string;
+  deviceStatus: string;
+}
+
+interface MetricProps {
+  title: string;
+  value: MotionValue<number>;
+  prefix: string;
+  suffix?: string;
+  change?: number;
+  prevValue?: MotionValue<number>;
+  decimals: number;
+  hideChange?: boolean;
+  deviceStatus?: {
+    online: number;
+    offline: number;
+    calibrating: number;
+    recentlyAdded: number;
+    onlineCount: number;
+    offlineCount: number;
+  };
+}
+
 const RevenueDashboard: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
   const [timeframe, setTimeframe] = useState<"day" | "week" | "month" | "year">("day");
@@ -37,6 +61,7 @@ const RevenueDashboard: React.FC = () => {
   const [lotName, setLotName] = useState<string>("Unknown Lot");
   const [isCompact, setIsCompact] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
+  const [devices, setDevices] = useState<Device[]>([]);
 
   // Create animated values using useSpring directly
   const animatedRevenue = useSpring(0, { stiffness: 10000, damping: 600 });
@@ -88,6 +113,17 @@ const RevenueDashboard: React.FC = () => {
     };
   }, []);
 
+  // Add fetchDevices function
+  const fetchDevices = async () => {
+    if (!lotId) return;
+    try {
+      const devicesData = await devicesService.getDevicesByLot(lotId);
+      setDevices(devicesData);
+    } catch (error) {
+      console.error("Error fetching devices:", error);
+    }
+  };
+
   // Fetch dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -99,6 +135,9 @@ const RevenueDashboard: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+
+        // Fetch devices data
+        await fetchDevices();
 
         const today = new Date();
         let startDate: Date;
@@ -300,7 +339,38 @@ const RevenueDashboard: React.FC = () => {
 
   const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
 
-  const metrics = [
+  // Calculate online and offline devices
+  const deviceStatusCounts = devices.reduce((acc, device) => {
+    switch (device.deviceStatus) {
+      case "ONLINE":
+        acc.online++;
+        acc.onlineCount++;
+        break;
+      case "Calibrating":
+        acc.calibrating++;
+        acc.onlineCount++;
+        break;
+      case "RecentlyAdded":
+        acc.recentlyAdded++;
+        acc.offlineCount++;
+        break;
+      case "OFFLINE":
+      default:
+        acc.offline++;
+        acc.offlineCount++;
+        break;
+    }
+    return acc;
+  }, {
+    online: 0,
+    offline: 0,
+    calibrating: 0,
+    recentlyAdded: 0,
+    onlineCount: 0,
+    offlineCount: 0
+  });
+
+  const metrics: MetricProps[] = [
     {
       title: "Revenue",
       value: animatedRevenue,
@@ -331,8 +401,15 @@ const RevenueDashboard: React.FC = () => {
       value: animatedUptime,
       prefix: "",
       suffix: "%",
-      change: uptimeChange,
-      prevValue: animatedPrevUptime,
+      hideChange: true,
+      deviceStatus: {
+        online: deviceStatusCounts.online,
+        offline: deviceStatusCounts.offline,
+        calibrating: deviceStatusCounts.calibrating,
+        recentlyAdded: deviceStatusCounts.recentlyAdded,
+        onlineCount: deviceStatusCounts.onlineCount,
+        offlineCount: deviceStatusCounts.offlineCount
+      },
       decimals: 1
     }
   ];
@@ -369,55 +446,81 @@ const RevenueDashboard: React.FC = () => {
       </div>
 
       <div className="metrics-container">
-        {metrics.map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
-          const displayValue = useTransform(value, (latest) => Number(latest).toFixed(decimals));
-          const displayPrevValue = useTransform(prevValue, (latest) => Number(latest).toFixed(decimals));
+        {metrics.map((metric) => {
+          const displayValue = useTransform(metric.value, (latest: number) => Number(latest).toFixed(metric.decimals));
+          const displayPrevValue = metric.prevValue
+            ? useTransform(metric.prevValue, (latest: number) => Number(latest).toFixed(metric.decimals))
+            : undefined;
 
           return (
             <motion.div
               className="metric"
-              key={title}
+              key={metric.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <span className="metric-value">
-                {prefix}
+                {metric.prefix}
                 <motion.span>
                   {displayValue}
                 </motion.span>
-                {suffix}
+                {metric.suffix}
               </span>
-              <span className="metric-title">{title}</span>
-              <div className="trend-container">
-                <motion.img
-                  src={trendArrow(change)}
-                  alt="trend"
-                  className="trend-arrow"
-                  animate={{ rotate: change < 0 ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                />
-                <motion.div
-                  className={getTrendTextClass(change)}
-                  key={`${change}-${title}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30,
-                    mass: 1
-                  }}
-                >
-                  {change.toFixed(2)}%
-                </motion.div>
-              </div>
-              <span className="previous-cycle">
-                {prefix}
-                <motion.span>{displayPrevValue}</motion.span>
-                {suffix} {previousLabel}
-              </span>
+              <span className="metric-title">{metric.title}</span>
+              {!metric.hideChange && metric.change !== undefined ? (
+                <>
+                  <div className="trend-container">
+                    <motion.img
+                      src={trendArrow(metric.change)}
+                      alt="trend"
+                      className="trend-arrow"
+                      animate={{ rotate: metric.change < 0 ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    <motion.div
+                      className={getTrendTextClass(metric.change)}
+                      key={`${metric.change}-${metric.title}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                        mass: 1
+                      }}
+                    >
+                      {metric.change.toFixed(2)}%
+                    </motion.div>
+                  </div>
+                  <span className="previous-cycle">
+                    {metric.prefix}
+                    {displayPrevValue && <motion.span>{displayPrevValue}</motion.span>}
+                    {metric.suffix} {previousLabel}
+                  </span>
+                </>
+              ) : metric.deviceStatus && (
+                <div className="device-status">
+                  <div className="device-dots">
+                    {Array(metric.deviceStatus.online).fill(0).map((_, i) => (
+                      <span key={`online-${i}`} className="device-dot online" />
+                    ))}
+                    {Array(metric.deviceStatus.calibrating).fill(0).map((_, i) => (
+                      <span key={`calibrating-${i}`} className="device-dot calibrating" />
+                    ))}
+                    {Array(metric.deviceStatus.recentlyAdded).fill(0).map((_, i) => (
+                      <span key={`recent-${i}`} className="device-dot recently-added" />
+                    ))}
+                    {Array(metric.deviceStatus.offline).fill(0).map((_, i) => (
+                      <span key={`offline-${i}`} className="device-dot offline" />
+                    ))}
+                  </div>
+                  <span className="device-count">
+                    {metric.deviceStatus.onlineCount} Online, {metric.deviceStatus.offlineCount} Offline
+                  </span>
+                </div>
+              )}
             </motion.div>
           );
         })}
