@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { motion, useSpring, useMotionValue, useTransform } from "framer-motion";
 import "./RevenueDashboard.css";
@@ -35,6 +35,8 @@ const RevenueDashboard: React.FC = () => {
   const [graphData, setGraphData] = useState<any[]>([]);
   const [hoveredData, setHoveredData] = useState<LotEntry | null>(null);
   const [lotName, setLotName] = useState<string>("Unknown Lot");
+  const [isCompact, setIsCompact] = useState(false);
+  const timeframeRef = useRef<HTMLDivElement>(null);
 
   // Create animated values using useSpring directly
   const animatedRevenue = useSpring(0, { stiffness: 10000, damping: 600 });
@@ -60,6 +62,31 @@ const RevenueDashboard: React.FC = () => {
     };
     fetchLotName();
   }, [lotId]);
+
+  // Add effect to handle timeframe selector width
+  useEffect(() => {
+    const checkWidth = () => {
+      if (timeframeRef.current) {
+        setIsCompact(timeframeRef.current.offsetWidth < 230);
+      }
+    };
+
+    // Initial check
+    checkWidth();
+
+    // Create resize observer
+    const resizeObserver = new ResizeObserver(checkWidth);
+    if (timeframeRef.current) {
+      resizeObserver.observe(timeframeRef.current);
+    }
+
+    // Cleanup
+    return () => {
+      if (timeframeRef.current) {
+        resizeObserver.unobserve(timeframeRef.current);
+      }
+    };
+  }, []);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -277,16 +304,21 @@ const RevenueDashboard: React.FC = () => {
       </div>
 
       <div className="header-controls">
-        <div className="timeframe-selector" data-active={timeframe}>
+        <div className="timeframe-selector" data-active={timeframe} ref={timeframeRef}>
           <div className="active-pill"></div>
-          {["day", "week", "month", "year"].map((t) => (
+          {[
+            { key: "day", label: isCompact ? "D" : "Day" },
+            { key: "week", label: isCompact ? "W" : "Week" },
+            { key: "month", label: isCompact ? "M" : "Month" },
+            { key: "year", label: isCompact ? "Y" : "Year" }
+          ].map(({ key, label }) => (
             <button
-              key={t}
-              className={timeframe === t ? "active" : ""}
-              onClick={() => setTimeframe(t as any)}
+              key={key}
+              className={timeframe === key ? "active" : ""}
+              onClick={() => setTimeframe(key as any)}
               disabled={isLoading}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {label}
             </button>
           ))}
         </div>
