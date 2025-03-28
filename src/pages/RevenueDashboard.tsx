@@ -103,38 +103,64 @@ const RevenueDashboard: React.FC = () => {
         const today = new Date();
         let startDate: Date;
         let endDate: Date;
+        let prevStartDate: Date;
+        let prevEndDate: Date;
 
         switch (timeframe) {
           case "day":
             startDate = new Date(today);
             endDate = new Date(today);
+            prevStartDate = getPreviousDate(today);
+            prevEndDate = getPreviousDate(today);
             break;
           case "week":
-            startDate = getPreviousWeek(today);
-            endDate = today;
+            // For current week, get today and previous 6 days
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 6);
+            endDate = new Date(today);
+            // For previous week, get the 7 days before today
+            prevStartDate = new Date(today);
+            prevStartDate.setDate(prevStartDate.getDate() - 13);
+            prevEndDate = new Date(today);
+            prevEndDate.setDate(prevEndDate.getDate() - 7);
             break;
           case "month":
-            startDate = getPreviousMonth(today);
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
             endDate = today;
+            prevStartDate = getPreviousMonth(today);
+            prevEndDate = new Date(today.getFullYear(), today.getMonth(), 0);
             break;
           case "year":
-            startDate = getPreviousYear(today);
+            startDate = new Date(today.getFullYear(), 0, 1);
             endDate = today;
+            prevStartDate = getPreviousYear(today);
+            prevEndDate = new Date(today.getFullYear() - 1, 11, 31);
             break;
           default:
             startDate = today;
             endDate = today;
+            prevStartDate = getPreviousDate(today);
+            prevEndDate = getPreviousDate(today);
         }
 
         // Format dates as YYYY-MM-DD
         const formattedStartDate = startDate.toISOString().split('T')[0];
         const formattedEndDate = endDate.toISOString().split('T')[0];
+        const formattedPrevStartDate = prevStartDate.toISOString().split('T')[0];
+        const formattedPrevEndDate = prevEndDate.toISOString().split('T')[0];
 
         // Fetch current period data
         const metrics: DashboardMetrics[] = await lotDailyDataService.getDashboardMetrics(
           lotId,
           formattedStartDate,
           formattedEndDate
+        );
+
+        // Fetch previous period data
+        const prevMetrics: DashboardMetrics[] = await lotDailyDataService.getDashboardMetrics(
+          lotId,
+          formattedPrevStartDate,
+          formattedPrevEndDate
         );
 
         // Convert metrics to LotEntry format
@@ -148,18 +174,6 @@ const RevenueDashboard: React.FC = () => {
           pendingRevenue: 0,
           subscriberRevenue: 0
         }));
-
-        // Fetch previous period data for comparison
-        const prevStartDate = new Date(startDate);
-        const prevEndDate = new Date(startDate);
-        prevStartDate.setDate(prevStartDate.getDate() - 1);
-        prevEndDate.setDate(prevEndDate.getDate() - 1);
-
-        const prevMetrics: DashboardMetrics[] = await lotDailyDataService.getDashboardMetrics(
-          lotId,
-          prevStartDate.toISOString().split('T')[0],
-          prevEndDate.toISOString().split('T')[0]
-        );
 
         const prevConvertedData: LotEntry[] = prevMetrics.map((metric: DashboardMetrics) => ({
           lotId,
@@ -191,6 +205,26 @@ const RevenueDashboard: React.FC = () => {
             singlePoint,
             { ...singlePoint, date: formatDateOffset(singlePoint.date, +1) },
           ];
+        }
+
+        if (timeframe === "week") {
+          // Create an array of 7 days starting from today
+          const days = Array.from({ length: 7 }, (_, i) => {
+            const date = new Date(today);
+            date.setDate(date.getDate() - (6 - i));
+            return formatDate(date);
+          });
+
+          // Map the data to these days, filling in zeros for missing days
+          newGraphData = days.map(date => {
+            const existingData = convertedData.find(d => d.date === date);
+            return {
+              date,
+              revenue: existingData?.totalRevenue ?? 0,
+              pendingRevenue: existingData?.pendingRevenue ?? 0,
+              subscriptions: existingData?.subscriberRevenue ?? 0
+            };
+          });
         }
 
         setGraphData(newGraphData);
@@ -256,7 +290,13 @@ const RevenueDashboard: React.FC = () => {
   const pendingRevenue = filteredData.length > 0 ? filteredData[filteredData.length - 1].pendingRevenue : 0;
 
   const trendArrow = (change: number) => (change >= 0 ? "/assets/DataUp.svg" : "/assets/DataDown.svg");
-  const previousLabel = timeframe === "day" ? "Yesterday" : timeframe === "week" ? "Last Week" : timeframe === "month" ? "Last Month" : "Last Year";
+  const previousLabel = timeframe === "day"
+    ? "Yesterday"
+    : timeframe === "week"
+      ? "Last Week"
+      : timeframe === "month"
+        ? "Last Month"
+        : "Last Year";
 
   const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
 
@@ -357,9 +397,21 @@ const RevenueDashboard: React.FC = () => {
                   animate={{ rotate: change < 0 ? 180 : 0 }}
                   transition={{ duration: 0.3 }}
                 />
-                <span className={getTrendTextClass(change)}>
-                  <motion.span>{change.toFixed(2)}</motion.span>%
-                </span>
+                <motion.div
+                  className={getTrendTextClass(change)}
+                  key={`${change}-${title}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30,
+                    mass: 1
+                  }}
+                >
+                  {change.toFixed(2)}%
+                </motion.div>
               </div>
               <span className="previous-cycle">
                 {prefix}
@@ -568,18 +620,26 @@ const getPreviousDate = (date: Date): Date => {
 
 const getPreviousWeek = (date: Date): Date => {
   const prev = new Date(date);
+  // Go back 7 days from current date
   prev.setDate(prev.getDate() - 7);
   return prev;
 };
 
 const getPreviousMonth = (date: Date): Date => {
   const prev = new Date(date);
+  // Set to first day of current month
+  prev.setDate(1);
+  // Go back one month
   prev.setMonth(prev.getMonth() - 1);
   return prev;
 };
 
 const getPreviousYear = (date: Date): Date => {
   const prev = new Date(date);
+  // Set to first day of current year
+  prev.setMonth(0);
+  prev.setDate(1);
+  // Go back one year
   prev.setFullYear(prev.getFullYear() - 1);
   return prev;
 };

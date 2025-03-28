@@ -67,6 +67,10 @@ export const getAuthData = (): AuthPayload | null => {
   // Check if token has expired
   if (Date.now() > expiresAt) {
     clearAuthData();
+    // Redirect to login if we're not already there
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
     return null;
   }
 

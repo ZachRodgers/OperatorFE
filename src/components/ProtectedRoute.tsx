@@ -28,9 +28,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         const expiresAt = parseInt(authData, 10);
         const timeLeft = expiresAt - Date.now();
 
-        // If less than 2 minutes left, show warning
+        // If less than 2 minutes left and more than 0, show warning
         if (timeLeft < 2 * 60 * 1000 && timeLeft > 0) {
           setSessionWarningVisible(true);
+        }
+        // If expired, redirect to login
+        else if (timeLeft <= 0) {
+          navigate('/login');
         }
       }
     };
