@@ -231,3 +231,27 @@
     color: #333;
   }
   
+  .header-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .header-loading {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-section h1 {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    gap: 10px;
+  }

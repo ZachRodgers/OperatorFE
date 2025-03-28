@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { motion, useSpring } from "framer-motion";
-import lots from "../data/lots_master.json";
-import lotData from "../data/lot_daily_data.json";
+import { motion, useSpring, useMotionValue, useTransform } from "framer-motion";
 import "./RevenueDashboard.css";
-import { ResponsiveContainer, LineChart, AreaChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-// Temporarily comment out LoadingWheel until data integration is complete
-// import LoadingWheel from "../components/LoadingWheel";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import LoadingWheelSmall from "../components/LoadingWheelSmall";
+import { lotDailyDataService, lotService } from "../utils/api";
 
+interface DashboardMetrics {
+  date: string;
+  totalRevenue: number;
+  totalVehicles: string;
+  averageOccupancy: string;
+  upTime: number;
+}
 
 interface LotEntry {
   lotId: string;
@@ -20,86 +25,179 @@ interface LotEntry {
   subscriberRevenue: number;
 }
 
-const useAnimatedNumber = (value: number, decimals: number) => {
-  const animatedValue = useSpring(value, { stiffness: 10000, damping: 600 });
-  const [displayValue, setDisplayValue] = useState(value);
-
-  useEffect(() => {
-    const unsubscribe = animatedValue.onChange((latest) => {
-      setDisplayValue(parseFloat(latest.toFixed(decimals)));
-    });
-    return () => unsubscribe();
-  }, [animatedValue, decimals]);
-
-  useEffect(() => {
-    animatedValue.set(value);
-  }, [value, animatedValue]);
-
-  return displayValue;
-};
-
 const RevenueDashboard: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
   const [timeframe, setTimeframe] = useState<"day" | "week" | "month" | "year">("day");
   const [filteredData, setFilteredData] = useState<LotEntry[]>([]);
   const [previousData, setPreviousData] = useState<LotEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [graphData, setGraphData] = useState<any[]>([]);
+  const [hoveredData, setHoveredData] = useState<LotEntry | null>(null);
+  const [lotName, setLotName] = useState<string>("Unknown Lot");
 
-  const lot = lots.find((l) => l.lotId === lotId);
-  const lotName = lot ? (lot.lotName.length > 50 ? lot.lotName.substring(0, 50) + "..." : lot.lotName) : "Unknown Lot";
-  const [prevTimeframe, setPrevTimeframe] = useState(timeframe);
+  // Create animated values using useSpring directly
+  const animatedRevenue = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedParkedCars = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedAvgOccupancy = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedUptime = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedPrevRevenue = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedPrevParkedCars = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedPrevAvgOccupancy = useSpring(0, { stiffness: 10000, damping: 600 });
+  const animatedPrevUptime = useSpring(0, { stiffness: 10000, damping: 600 });
 
-  // Temporarily comment out loading state until data integration is complete
-  // const [isLoading, setIsLoading] = useState(true);
-
+  // Fetch lot name when component mounts
   useEffect(() => {
-    const today = new Date();
-    const lotEntries = lotData.filter((entry) => entry.lotId === lotId);
+    const fetchLotName = async () => {
+      if (!lotId) return;
+      try {
+        const lotData = await lotService.getLotById(lotId);
+        setLotName(lotData.lotName || "Unknown Lot");
+      } catch (error) {
+        console.error("Error fetching lot name:", error);
+        setLotName("Unknown Lot");
+      }
+    };
+    fetchLotName();
+  }, [lotId]);
 
-    let filtered: LotEntry[] = [];
-    let previous: LotEntry[] = [];
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!lotId) {
+        setError("Lot ID is required");
+        return;
+      }
 
-    if (timeframe === "day") {
-      filtered = filterByDate(today, lotEntries);
-      previous = filterByDate(getPreviousDate(today), lotEntries);
-    } else if (timeframe === "week") {
-      filtered = getWeekData(today, lotEntries);
-      previous = getWeekData(getPreviousWeek(today), lotEntries);
-    } else if (timeframe === "month") {
-      filtered = getMonthData(today, lotEntries);
-      previous = getMonthData(getPreviousMonth(today), lotEntries);
-    } else if (timeframe === "year") {
-      filtered = getYearData(today, lotEntries);
-      previous = getYearData(getPreviousYear(today), lotEntries);
-    }
+      try {
+        setIsLoading(true);
+        setError(null);
 
-    setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
-    setPreviousData(previous);
+        const today = new Date();
+        let startDate: Date;
+        let endDate: Date;
 
-    // Ensure a horizontal line when only one data point exists
-    let graphData = filtered.map((entry) => ({
-      date: entry.date,
-      revenue: entry.totalRevenue,
-      pendingRevenue: entry.pendingRevenue,
-      subscriptions: entry.subscriberRevenue || 0,
-    }));
+        switch (timeframe) {
+          case "day":
+            startDate = new Date(today);
+            endDate = new Date(today);
+            break;
+          case "week":
+            startDate = getPreviousWeek(today);
+            endDate = today;
+            break;
+          case "month":
+            startDate = getPreviousMonth(today);
+            endDate = today;
+            break;
+          case "year":
+            startDate = getPreviousYear(today);
+            endDate = today;
+            break;
+          default:
+            startDate = today;
+            endDate = today;
+        }
 
-    if (timeframe === "day" && graphData.length === 1) {
-      const singlePoint = graphData[0];
-      graphData = [
-        { ...singlePoint, date: formatDateOffset(singlePoint.date, -1) },
-        singlePoint,
-        { ...singlePoint, date: formatDateOffset(singlePoint.date, +1) },
-      ];
-    }
+        // Format dates as YYYY-MM-DD
+        const formattedStartDate = startDate.toISOString().split('T')[0];
+        const formattedEndDate = endDate.toISOString().split('T')[0];
 
-    setGraphData(graphData);
-    setPrevTimeframe(timeframe);
-    // Temporarily comment out loading state until data integration is complete
-    // setIsLoading(false);
+        // Fetch current period data
+        const metrics: DashboardMetrics[] = await lotDailyDataService.getDashboardMetrics(
+          lotId,
+          formattedStartDate,
+          formattedEndDate
+        );
+
+        // Convert metrics to LotEntry format
+        const convertedData: LotEntry[] = metrics.map((metric: DashboardMetrics) => ({
+          lotId,
+          date: metric.date,
+          totalVehicles: metric.totalVehicles,
+          averageOccupancy: metric.averageOccupancy,
+          upTime: metric.upTime.toString(),
+          totalRevenue: metric.totalRevenue,
+          pendingRevenue: 0,
+          subscriberRevenue: 0
+        }));
+
+        // Fetch previous period data for comparison
+        const prevStartDate = new Date(startDate);
+        const prevEndDate = new Date(startDate);
+        prevStartDate.setDate(prevStartDate.getDate() - 1);
+        prevEndDate.setDate(prevEndDate.getDate() - 1);
+
+        const prevMetrics: DashboardMetrics[] = await lotDailyDataService.getDashboardMetrics(
+          lotId,
+          prevStartDate.toISOString().split('T')[0],
+          prevEndDate.toISOString().split('T')[0]
+        );
+
+        const prevConvertedData: LotEntry[] = prevMetrics.map((metric: DashboardMetrics) => ({
+          lotId,
+          date: metric.date,
+          totalVehicles: metric.totalVehicles,
+          averageOccupancy: metric.averageOccupancy,
+          upTime: metric.upTime.toString(),
+          totalRevenue: metric.totalRevenue,
+          pendingRevenue: 0,
+          subscriberRevenue: 0
+        }));
+
+        // Update states
+        setFilteredData(convertedData);
+        setPreviousData(prevConvertedData);
+
+        // Set graph data
+        let newGraphData = convertedData.map((entry) => ({
+          date: entry.date,
+          revenue: entry.totalRevenue,
+          pendingRevenue: entry.pendingRevenue,
+          subscriptions: entry.subscriberRevenue || 0,
+        }));
+
+        if (timeframe === "day" && newGraphData.length === 1) {
+          const singlePoint = newGraphData[0];
+          newGraphData = [
+            { ...singlePoint, date: formatDateOffset(singlePoint.date, -1) },
+            singlePoint,
+            { ...singlePoint, date: formatDateOffset(singlePoint.date, +1) },
+          ];
+        }
+
+        setGraphData(newGraphData);
+
+        // Update animated values
+        const totalRevenue = calculateSum(convertedData, "totalRevenue");
+        const previousRevenue = calculateSum(prevConvertedData, "totalRevenue");
+        const totalVehicles = calculateSum(convertedData, "totalVehicles");
+        const previousVehicles = calculateSum(prevConvertedData, "totalVehicles");
+        const avgOccupancy = calculateAvg(convertedData, "averageOccupancy");
+        const previousOccupancy = calculateAvg(prevConvertedData, "averageOccupancy");
+        const avgUptime = calculateAvg(convertedData, "upTime");
+        const previousUptime = calculateAvg(prevConvertedData, "upTime");
+
+        // Update animated values
+        animatedRevenue.set(totalRevenue);
+        animatedParkedCars.set(totalVehicles);
+        animatedAvgOccupancy.set(avgOccupancy);
+        animatedUptime.set(avgUptime);
+        animatedPrevRevenue.set(previousRevenue);
+        animatedPrevParkedCars.set(previousVehicles);
+        animatedPrevAvgOccupancy.set(previousOccupancy);
+        animatedPrevUptime.set(previousUptime);
+
+      } catch (err) {
+        setError("Failed to fetch dashboard data");
+        console.error("Error fetching dashboard data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, [lotId, timeframe]);
-
-
-
 
   const calculateSum = (data: LotEntry[], key: keyof LotEntry) =>
     data.reduce((sum, entry) => sum + Number(entry[key]), 0);
@@ -135,18 +233,48 @@ const RevenueDashboard: React.FC = () => {
 
   const getTrendTextClass = (change: number) => (change >= 0 ? "trend-text up" : "trend-text down");
 
-  const [graphData, setGraphData] = useState<any[]>([]);
-  const [hoveredData, setHoveredData] = useState<LotEntry | null>(null);
-
-
-  // Temporarily comment out loading check until data integration is complete
-  // if (isLoading) {
-  //   return <LoadingWheel text="Loading dashboard data..." />;
-  // }
+  const metrics = [
+    {
+      title: "Revenue",
+      value: animatedRevenue,
+      prefix: "$",
+      change: revenueChange,
+      prevValue: animatedPrevRevenue,
+      decimals: 2
+    },
+    {
+      title: "Parked Cars",
+      value: animatedParkedCars,
+      prefix: "",
+      change: vehiclesChange,
+      prevValue: animatedPrevParkedCars,
+      decimals: 0
+    },
+    {
+      title: "Avg. Occupancy",
+      value: animatedAvgOccupancy,
+      prefix: "",
+      suffix: "%",
+      change: occupancyChange,
+      prevValue: animatedPrevAvgOccupancy,
+      decimals: 1
+    },
+    {
+      title: "Uptime",
+      value: animatedUptime,
+      prefix: "",
+      suffix: "%",
+      change: uptimeChange,
+      prevValue: animatedPrevUptime,
+      decimals: 1
+    }
+  ];
 
   return (
     <div className="content">
-      <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
+      <div className="header-section">
+        <h1>Dashboard <span className="lot-name">{lotName}</span>{isLoading && (<span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '0.5rem' }}><span style={{ display: 'inline-block' }}><LoadingWheelSmall /></span></span>)}</h1>
+      </div>
 
       <div className="header-controls">
         <div className="timeframe-selector" data-active={timeframe}>
@@ -156,6 +284,7 @@ const RevenueDashboard: React.FC = () => {
               key={t}
               className={timeframe === t ? "active" : ""}
               onClick={() => setTimeframe(t as any)}
+              disabled={isLoading}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
@@ -168,47 +297,49 @@ const RevenueDashboard: React.FC = () => {
       </div>
 
       <div className="metrics-container">
-        {[
-          { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
-          { title: "Parked Cars", value: totalVehicles, prefix: "", change: vehiclesChange, prevValue: previousVehicles, decimals: 0 },
-          { title: "Avg. Occupancy", value: avgOccupancy, prefix: "", suffix: "%", change: occupancyChange, prevValue: previousOccupancy, decimals: 1 },
-          { title: "Uptime", value: avgUptime, prefix: "", suffix: "%", change: uptimeChange, prevValue: previousUptime, decimals: 1 },
-        ].map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
-          const animatedValue = useAnimatedNumber(value, decimals);
-          const animatedPrevValue = useAnimatedNumber(prevValue, decimals);
-          const animatedChange = useAnimatedNumber(change, 2);
+        {metrics.map(({ title, value, prefix, suffix = "", change, prevValue, decimals }) => {
+          const displayValue = useTransform(value, (latest) => Number(latest).toFixed(decimals));
+          const displayPrevValue = useTransform(prevValue, (latest) => Number(latest).toFixed(decimals));
+
           return (
-            <div className="metric" key={title}>
+            <motion.div
+              className="metric"
+              key={title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <span className="metric-value">
                 {prefix}
                 <motion.span>
-                  {decimals === 2
-                    ? `${Math.floor(animatedValue)}`
-                    : animatedValue.toFixed(decimals)}
+                  {displayValue}
                 </motion.span>
-                {decimals === 2 && (
-                  <motion.span className="decimal">.{animatedValue.toFixed(2).split(".")[1]}</motion.span>
-                )}
                 {suffix}
               </span>
               <span className="metric-title">{title}</span>
               <div className="trend-container">
-                <motion.img src={trendArrow(change)} alt="trend" className="trend-arrow" animate={{ rotate: change < 0 ? 180 : 0 }} />
+                <motion.img
+                  src={trendArrow(change)}
+                  alt="trend"
+                  className="trend-arrow"
+                  animate={{ rotate: change < 0 ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                />
                 <span className={getTrendTextClass(change)}>
-                  <motion.span>{animatedChange}</motion.span>%
+                  <motion.span>{change.toFixed(2)}</motion.span>%
                 </span>
               </div>
               <span className="previous-cycle">
                 {prefix}
-                <motion.span>{animatedPrevValue}</motion.span>
+                <motion.span>{displayPrevValue}</motion.span>
                 {suffix} {previousLabel}
               </span>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
-      {/* Graph Container - Below Metrics */}
+      {/* Graph Container */}
       <div className="graph-wrapper">
         <div className="graph-section">
           <ResponsiveContainer width="100%" height={350}>
@@ -313,7 +444,6 @@ const RevenueDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
         <div className="graph-metrics">
-          {/* ✅ Add this new div for the date display */}
           <div className="graph-metrics-header">
             <span className="metric-date">
               {hoveredData ? new Date(hoveredData.date).toLocaleDateString("en-US", {
@@ -330,22 +460,13 @@ const RevenueDashboard: React.FC = () => {
             { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue, className: "pending-revenue" },
             { title: "Subscriptions", key: "subscriptions", totalValue: totalSubscriberRevenue, className: "subscriber-revenue" },
           ].map(({ title, key, totalValue, className }) => {
-
             const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
             const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
-
             const hoveredValue = hoveredData && key in hoveredData
               ? Number(hoveredData[key as keyof typeof hoveredData]) || 0
               : null;
 
-            const [animatedTotal, setAnimatedTotal] = useState(totalValue);
-            const animatedValue = useAnimatedNumber(animatedTotal, 2);
-
-            useEffect(() => {
-              setAnimatedTotal(totalValue);
-            }, [totalValue]);
-
-            const displayNumber = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue.toFixed(2);
+            const displayNumber = hoveredValue !== null ? hoveredValue.toFixed(2) : totalValue.toFixed(2);
             const [wholePart, decimalPart] = displayNumber.includes(".") ? displayNumber.split(".") : [displayNumber, "00"];
 
             return (

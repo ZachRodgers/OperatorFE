@@ -355,4 +355,42 @@ export const registryService = {
   },
 };
 
+// Lot Daily Data service functions
+export const lotDailyDataService = {
+  // Get dashboard metrics for a lot
+  getDashboardMetrics: async (
+    lotId: string,
+    startDate: string,
+    endDate: string
+  ) => {
+    try {
+      // If startDate and endDate are the same, use the single date endpoint
+      if (startDate === endDate) {
+        const response = await api.get(`/lotdaily/get-by-date/${lotId}`, {
+          params: {
+            date: startDate,
+          },
+        });
+        return [response.data]; // Wrap single result in array for consistency
+      }
+
+      // Otherwise use the date range endpoint
+      const response = await api.get(`/lotdaily/get-by-date-range/${lotId}`, {
+        params: {
+          startDate,
+          endDate,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) {
+        // Return empty array if no data exists
+        return [];
+      }
+      console.error("Error fetching dashboard metrics:", error);
+      throw error;
+    }
+  },
+};
+
 export default api;
