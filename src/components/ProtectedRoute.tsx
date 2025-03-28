@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import Modal from "../components/Modal";
+import LoadingWheel from "./LoadingWheel";
+import { extendSession } from '../utils/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,6 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const { user, loading, fetchUserData } = useUser();
   const [isSessionWarningVisible, setSessionWarningVisible] = useState(false);
+  const [isExtendingSession, setIsExtendingSession] = useState(false);
 
   useEffect(() => {
     // Fetch user data if not already loaded
@@ -37,9 +40,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return () => clearInterval(interval);
   }, [navigate, user, loading, fetchUserData]);
 
+  const handleExtendSession = async () => {
+    setIsExtendingSession(true);
+    try {
+      const success = await extendSession();
+      if (!success) {
+        // If extension failed, redirect to login
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error("Failed to extend session:", error);
+      navigate('/login');
+    } finally {
+      setIsExtendingSession(false);
+      setSessionWarningVisible(false);
+    }
+  };
+
   // Show loading state while checking authentication
   if (loading) {
-    return <div className="loading">Checking authentication...</div>;
+    return <LoadingWheel text="Checking authentication..." />;
   }
 
   // If not authenticated, redirect to login
@@ -55,10 +75,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         isOpen={isSessionWarningVisible}
         title="Session Expiring Soon"
         description="Your session is about to expire in 2 minutes. Please save your work."
-        confirmText="Okay"
+        confirmText={isExtendingSession ? "Extending..." : "Extend"}
         cancelText="Dismiss"
-        onConfirm={() => setSessionWarningVisible(false)}
+        onConfirm={handleExtendSession}
         onCancel={() => setSessionWarningVisible(false)}
+        disableConfirm={isExtendingSession}
       />
     </>
   );

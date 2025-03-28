@@ -1,3 +1,5 @@
+import axios from "axios";
+
 interface AuthPayload {
   userId: string;
   token: string;
@@ -7,16 +9,16 @@ interface AuthPayload {
 // Store user authentication data
 export const storeAuthData = (userId: string, token: string) => {
   const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
-  
+
   const authData: AuthPayload = {
     userId,
     token,
-    expiresAt
+    expiresAt,
   };
-  
+
   // Clear any existing auth data first
   clearAuthData();
-  
+
   // Store new auth data
   localStorage.setItem("token", token);
   localStorage.setItem("userId", userId);
@@ -27,13 +29,16 @@ export const storeAuthData = (userId: string, token: string) => {
   // Verify storage was successful
   const storedToken = localStorage.getItem("token");
   const storedUserId = localStorage.getItem("loggedInUserId");
-  
+
   if (storedToken !== token || storedUserId !== userId) {
     console.error("Auth data storage failed - values don't match");
     return null;
   }
 
-  console.log("Auth data stored successfully", { userId, tokenLength: token.length });
+  console.log("Auth data stored successfully", {
+    userId,
+    tokenLength: token.length,
+  });
   return authData;
 };
 
@@ -43,7 +48,7 @@ export const validateAuthStorage = (): boolean => {
   const userId = localStorage.getItem("userId");
   const expiresAtStr = localStorage.getItem("expiresAt");
   const isAuthStr = localStorage.getItem("isAuthenticated");
-  
+
   return !!(token && userId && expiresAtStr && isAuthStr === "true");
 };
 
@@ -52,23 +57,23 @@ export const getAuthData = (): AuthPayload | null => {
   const token = localStorage.getItem("token");
   const userId = localStorage.getItem("userId");
   const expiresAtStr = localStorage.getItem("expiresAt");
-  
+
   if (!token || !userId || !expiresAtStr) {
     return null;
   }
-  
+
   const expiresAt = parseInt(expiresAtStr, 10);
-  
+
   // Check if token has expired
   if (Date.now() > expiresAt) {
     clearAuthData();
     return null;
   }
-  
+
   return {
     token,
     userId,
-    expiresAt
+    expiresAt,
   };
 };
 
@@ -94,4 +99,39 @@ export const getToken = (): string | null => {
   const authData = getAuthData();
   return authData ? authData.token : null;
 };
-  
+
+// Extend the current session by 15 minutes
+export const extendSession = async (): Promise<boolean> => {
+  try {
+    const authData = getAuthData();
+    if (!authData) {
+      return false;
+    }
+
+    // Call the token refresh endpoint
+    const response = await axios.post(
+      "http://localhost:8085/ParkingWithParallel/login/refresh",
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authData.token}`,
+        },
+      }
+    );
+
+    // Extract token and userId from response
+    const { token, userId } = response.data;
+
+    if (!token || !userId) {
+      console.error("Invalid response from refresh endpoint");
+      return false;
+    }
+
+    // Store the new token data with a 30-minute expiration
+    const newAuthData = storeAuthData(userId, token);
+    return !!newAuthData;
+  } catch (error) {
+    console.error("Failed to extend session:", error);
+    return false;
+  }
+};
