@@ -112,6 +112,7 @@
   width: 80px;
   text-align: center;
   box-shadow: #0000001d 1px 1px 5px;
+  text-transform: uppercase;
 }
 
 /* VALIDATE BUTTON */

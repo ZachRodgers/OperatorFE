@@ -1,42 +1,119 @@
-import React from "react";
-import { NavLink, useParams } from "react-router-dom";
-import { getSession } from "../utils/auth"; // Import session
-import lots from "../data/lots_master.json"; // Import lot data
+import React, { useEffect, useState } from "react";
+import { NavLink, useParams, useNavigate } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
+import { lotService } from "../utils/api";
+import { useLot } from "../contexts/LotContext";
 import "./Sidebar.css";
 
 const Sidebar = () => {
-  const { customerId, lotId } = useParams();
-  const user = getSession(); // Get current user session
+  const { lotId } = useParams();
+  const navigate = useNavigate();
+  const { user, userLots, fetchUserLots, logout } = useUser();
+  const [lotName, setLotName] = useState<string>("Unknown Lot");
+  const [hasMultipleLots, setHasMultipleLots] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  if (!customerId || !lotId) return null; // Prevent rendering if params are missing
+  // Get lot data from context if available
+  const lotContext = useLot();
 
-  const userLots = user?.assignedLots || []; // Get assigned lots or empty array
-  const hasMultipleLots = userLots.length > 1; // Check if multiple lots exist
+  // Effect to load and persist lot information
+  useEffect(() => {
+    const loadLotData = async () => {
+      if (!lotId) {
+        setIsLoading(false);
+        return;
+      }
 
-  // Find the lot name based on lotId
-  const lot = lots.find((lot) => lot.lotId === lotId);
-  const lotName = lot ? lot.lotName : "Unknown Lot";
+      try {
+        // First check localStorage for cached lot name
+        const cachedLotName = localStorage.getItem(`lot_${lotId}_name`);
+
+        // If we have a cached name, use it initially while we fetch the latest
+        if (cachedLotName) {
+          setLotName(cachedLotName);
+        }
+
+        // If lot data is available in context, use it
+        if (lotContext && lotContext.lotData) {
+          setLotName(lotContext.lotData.lotName || "Unknown Lot");
+          localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName);
+        } else {
+          // Fetch current lot information if not in context
+          const lotData = await lotService.getLotById(lotId);
+          if (lotData) {
+            // Update state with lot name
+            setLotName(lotData.lotName || "Unknown Lot");
+            // Cache the lot name for persistence
+            localStorage.setItem(`lot_${lotId}_name`, lotData.lotName);
+          }
+        }
+
+        // Get multiple lots status from localStorage or from context
+        if (userLots && userLots.length > 0) {
+          setHasMultipleLots(userLots.length > 1);
+          // Store for persistence
+          localStorage.setItem('user_has_multiple_lots', userLots.length > 1 ? 'true' : 'false');
+        } else {
+          // If userLots is empty, try to fetch them
+          const lots = await fetchUserLots();
+          setHasMultipleLots(lots.length > 1);
+          // Store for persistence
+          localStorage.setItem('user_has_multiple_lots', lots.length > 1 ? 'true' : 'false');
+        }
+      } catch (error) {
+        console.error("Error loading lot data:", error);
+
+        // Fall back to localStorage if API calls fail
+        const cachedLotName = localStorage.getItem(`lot_${lotId}_name`);
+        if (cachedLotName) {
+          setLotName(cachedLotName);
+        }
+
+        const cachedHasMultipleLots = localStorage.getItem('user_has_multiple_lots') === 'true';
+        setHasMultipleLots(cachedHasMultipleLots);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLotData();
+  }, [lotId, userLots, fetchUserLots, lotContext]);
+
+  // Update lotName whenever lotContext.lotData changes
+  useEffect(() => {
+    if (lotContext && lotContext.lotData && lotContext.lotData.lotName) {
+      setLotName(lotContext.lotData.lotName);
+      localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName);
+    }
+  }, [lotContext?.lotData, lotId]);
+
+  if (!lotId) return null; // Prevent rendering if lotId is missing
 
   // Truncate lot name if it exceeds 36 characters
   const truncatedLotName = lotName.length > 36 ? lotName.substring(0, 36) + "..." : lotName;
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
         <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo" />
         <div className="lot-box">
-          <p className="lot-id">{truncatedLotName}</p> {/* Display lot name */}
+          <p className="lot-id">{isLoading ? "Loading..." : truncatedLotName}</p>
         </div>
         {/* Only show Change Lot if the user has more than one lot */}
         {hasMultipleLots && (
-          <NavLink to={`/${customerId}/owner-dashboard`} className="change-lot">
+          <NavLink to="/owner-dashboard" className="change-lot">
             <img src="/assets/BackIcon.svg" alt="Back" className="back-icon" />
             Change Lot
           </NavLink>
         )}
       </div>
       <nav className="sidebar-menu">
-        <NavLink to={`/${customerId}/${lotId}/revenue-dashboard`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/revenue-dashboard`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "DashboardSelected.svg" : "Dashboard1.svg"}`} alt="Dashboard" />
@@ -44,7 +121,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/occupants`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/occupants`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "OccupantsSelected.svg" : "Occupants.svg"}`} alt="Occupants" />
@@ -52,7 +129,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/settings`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/settings`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "SettingsSelected.svg" : "Settings.svg"}`} alt="Settings" />
@@ -60,7 +137,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/advanced`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/advanced`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "AdvancedSelected.svg" : "Advanced.svg"}`} alt="Advanced" />
@@ -68,7 +145,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/registry`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/registry`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "RegistrySelected.svg" : "Registry.svg"}`} alt="Registry" />
@@ -76,7 +153,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/notifications`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/notifications`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "NotificationsSelected.svg" : "Notifications.svg"}`} alt="Notifications" />
@@ -84,7 +161,7 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to={`/${customerId}/${lotId}/addons`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/addons`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "AddonsSelected.svg" : "Addons.svg"}`} alt="Addons" />
@@ -94,7 +171,7 @@ const Sidebar = () => {
         </NavLink>
       </nav>
       <div className="sidebar-footer">
-        <NavLink to={`/${customerId}/${lotId}/account`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
+        <NavLink to={`/lot/${lotId}/account`} className={({ isActive }) => isActive ? "sidebar-item active" : "sidebar-item"}>
           {({ isActive }) => (
             <>
               <img src={`/assets/nav/${isActive ? "AccountSelected.svg" : "Account.svg"}`} alt="Account" />
@@ -102,10 +179,10 @@ const Sidebar = () => {
             </>
           )}
         </NavLink>
-        <NavLink to="/login" className="sidebar-item logout">
+        <div className="sidebar-item logout" onClick={handleLogout}>
           <img src="/assets/nav/Logout.svg" alt="Logout" />
           <span>Logout</span>
-        </NavLink>
+        </div>
       </div>
     </div>
   );

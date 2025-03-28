@@ -80,3 +80,78 @@
     margin-top: 10px;
   }
   
+  .lot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .logout-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+  }
+  
+  .logout-button:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Add these styles for the password reset form */
+  .password-reset-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-group label {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  /* Revert to original error style but keep the new class name */
+  .error-message {
+    color: #ff3b3b; 
+    font-size: 14px;
+    font-style: italic; 
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  /* Original popup input style */
+  .popup-input {
+    padding: 15px;
+    border: 1px solid #EAEAEA;
+    background-color: #F9F9F9;
+    border-radius: 4px;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  /* Revert to original reset password link style */
+  .reset-password-link {
+    background: none;
+    border: none;
+    color: #7d7d7d;
+    font-size: 14px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 0;
+  }
+  
+  .reset-password-link:hover {
+    color: #007AFF;
+  }
+  

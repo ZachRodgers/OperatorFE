@@ -1,210 +1,151 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import customersData from "../data/customer_master.json";
+import api from "../utils/api";
+import { storeAuthData, validateAuthStorage, isAuthenticated } from "../utils/auth";
 import "./Login.css";
-
-// Define the customer type
-interface Customer {
-  customerId: string;
-  name: string;
-  email: string;
-  phoneNo: string;
-  role: string;
-  password: string;
-  assignedLots: string[];
-  isVerified: string;
-  lastLogin: string;
-}
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [lotId, setLotId] = useState("");
-  const [tempPassword, setTempPassword] = useState("");
-  const [setupMode, setSetupMode] = useState(false);
-  const [creatingAccount, setCreatingAccount] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
 
+  // Check if already logged in
   useEffect(() => {
-    setLotId("");
-    setTempPassword("");
-  }, [setupMode]);
+    if (isAuthenticated()) {
+      console.log("User already authenticated, redirecting to dashboard");
+      window.location.href = "/dashboard";
+    }
+  }, []);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const customer = customersData.find(
-      (c) => c.email === email && c.password === password
-    );
+    
+    // Prevent multiple submissions
+    if (isLoading || isRedirecting) return;
+    
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      console.log("Attempting login for:", email);
+      
+      // This calls our Spring Boot /login endpoint
+      const response = await api.post('/login', {
+        email: email,
+        password: password
+      }, { skipAuthRedirect: true } as any);
 
-    if (customer) {
-      setError("");
-      localStorage.removeItem("authToken");
-
-      const sessionData = {
-        ...customer,
-        expiresAt: Date.now() + 30 * 60 * 1000,
-      };
-
-      localStorage.setItem("authToken", JSON.stringify(sessionData));
-
-      navigate(
-        customer.role === "owner" && customer.assignedLots.length > 1
-          ? `/${customer.customerId}/owner-dashboard`
-          : `/${customer.customerId}/${customer.assignedLots[0]}/revenue-dashboard`
-      );
-    } else {
-      setError("Invalid username or password");
-    }
-  };
-
-  const handleSetupAccount = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const customer = customersData.find(
-      (c) => c.assignedLots.includes(lotId) && c.password === tempPassword && c.role === "temp"
-    );
-
-    if (customer) {
-      setError("");
-      setCreatingAccount(true);
-    } else {
-      setError("Invalid LotID or Password");
-    }
-  };
-
-  const handleCreateAccount = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const customerIndex = customersData.findIndex(
-      (c) => c.assignedLots.includes(lotId) && c.role === "temp"
-    );
-
-    if (customerIndex !== -1) {
-      const updatedCustomers = [...customersData];
-      updatedCustomers[customerIndex].email = email;
-      updatedCustomers[customerIndex].password = password;
-      updatedCustomers[customerIndex].role = "owner";
-
-      try {
-        const response = await fetch("http://localhost:5000/update-customer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedCustomers),
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-          const newUser = updatedCustomers[customerIndex];
-          localStorage.setItem("authToken", JSON.stringify(newUser));
-
-          navigate(
-            newUser.assignedLots.length > 1
-              ? `/${newUser.customerId}/owner-dashboard`
-              : `/${newUser.customerId}/${newUser.assignedLots[0]}/revenue-dashboard`
-          );
-        } else {
-          setError("Failed to update account. Please try again.");
-        }
-      } catch (err) {
-        console.error("Error updating customer data:", err);
-        setError("Server error. Please try again.");
+      console.log("Login response received:", response.status);
+      
+      // Extract token and userId from response
+      const { token, userId } = response.data;
+      
+      if (!token || !userId) {
+        throw new Error("Invalid response: missing token or userId");
       }
+      
+      // Store authentication data with 30-minute expiration
+      const authData = storeAuthData(userId, token);
+      
+      if (!authData) {
+        throw new Error("Failed to store authentication data");
+      }
+      
+      // Verify the auth data was properly stored
+      const isValid = validateAuthStorage();
+      
+      if (!isValid) {
+        throw new Error("Auth validation failed after storage");
+      }
+      
+      console.log("Auth storage validated, preparing to navigate");
+      setIsRedirecting(true);
+      
+      // Use window.location for a full page reload instead of React Router navigation
+      // This ensures a clean state and properly initialized auth context
+      setTimeout(() => {
+        console.log("Performing hard redirect to dashboard...");
+        window.location.href = "/dashboard";
+      }, 500);
+      
+    } catch (err: any) {
+      console.error("Login error:", err);
+      let errorMessage = "Invalid credentials";
+      
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = "Incorrect email or password";
+        } else if (err.response.data) {
+          errorMessage = err.response.data;
+        }
+      } else if (err.request) {
+        errorMessage = "Server not responding. Please try again later.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      setIsLoading(false);
     }
   };
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    alert("Password reset is not enabled. Please contact Parallel administrators for assistance.");
+  };
+
+  if (isRedirecting) {
+    return (
+      <div className="login-container">
+        <div className="login-box">
+          <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo-operator" />
+          <div className="redirecting-message">
+            <div className="spinner"></div>
+            <p>Redirecting to dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">
       <div className="login-box">
         <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo-operator" />
+        
+        <form onSubmit={handleLogin}>
+          <input
+            type="text"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            name="email"
+            disabled={isLoading}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            name="password"
+            disabled={isLoading}
+          />
+          <button 
+            type="submit" 
+            className={`login-button ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
+          {error && <p className="error">{error}</p>}
+        </form>
 
-        {setupMode ? (
-          creatingAccount ? (
-            <form onSubmit={handleCreateAccount} autoComplete="off">
-              {/* Fake Hidden Fields to Stop Autofill */}
-              <input type="text" name="fakeuser" style={{ display: "none" }} />
-              <input type="password" name="fakepassword" style={{ display: "none" }} />
-
-              <div className="info-tooltip">
-                <img src="/assets/info_login.svg" alt="Info" />
-                <p>Please choose an email and password, you will use these credentials to log in.</p>
-              </div>
-              <input
-                type="text"
-                placeholder="Your Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-                name="new-email"
-              />
-              <input
-                type="password"
-                placeholder="Create Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                name="new-password"
-              />
-              <button type="submit" className="login-button">Create Account</button>
-            </form>
-          ) : (
-            <form onSubmit={handleSetupAccount} autoComplete="off">
-              {/* Fake Hidden Fields to Stop Autofill */}
-              <input type="text" name="fakeuser" style={{ display: "none" }} />
-              <input type="password" name="fakepassword" style={{ display: "none" }} />
-
-              <input
-                type="text"
-                placeholder="LotID"
-                value={lotId}
-                onChange={(e) => setLotId(e.target.value)}
-                autoComplete="off"
-                name="lot-id"
-              />
-              <input
-                type="password"
-                placeholder="Temp Password"
-                value={tempPassword}
-                onChange={(e) => setTempPassword(e.target.value)}
-                autoComplete="new-password"
-                name="temp-password"
-              />
-              <button type="submit" className="login-button">Setup Account</button>
-              {error && <p className="error">{error}</p>}
-              <div className="info-box">
-                <img src="/assets/info_login.svg" alt="Info" />
-                <p>Your LotID and Temporary Password can be found in your box!</p>
-              </div>
-            </form>
-          )
-        ) : (
-          <form onSubmit={handleLogin} autoComplete="off">
-            {/* Fake Hidden Fields to Stop Autofill */}
-            <input type="text" name="fakeuser" style={{ display: "none" }} />
-            <input type="password" name="fakepassword" style={{ display: "none" }} />
-
-            <input
-              type="text"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="off"
-              name="email-input"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              name="password-input"
-            />
-            <button type="submit" className="login-button">Login</button>
-            {error && <p className="error">{error}</p>}
-          </form>
-        )}
-
-        {!setupMode && <a href="#" className="forgot-password">Forgot my password</a>}
-        {!setupMode && <button className="setup-account" onClick={() => setSetupMode(true)}>Setup an Account</button>}
-        {setupMode && <button className="setup-account" onClick={() => setSetupMode(false)}>Back to Login</button>}
+        <a href="#" className="forgot-password" onClick={handleForgotPassword}>Forgot my password</a>
       </div>
       <footer>
         <img src="/assets/PoweredbyParallelDark.svg" alt="Powered by Parallel" className="powered-by-logo" />

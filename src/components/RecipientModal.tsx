@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import "./RecipientModal.css";
+import { lotService } from "../utils/api";
 
 interface RecipientModalProps {
   isOpen: boolean;
   lotId: string;
   currentRecipients: string[]; // "EMAIL: user@domain", "SMS: phone"
   onClose: () => void;
-  onUpdateRecipients: (newRecipients: string[]) => void; 
+  onUpdateRecipients: (newRecipients: string[]) => void;
 }
 
 const RecipientModal: React.FC<RecipientModalProps> = ({
@@ -20,10 +21,22 @@ const RecipientModal: React.FC<RecipientModalProps> = ({
   const [emailInput, setEmailInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
 
-  // Always sync local state with parent’s currentRecipients
+  // Load recipients from backend when modal opens
   useEffect(() => {
-    setRecipients(currentRecipients);
-  }, [currentRecipients]);
+    if (isOpen) {
+      loadRecipients();
+    }
+  }, [isOpen, lotId]);
+
+  const loadRecipients = async () => {
+    try {
+      const data = await lotService.getNotificationRecipients(lotId);
+      setRecipients(data);
+      onUpdateRecipients(data);
+    } catch (error) {
+      console.error("Error loading recipients:", error);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -32,47 +45,65 @@ const RecipientModal: React.FC<RecipientModalProps> = ({
   const isValidPhone = (phone: string) => phone.replace(/\D/g, "").length >= 7;
 
   // Add email on Enter
-  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleEmailKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (!isValidEmail(emailInput)) {
         alert("Invalid email address.");
         return;
       }
       const newEntry = `EMAIL: ${emailInput.trim()}`;
-      const updated = [...recipients, newEntry];
-      setRecipients(updated);
-      onUpdateRecipients(updated);
-      setEmailInput("");
+      try {
+        await lotService.addNotificationRecipient(lotId, newEntry);
+        const updated = [...recipients, newEntry];
+        setRecipients(updated);
+        onUpdateRecipients(updated);
+        setEmailInput("");
+      } catch (error) {
+        console.error("Error adding email recipient:", error);
+        alert("Failed to add email recipient.");
+      }
     }
   };
 
   // Add phone on Enter
-  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handlePhoneKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (!isValidPhone(phoneInput)) {
         alert("Invalid phone number.");
         return;
       }
       const newEntry = `SMS: ${phoneInput.trim()}`;
-      const updated = [...recipients, newEntry];
-      setRecipients(updated);
-      onUpdateRecipients(updated);
-      setPhoneInput("");
+      try {
+        await lotService.addNotificationRecipient(lotId, newEntry);
+        const updated = [...recipients, newEntry];
+        setRecipients(updated);
+        onUpdateRecipients(updated);
+        setPhoneInput("");
+      } catch (error) {
+        console.error("Error adding phone recipient:", error);
+        alert("Failed to add phone recipient.");
+      }
     }
   };
 
   // Remove a recipient
-  const handleRemoveRecipient = (entry: string) => {
-    const updated = recipients.filter((r) => r !== entry);
-    setRecipients(updated);
-    onUpdateRecipients(updated);
+  const handleRemoveRecipient = async (entry: string) => {
+    try {
+      await lotService.removeNotificationRecipient(lotId, entry);
+      const updated = recipients.filter((r) => r !== entry);
+      setRecipients(updated);
+      onUpdateRecipients(updated);
+    } catch (error) {
+      console.error("Error removing recipient:", error);
+      alert("Failed to remove recipient.");
+    }
   };
 
   return (
     <div className="recipient-modal-overlay">
       <div className="recipient-modal">
         <h2>Manage Notification Recipients</h2>
-        
+
         <div className="recipient-inputs">
           <div className="input-row">
             <input
@@ -98,8 +129,10 @@ const RecipientModal: React.FC<RecipientModalProps> = ({
         <p>Current Recipients:</p>
         <div className="recipient-badges">
           {recipients.map((entry) => {
+            // Remove any quotes from the entire entry if they exist
+            const cleanEntry = entry.replace(/^"|"$/g, '');
             // parse label from "EMAIL:" or "SMS:"
-            const [label, value] = entry.split(":").map((s) => s.trim());
+            const [label, value] = cleanEntry.split(":").map((s) => s.trim());
             return (
               <div className="recipient-badge" key={entry}>
                 <span className="badge-label">{label}</span>

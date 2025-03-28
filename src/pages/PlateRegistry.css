@@ -259,3 +259,58 @@ in non-editing cells, you can do:
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Validation styles */
+.registry-input.invalid,
+.placeholder-input.invalid {
+  border-color: #ff4444;
+  background-color: #fff8f8;
+}
+
+.registry-input.invalid:focus,
+.placeholder-input.invalid:focus {
+  border-color: #ff4444;
+  box-shadow: 0 0 0 1px #ff4444;
+}
+
+/* Invalid styles for non-edit mode */
+.plate-badge-reg.invalid {
+  border-color: #ff4444;
+  background-color: #fff8f8;
+  color: #ff4444;
+}
+
+.ellipsis-cell.invalid {
+  color: #ff4444;
+  border-bottom: 2px solid #ff4444;
+}
+
+.validation-errors {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #fff8f8;
+  border: 1px solid #ff4444;
+  border-radius: 4px;
+}
+
+.error-message {
+  color: #ff4444;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.error-message:last-child {
+  margin-bottom: 0;
+}
+
+/* Add red underline for empty required fields */
+.registry-input:placeholder-shown:required,
+.placeholder-input:placeholder-shown:required {
+  border-bottom: 2px solid #ff4444;
+}
+
+/* Style for disabled save button */
+.button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
