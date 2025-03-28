@@ -111,6 +111,29 @@ export const lotService = {
     const response = await api.get(`/parkinglots/get-registry-status/${lotId}`);
     return response.data;
   },
+
+  // Get notification recipients for a lot
+  getNotificationRecipients: async (lotId: string) => {
+    const response = await api.get(
+      `/parkinglots/get-notification-recipients/${lotId}`
+    );
+    return response.data;
+  },
+
+  // Add notification recipient to a lot
+  addNotificationRecipient: async (lotId: string, recipient: string) => {
+    await api.post(
+      `/parkinglots/add-notification-recipient/${lotId}`,
+      recipient
+    );
+  },
+
+  // Remove notification recipient from a lot
+  removeNotificationRecipient: async (lotId: string, recipient: string) => {
+    await api.delete(`/parkinglots/remove-notification-recipient/${lotId}`, {
+      data: recipient,
+    });
+  },
 };
 
 // Lot Pricing service functions
