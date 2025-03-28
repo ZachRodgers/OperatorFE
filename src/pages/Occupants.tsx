@@ -6,6 +6,7 @@ import { sessionService, lotPricingService } from "../utils/api";
 import lotsData from "../data/lots_master.json"; // Still using this until we implement lots API
 import axios, { AxiosError } from 'axios';
 import { useLot } from "../contexts/LotContext"; // Import the lot context hook
+import LoadingWheel from "../components/LoadingWheel";
 
 interface ParkingSession {
   sessionId: string;
@@ -310,7 +311,7 @@ const Occupants: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading occupant data...</div>;
+    return <LoadingWheel text="Loading occupant data..." />;
   }
 
   if (error) {

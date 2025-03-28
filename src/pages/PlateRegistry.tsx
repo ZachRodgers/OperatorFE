@@ -6,6 +6,7 @@ import Tooltip from "../components/Tooltip";
 import { lotService, registryService } from "../utils/api";
 import "./PlateRegistry.css";
 import UploadSpreadsheet from "../components/UploadSpreadsheet";
+import LoadingWheel from "../components/LoadingWheel";
 
 interface VehicleRegistryEntry {
   lotId: string;
@@ -51,6 +52,7 @@ const PlateRegistry: React.FC = () => {
   const [registryOn, setRegistryOn] = useState<boolean>(false);
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Table rows state
   const [rows, setRows] = useState<RegistryRow[]>([]);
@@ -85,6 +87,7 @@ const PlateRegistry: React.FC = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        setIsLoading(true);
         if (lotId) {
           const status = await lotService.getRegistryStatus(lotId);
           setServerRegistryOn(status);
@@ -117,7 +120,8 @@ const PlateRegistry: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error("Error loading initial data:", error);
+        console.error("Error loading registry data:", error);
+        setError("Failed to load registry data. Please try again.");
         // Ensure we at least have the placeholder row
         setRows([createPlaceholderRow()]);
       } finally {
@@ -583,7 +587,11 @@ const PlateRegistry: React.FC = () => {
   const someRowIsEditing = rows.some((r) => r.isEditing);
 
   if (isLoading) {
-    return <div className="content">Loading...</div>;
+    return <LoadingWheel text="Loading registry data..." />;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
   }
 
   return (

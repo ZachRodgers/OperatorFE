@@ -4,6 +4,7 @@ import notificationsData from "../data/lot_notifications.json";
 import lotsData from "../data/lots_master.json";
 import RecipientModal from "../components/RecipientModal";
 import "./Notifications.css";
+import LoadingWheel from "../components/LoadingWheel";
 
 interface NotificationItem {
   notificationId: string;
@@ -32,7 +33,7 @@ interface LotEntry {
 
 const Notifications: React.FC = () => {
   const { lotId } = useParams<{ lotId: string }>();
-
+  const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState<DisplayNotification[]>([]);
   const [selectedCount, setSelectedCount] = useState(0);
 
@@ -52,6 +53,7 @@ const Notifications: React.FC = () => {
     // 1) Load notifications for this lot from backend
     const fetchNotifications = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch(`http://localhost:8085/ParkingWithParallel/notifications/lot/${lotId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch notifications');
@@ -83,6 +85,8 @@ const Notifications: React.FC = () => {
         }, 4000);
       } catch (error) {
         console.error('Error fetching notifications:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -325,6 +329,10 @@ const Notifications: React.FC = () => {
       );
     }
   };
+
+  if (isLoading) {
+    return <LoadingWheel text="Loading notifications..." />;
+  }
 
   return (
     <div className="content">

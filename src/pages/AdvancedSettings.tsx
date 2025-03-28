@@ -4,6 +4,7 @@ import "./AdvancedSettings.css";
 import Slider from "../components/Slider";
 import Modal from "../components/Modal";
 import { lotPricingService } from "../utils/api";
+import LoadingWheel from "../components/LoadingWheel";
 
 /**
  * Helper: parse "HH:MM" into total minutes (0..1439).
@@ -756,14 +757,7 @@ const AdvancedSettings: React.FC = () => {
 
   // Show loading indicator while data is being fetched
   if (isLoading) {
-    return (
-      <div className="content">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading advanced settings...</p>
-        </div>
-      </div>
-    );
+    return <LoadingWheel text="Loading advanced settings..." />;
   }
 
   // Show error message if there was a problem loading data

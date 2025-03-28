@@ -5,6 +5,8 @@ import lots from "../data/lots_master.json";
 import lotData from "../data/lot_daily_data.json";
 import "./RevenueDashboard.css";
 import { ResponsiveContainer, LineChart, AreaChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+// Temporarily comment out LoadingWheel until data integration is complete
+// import LoadingWheel from "../components/LoadingWheel";
 
 
 interface LotEntry {
@@ -46,15 +48,16 @@ const RevenueDashboard: React.FC = () => {
   const lotName = lot ? (lot.lotName.length > 50 ? lot.lotName.substring(0, 50) + "..." : lot.lotName) : "Unknown Lot";
   const [prevTimeframe, setPrevTimeframe] = useState(timeframe);
 
-
+  // Temporarily comment out loading state until data integration is complete
+  // const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const today = new Date();
     const lotEntries = lotData.filter((entry) => entry.lotId === lotId);
-  
+
     let filtered: LotEntry[] = [];
     let previous: LotEntry[] = [];
-  
+
     if (timeframe === "day") {
       filtered = filterByDate(today, lotEntries);
       previous = filterByDate(getPreviousDate(today), lotEntries);
@@ -68,10 +71,10 @@ const RevenueDashboard: React.FC = () => {
       filtered = getYearData(today, lotEntries);
       previous = getYearData(getPreviousYear(today), lotEntries);
     }
-  
+
     setFilteredData(filtered.length > 0 ? filtered : getEmptyDayData(today));
     setPreviousData(previous);
-  
+
     // Ensure a horizontal line when only one data point exists
     let graphData = filtered.map((entry) => ({
       date: entry.date,
@@ -79,7 +82,7 @@ const RevenueDashboard: React.FC = () => {
       pendingRevenue: entry.pendingRevenue,
       subscriptions: entry.subscriberRevenue || 0,
     }));
-  
+
     if (timeframe === "day" && graphData.length === 1) {
       const singlePoint = graphData[0];
       graphData = [
@@ -88,14 +91,15 @@ const RevenueDashboard: React.FC = () => {
         { ...singlePoint, date: formatDateOffset(singlePoint.date, +1) },
       ];
     }
-  
+
     setGraphData(graphData);
-  
     setPrevTimeframe(timeframe);
+    // Temporarily comment out loading state until data integration is complete
+    // setIsLoading(false);
   }, [lotId, timeframe]);
-  
-  
-  
+
+
+
 
   const calculateSum = (data: LotEntry[], key: keyof LotEntry) =>
     data.reduce((sum, entry) => sum + Number(entry[key]), 0);
@@ -133,12 +137,17 @@ const RevenueDashboard: React.FC = () => {
 
   const [graphData, setGraphData] = useState<any[]>([]);
   const [hoveredData, setHoveredData] = useState<LotEntry | null>(null);
-  
+
+
+  // Temporarily comment out loading check until data integration is complete
+  // if (isLoading) {
+  //   return <LoadingWheel text="Loading dashboard data..." />;
+  // }
 
   return (
     <div className="content">
       <h1>Dashboard <span className="lot-name">{lotName}</span></h1>
-  
+
       <div className="header-controls">
         <div className="timeframe-selector" data-active={timeframe}>
           <div className="active-pill"></div>
@@ -152,12 +161,12 @@ const RevenueDashboard: React.FC = () => {
             </button>
           ))}
         </div>
-  
+
         <button className="setup-button" onClick={() => alert("In development.")}>
           + Setup New Camera
         </button>
       </div>
-  
+
       <div className="metrics-container">
         {[
           { title: "Revenue", value: totalRevenue, prefix: "$", change: revenueChange, prevValue: previousRevenue, decimals: 2 },
@@ -186,11 +195,11 @@ const RevenueDashboard: React.FC = () => {
               <div className="trend-container">
                 <motion.img src={trendArrow(change)} alt="trend" className="trend-arrow" animate={{ rotate: change < 0 ? 180 : 0 }} />
                 <span className={getTrendTextClass(change)}>
-                <motion.span>{animatedChange}</motion.span>%
+                  <motion.span>{animatedChange}</motion.span>%
                 </span>
               </div>
               <span className="previous-cycle">
-              {prefix}
+                {prefix}
                 <motion.span>{animatedPrevValue}</motion.span>
                 {suffix} {previousLabel}
               </span>
@@ -198,163 +207,163 @@ const RevenueDashboard: React.FC = () => {
           );
         })}
       </div>
-  
+
       {/* Graph Container - Below Metrics */}
       <div className="graph-wrapper">
         <div className="graph-section">
-        <ResponsiveContainer width="100%" height={350}>
-        <AreaChart
-  data={graphData}
-  margin={{ top: 0, left: -60, right: 0, bottom: 5 }}
-  onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
-  onMouseLeave={() => setHoveredData(null)}
->
-  <defs>
-    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
-      <stop offset="70%" stopColor="#007bff" stopOpacity={0} />
-    </linearGradient>
-    <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#ffbc3f" stopOpacity={0.25} />
-      <stop offset="90%" stopColor="#ffbc3f" stopOpacity={0} />
-    </linearGradient>
-    <linearGradient id="subscriptionsGradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#00CFB7" stopOpacity={0.25} />
-      <stop offset="90%" stopColor="#00CFB7" stopOpacity={0} />
-    </linearGradient>
-  </defs>
+          <ResponsiveContainer width="100%" height={350}>
+            <AreaChart
+              data={graphData}
+              margin={{ top: 0, left: -60, right: 0, bottom: 5 }}
+              onMouseMove={(e) => setHoveredData(e.activePayload?.[0]?.payload || null)}
+              onMouseLeave={() => setHoveredData(null)}
+            >
+              <defs>
+                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#007bff" stopOpacity={0.25} />
+                  <stop offset="70%" stopColor="#007bff" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="pendingGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ffbc3f" stopOpacity={0.25} />
+                  <stop offset="90%" stopColor="#ffbc3f" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="subscriptionsGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#00CFB7" stopOpacity={0.25} />
+                  <stop offset="90%" stopColor="#00CFB7" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-  <CartesianGrid stroke="rgba(0, 0, 0, 0.07)" strokeDasharray="0" />
+              <CartesianGrid stroke="rgba(0, 0, 0, 0.07)" strokeDasharray="0" />
 
-  <XAxis
-    dataKey="date"
-    orientation="top"
-    tickMargin={10}
-    interval={0}
-    axisLine={false}
-    tickLine={false}
-    tick={(props) => {
-      const { x, y, payload, index } = props;
-      const dx = index === 0 ? 40 : index === graphData.length - 1 ? -40 : 0;
+              <XAxis
+                dataKey="date"
+                orientation="top"
+                tickMargin={10}
+                interval={0}
+                axisLine={false}
+                tickLine={false}
+                tick={(props) => {
+                  const { x, y, payload, index } = props;
+                  const dx = index === 0 ? 40 : index === graphData.length - 1 ? -40 : 0;
 
-      return (
-        <text x={x + dx} y={y} textAnchor="middle" fill="#666">
-          {timeframe === "day"
-            ? index === 1
-              ? new Date(payload.value).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })
-              : ""
-            : timeframe === "week"
-            ? formatDayOfWeek(payload.value)
-            : timeframe === "month"
-            ? formatMonthWeeks(payload.value, index)
-            : timeframe === "year"
-            ? formatMonthAbbreviation(payload.value, index)
-            : payload.value}
-        </text>
-      );
-    }}
-  />
+                  return (
+                    <text x={x + dx} y={y} textAnchor="middle" fill="#666">
+                      {timeframe === "day"
+                        ? index === 1
+                          ? new Date(payload.value).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                          : ""
+                        : timeframe === "week"
+                          ? formatDayOfWeek(payload.value)
+                          : timeframe === "month"
+                            ? formatMonthWeeks(payload.value, index)
+                            : timeframe === "year"
+                              ? formatMonthAbbreviation(payload.value, index)
+                              : payload.value}
+                    </text>
+                  );
+                }}
+              />
 
-  <YAxis tick={false} axisLine={false} />
-  <Tooltip content={() => null} cursor={{ stroke: "#767676", strokeWidth: 1, strokeDasharray: "5 5" }} />
+              <YAxis tick={false} axisLine={false} />
+              <Tooltip content={() => null} cursor={{ stroke: "#767676", strokeWidth: 1, strokeDasharray: "5 5" }} />
 
 
-  {/* ✅ Hover Line & Dot */}
+              {/* ✅ Hover Line & Dot */}
 
-  <Area
-    type="monotone"
-    dataKey="revenue"
-    stroke="#007bff"
-    strokeWidth={2}
-    fill="url(#revenueGradient)"
-    fillOpacity={1}
-    animationDuration={500}
-    activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#007bff" }}
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="#007bff"
+                strokeWidth={2}
+                fill="url(#revenueGradient)"
+                fillOpacity={1}
+                animationDuration={500}
+                activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#007bff" }}
 
-  />
+              />
 
-  <Area
-    type="monotone"
-    dataKey="pendingRevenue"
-    stroke="#ffbc3f"
-    strokeWidth={2}
-    fill="url(#pendingGradient)"
-    fillOpacity={1}
-    animationDuration={500}
-    activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#ffbc3f" }}
-  />
+              <Area
+                type="monotone"
+                dataKey="pendingRevenue"
+                stroke="#ffbc3f"
+                strokeWidth={2}
+                fill="url(#pendingGradient)"
+                fillOpacity={1}
+                animationDuration={500}
+                activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#ffbc3f" }}
+              />
 
-  <Area
-    type="monotone"
-    dataKey="subscriptions"
-    stroke="#00CFB7"
-    strokeWidth={2}
-    fill="url(#subscriptionsGradient)"
-    fillOpacity={1}
-    animationDuration={500}
-    activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#00CFB7" }}
-  />
-</AreaChart>
+              <Area
+                type="monotone"
+                dataKey="subscriptions"
+                stroke="#00CFB7"
+                strokeWidth={2}
+                fill="url(#subscriptionsGradient)"
+                fillOpacity={1}
+                animationDuration={500}
+                activeDot={{ r: 7, strokeWidth: 2, stroke: "white", fill: "#00CFB7" }}
+              />
+            </AreaChart>
 
-</ResponsiveContainer>
+          </ResponsiveContainer>
         </div>
         <div className="graph-metrics">
-  {/* ✅ Add this new div for the date display */}
-  <div className="graph-metrics-header">
-    <span className="metric-date">
-      {hoveredData ? new Date(hoveredData.date).toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }) : "Total"}
-    </span>
-  </div>
+          {/* ✅ Add this new div for the date display */}
+          <div className="graph-metrics-header">
+            <span className="metric-date">
+              {hoveredData ? new Date(hoveredData.date).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              }) : "Total"}
+            </span>
+          </div>
 
-  {[
-    { title: "Revenue", key: "revenue", totalValue: totalRevenue, className: "" },
-    { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue, className: "pending-revenue" },
-    { title: "Subscriptions", key: "subscriptions", totalValue: totalSubscriberRevenue, className: "subscriber-revenue" },
-  ].map(({ title, key, totalValue, className }) => {
+          {[
+            { title: "Revenue", key: "revenue", totalValue: totalRevenue, className: "" },
+            { title: "Pending Revenue", key: "pendingRevenue", totalValue: pendingRevenue, className: "pending-revenue" },
+            { title: "Subscriptions", key: "subscriptions", totalValue: totalSubscriberRevenue, className: "subscriber-revenue" },
+          ].map(({ title, key, totalValue, className }) => {
 
-    const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
-    const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
+            const latestEntry = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
+            const latestValue = latestEntry ? Number(latestEntry[key as keyof LotEntry]) || 0 : 0;
 
-    const hoveredValue = hoveredData && key in hoveredData
-      ? Number(hoveredData[key as keyof typeof hoveredData]) || 0
-      : null;
+            const hoveredValue = hoveredData && key in hoveredData
+              ? Number(hoveredData[key as keyof typeof hoveredData]) || 0
+              : null;
 
-    const [animatedTotal, setAnimatedTotal] = useState(totalValue);
-    const animatedValue = useAnimatedNumber(animatedTotal, 2);
+            const [animatedTotal, setAnimatedTotal] = useState(totalValue);
+            const animatedValue = useAnimatedNumber(animatedTotal, 2);
 
-    useEffect(() => {
-      setAnimatedTotal(totalValue);
-    }, [totalValue]);
+            useEffect(() => {
+              setAnimatedTotal(totalValue);
+            }, [totalValue]);
 
-    const displayNumber = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue.toFixed(2);
-    const [wholePart, decimalPart] = displayNumber.includes(".") ? displayNumber.split(".") : [displayNumber, "00"];
+            const displayNumber = hoveredValue !== null ? hoveredValue.toFixed(2) : animatedValue.toFixed(2);
+            const [wholePart, decimalPart] = displayNumber.includes(".") ? displayNumber.split(".") : [displayNumber, "00"];
 
-    return (
-      <div className="metric graph-metric" key={title}>
-        <span className={`metric-value ${className}`}>
-          ${wholePart}
-          <span className="decimal">.{decimalPart}</span>
-        </span>
-        <span className="metric-title">{title}</span>
-      </div>
-    );
-  })}
-</div>
+            return (
+              <div className="metric graph-metric" key={title}>
+                <span className={`metric-value ${className}`}>
+                  ${wholePart}
+                  <span className="decimal">.{decimalPart}</span>
+                </span>
+                <span className="metric-title">{title}</span>
+              </div>
+            );
+          })}
+        </div>
 
       </div>
     </div>
   );
-  
+
 };
 
 // Converts a date to the weekday abbreviation (Mon, Tue, etc.)

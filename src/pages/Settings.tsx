@@ -6,6 +6,7 @@ import Modal from "../components/Modal";
 import Tooltip from "../components/Tooltip";
 import { lotService, lotPricingService } from "../utils/api";
 import { useLot } from "../contexts/LotContext"; // Import the useLot hook
+import LoadingWheel from "../components/LoadingWheel";
 
 const Settings: React.FC = () => {
   const { customerId, lotId } = useParams<{ customerId: string; lotId: string }>();
@@ -216,6 +217,9 @@ const Settings: React.FC = () => {
     }
   };
 
+  if (isLoading) {
+    return <LoadingWheel text="Loading settings..." />;
+  }
 
   return (
     <div className="content">
