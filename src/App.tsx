@@ -1,6 +1,8 @@
 import React, { ReactElement } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import RevenueDashboard from "./pages/RevenueDashboard";
 import ParkedCars from "./pages/Occupants";
@@ -59,6 +61,8 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Protected routes */}
           <Route path="/dashboard" element={

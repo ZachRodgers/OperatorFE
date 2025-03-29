@@ -6,14 +6,6 @@
   margin: 0 auto;
 }
 
-.account-error-banner {
-  background-color: #ff6b6b;
-  color: white;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  text-align: center;
-}
 
 .account-details {
   display: grid;
@@ -217,3 +209,7 @@
   font-size: 14px;
   color: #555;
 } 
+
+.account-error-text p {
+  color: #ff6b6b !important;
+}

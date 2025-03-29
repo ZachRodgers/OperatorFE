@@ -407,4 +407,42 @@ export const devicesService = {
   },
 };
 
+// Password Reset service functions
+export const passwordResetService = {
+  // Request password reset
+  requestPasswordReset: async (email: string) => {
+    const response = await api.post("/password-reset/request", { email });
+    return response.data;
+  },
+
+  // Reset password with token
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post("/password-reset/reset", {
+      token,
+      newPassword,
+    });
+    return response.data;
+  },
+};
+
+// Auth service functions
+export const authService = {
+  // ... existing auth functions ...
+
+  // Request password reset
+  requestPasswordReset: async (email: string) => {
+    const response = await api.post("/password-reset/request", { email });
+    return response.data;
+  },
+
+  // Reset password with token
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post("/password-reset/reset", {
+      token,
+      newPassword,
+    });
+    return response.data;
+  },
+};
+
 export default api;
