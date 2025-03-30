@@ -63,7 +63,7 @@ const ForgotPassword = () => {
 
                 <form onSubmit={handleSubmit}>
                     <h2>Reset Password</h2>
-                    <p className="reset-instructions">Enter your email address and we'll send you instructions to reset your password.</p>
+                    <p className="reset-instructions">Please enter your email address to send a link to reset password.</p>
 
                     <input
                         type="email"
