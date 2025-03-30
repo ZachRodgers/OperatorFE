@@ -196,9 +196,9 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
       >
         <div className="account-modal-content">
           {errorMessage && (
-            <div className="account-error-banner">
-              <p>{errorMessage}</p>
-            </div>
+
+            <p>{errorMessage}</p>
+
           )}
 
           <div className="account-details">
@@ -284,9 +284,9 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
         >
           <div className="account-password-form">
             {errorMessage && (
-              <div className="account-error-banner">
-                <p>{errorMessage}</p>
-              </div>
+
+              <p className="account-error-text">{errorMessage}</p>
+
             )}
 
             <div className="account-form-group">

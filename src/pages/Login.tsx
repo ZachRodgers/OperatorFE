@@ -22,16 +22,16 @@ const Login = () => {
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
+
     // Prevent multiple submissions
     if (isLoading || isRedirecting) return;
-    
+
     setIsLoading(true);
     setError("");
-    
+
     try {
       console.log("Attempting login for:", email);
-      
+
       // This calls our Spring Boot /login endpoint
       const response = await api.post('/login', {
         email: email,
@@ -39,42 +39,42 @@ const Login = () => {
       }, { skipAuthRedirect: true } as any);
 
       console.log("Login response received:", response.status);
-      
+
       // Extract token and userId from response
       const { token, userId } = response.data;
-      
+
       if (!token || !userId) {
         throw new Error("Invalid response: missing token or userId");
       }
-      
+
       // Store authentication data with 30-minute expiration
       const authData = storeAuthData(userId, token);
-      
+
       if (!authData) {
         throw new Error("Failed to store authentication data");
       }
-      
+
       // Verify the auth data was properly stored
       const isValid = validateAuthStorage();
-      
+
       if (!isValid) {
         throw new Error("Auth validation failed after storage");
       }
-      
+
       console.log("Auth storage validated, preparing to navigate");
       setIsRedirecting(true);
-      
+
       // Use window.location for a full page reload instead of React Router navigation
       // This ensures a clean state and properly initialized auth context
       setTimeout(() => {
         console.log("Performing hard redirect to dashboard...");
         window.location.href = "/dashboard";
       }, 500);
-      
+
     } catch (err: any) {
       console.error("Login error:", err);
       let errorMessage = "Invalid credentials";
-      
+
       if (err.response) {
         if (err.response.status === 401) {
           errorMessage = "Incorrect email or password";
@@ -86,7 +86,7 @@ const Login = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -94,7 +94,7 @@ const Login = () => {
 
   const handleForgotPassword = (e: React.MouseEvent) => {
     e.preventDefault();
-    alert("Password reset is not enabled. Please contact Parallel administrators for assistance.");
+    navigate('/forgot-password');
   };
 
   if (isRedirecting) {
@@ -115,7 +115,7 @@ const Login = () => {
     <div className="login-container">
       <div className="login-box">
         <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo-operator" />
-        
+
         <form onSubmit={handleLogin}>
           <input
             type="text"
@@ -135,8 +135,8 @@ const Login = () => {
             name="password"
             disabled={isLoading}
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={`login-button ${isLoading ? 'loading' : ''}`}
             disabled={isLoading}
           >

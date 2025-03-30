@@ -245,3 +245,40 @@
     }
   }
   
+  /* Forgot Password Page Styles */
+  .reset-instructions {
+    color: #666;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .back-to-login {
+    background: none;
+    border: none;
+    color: #007AFF;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 15px;
+    padding: 5px 10px;
+    text-decoration: underline;
+  }
+
+  .back-to-login:hover {
+    color: #0056b3;
+  }
+
+  .back-to-login:disabled {
+    color: #999;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
+
+  .success {
+    color: #202020;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  
