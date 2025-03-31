@@ -155,9 +155,11 @@ footer {
 
 /* Status indicator for password requirements */
 .password-requirements {
+  display: flex;
   text-align: left;
   margin: 10px 0 15px;
   font-size: 14px;
+  gap: 20px;
 }
 
 .requirement {

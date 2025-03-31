@@ -290,7 +290,6 @@ const AccountSetup = () => {
                 {stage === 2 && (
                     <form className="setup-stage" onSubmit={handleAccountSetup}>
                         <div className="form-group">
-                            <label htmlFor="email">Email Address</label>
                             <input
                                 id="email"
                                 type="email"
@@ -298,34 +297,34 @@ const AccountSetup = () => {
                                 readOnly
                                 autoComplete="username"
                                 name="email"
+                                placeholder="email@adress.com"
                                 required
                             />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="name">Full Name</label>
                             <input
                                 id="name"
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 disabled={isLoading}
+                                placeholder="Full Name"
                                 required
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="phoneNo">Phone Number <span className="optional">(optional)</span></label>
                             <input
                                 id="phoneNo"
                                 type="tel"
                                 value={phoneNo}
                                 onChange={(e) => setPhoneNo(e.target.value)}
                                 disabled={isLoading}
+                                placeholder="Phone Number"
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="newPassword">New Password</label>
                             <input
                                 id="newPassword"
                                 type="password"
@@ -334,12 +333,12 @@ const AccountSetup = () => {
                                 disabled={isLoading}
                                 autoComplete="new-password"
                                 name="new-password"
+                                placeholder="New Password"
                                 required
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="confirmPassword">Confirm New Password</label>
                             <input
                                 id="confirmPassword"
                                 type="password"
@@ -348,6 +347,7 @@ const AccountSetup = () => {
                                 disabled={isLoading}
                                 autoComplete="new-password"
                                 name="confirm-password"
+                                placeholder="Confirm New Password"
                                 required
                             />
                         </div>
