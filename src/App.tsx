@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "rea
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AccountSetup from "./pages/AccountSetup";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import RevenueDashboard from "./pages/RevenueDashboard";
 import ParkedCars from "./pages/Occupants";
@@ -63,6 +64,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/setup-account" element={<AccountSetup />} />
 
           {/* Protected routes */}
           <Route path="/dashboard" element={
