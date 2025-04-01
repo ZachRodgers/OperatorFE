@@ -36,7 +36,7 @@ const Sidebar = () => {
         // If lot data is available in context, use it
         if (lotContext && lotContext.lotData) {
           setLotName(lotContext.lotData.lotName || "Unknown Lot");
-          localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName);
+          localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName || "Unknown Lot");
         } else {
           // Fetch current lot information if not in context
           const lotData = await lotService.getLotById(lotId);
@@ -44,7 +44,7 @@ const Sidebar = () => {
             // Update state with lot name
             setLotName(lotData.lotName || "Unknown Lot");
             // Cache the lot name for persistence
-            localStorage.setItem(`lot_${lotId}_name`, lotData.lotName);
+            localStorage.setItem(`lot_${lotId}_name`, lotData.lotName || "Unknown Lot");
           }
         }
 
@@ -81,9 +81,9 @@ const Sidebar = () => {
 
   // Update lotName whenever lotContext.lotData changes
   useEffect(() => {
-    if (lotContext && lotContext.lotData && lotContext.lotData.lotName) {
-      setLotName(lotContext.lotData.lotName);
-      localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName);
+    if (lotContext && lotContext.lotData) {
+      setLotName(lotContext.lotData.lotName || "Unknown Lot");
+      localStorage.setItem(`lot_${lotId}_name`, lotContext.lotData.lotName || "Unknown Lot");
     }
   }, [lotContext?.lotData, lotId]);
 

@@ -429,20 +429,19 @@ const RevenueDashboard: React.FC = () => {
             { key: "month", label: isCompact ? "M" : "Month" },
             { key: "year", label: isCompact ? "Y" : "Year" }
           ].map(({ key, label }) => (
-            <button
+            <div
               key={key}
               className={timeframe === key ? "active" : ""}
               onClick={() => setTimeframe(key as any)}
-              disabled={isLoading}
             >
               {label}
-            </button>
+            </div>
           ))}
         </div>
 
-        <button className="setup-button" onClick={() => alert("In development.")}>
+        <div className="setup-button" onClick={() => alert("In development.")}>
           + Setup New Camera
-        </button>
+        </div>
       </div>
 
       <div className="metrics-container">
