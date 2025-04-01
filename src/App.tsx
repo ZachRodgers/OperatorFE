@@ -13,11 +13,12 @@ import Notifications from "./pages/Notifications";
 import Addons from "./pages/Addons";
 import Account from "./pages/Account";
 import Sidebar from "./components/Sidebar";
-import ProtectedRoute from "./components/ProtectedRoute";
+import UnprotectedRoute from "./components/UnprotectedRoute";
 import { UserProvider } from "./contexts/UserContext";
 import { LotProvider } from "./contexts/LotContext";
 import UserRedirect from "./components/UserRedirect";
 import "./App.css";
+import "./styles/april-fools.css";  // April Fools styles!
 
 // Ensure Sidebar is properly exported from Sidebar.tsx
 if (!Sidebar) {
@@ -64,66 +65,66 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Protected routes */}
+          {/* Previously protected routes */}
           <Route path="/dashboard" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <UserRedirect />
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/owner-dashboard" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <OwnerDashboard />
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           {/* Lot-specific routes with LotProvider */}
           <Route path="/lot/:lotId/revenue-dashboard" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><RevenueDashboard /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/occupants" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><ParkedCars /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/settings" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><Settings /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/advanced" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><AdvancedSettings /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/registry" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><PlateRegistry /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/notifications" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><Notifications /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/addons" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><Addons /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
 
           <Route path="/lot/:lotId/account" element={
-            <ProtectedRoute>
+            <UnprotectedRoute>
               <LotPageLayout><Account /></LotPageLayout>
-            </ProtectedRoute>
+            </UnprotectedRoute>
           } />
         </Routes>
       </UserProvider>

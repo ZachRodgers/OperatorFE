@@ -1,0 +1,56 @@
+/* Import Comic Neue */
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&display=swap');
+
+/* Global font override */
+* {
+  font-family: "Comic Neue", "Comic Sans MS", cursive !important;
+  font-weight: 400;
+  font-size: 20px;
+}
+
+/* Replace blue colors with slightly less neon blue */
+:root {
+  --primary-blue: #1E90FF !important;
+  --secondary-blue: #0079c4 !important;
+  --accent-blue: #0060ef !important;
+}
+
+/* Make buttons more fun with gradients */
+button {
+  background: linear-gradient(45deg, var(--primary-blue), var(--secondary-blue)) !important;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: scale(1.02);
+}
+
+/* Adjust logo colors */
+.logo-operator path,
+.logo-operator svg {
+  fill: var(--primary-blue) !important;
+  stroke: var(--primary-blue) !important;
+}
+
+/* Override any existing blue colors */
+.blue-text,
+.text-blue,
+[class*="blue"] {
+  color: var(--primary-blue) !important;
+}
+
+.blue-bg,
+.bg-blue,
+[class*="blue-background"] {
+  background-color: var(--primary-blue) !important;
+}
+
+/* Make sure links are also blue */
+a {
+  color: var(--accent-blue) !important;
+}
+
+/* Sidebar adjustments */
+.sidebar {
+  background: linear-gradient(180deg) !important;
+} 
