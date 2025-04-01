@@ -32,6 +32,7 @@ interface LotEntry {
 const Notifications: React.FC = () => {
   const { lotId } = useParams<{ lotId: string }>();
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<DisplayNotification[]>([]);
   const [selectedCount, setSelectedCount] = useState(0);
 
@@ -52,6 +53,7 @@ const Notifications: React.FC = () => {
     const fetchNotifications = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const response = await fetch(`http://localhost:8085/ParkingWithParallel/notifications/lot/${lotId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch notifications');
@@ -83,6 +85,7 @@ const Notifications: React.FC = () => {
         }, 4000);
       } catch (error) {
         console.error('Error fetching notifications:', error);
+        setError('Failed to load lot pricing data. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -100,6 +103,7 @@ const Notifications: React.FC = () => {
       } catch (error) {
         console.error('Error fetching recipients:', error);
         setCurrentRecipients([]);
+        // Don't set the main error here as notifications are more important
       }
     };
 
@@ -338,6 +342,17 @@ const Notifications: React.FC = () => {
 
   if (isLoading) {
     return <LoadingWheel text="Loading notifications..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="content">
+        <h1>Notification Manager</h1>
+        <div className="error-container">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
   }
 
   return (

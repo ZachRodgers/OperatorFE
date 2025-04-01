@@ -319,7 +319,7 @@ const AdvancedSettings: React.FC = () => {
 
       } catch (err) {
         console.error("Error loading pricing data:", err);
-        setError("Failed to load pricing data. Please try again.");
+        setError("Failed to load lot pricing data. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -767,9 +767,6 @@ const AdvancedSettings: React.FC = () => {
         <div className="error-container">
           <h2>Error</h2>
           <p>{error}</p>
-          <button className="button primary" onClick={() => window.location.reload()}>
-            Try Again
-          </button>
         </div>
       </div>
     );

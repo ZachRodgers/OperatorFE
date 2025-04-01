@@ -66,6 +66,8 @@ const Account: React.FC = () => {
   const [lot, setLot] = useState<Lot | null>(null);
   const [operators, setOperators] = useState<Customer[]>([]);
   const [owner, setOwner] = useState<Customer | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lotError, setLotError] = useState<boolean>(false);
 
   // Modal editing states for non-password fields
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -143,9 +145,11 @@ const Account: React.FC = () => {
           console.log("Customer data received:", data);
           // Convert API response to Customer
           setCustomer(convertApiUserToCustomer(data));
+          setError(null);
         })
         .catch((err) => {
           console.error("Error fetching customer:", err);
+          setError("Failed to load account data. Please try again.");
           // If user can't be fetched, redirect to login
           logout();
         });
@@ -169,12 +173,14 @@ const Account: React.FC = () => {
         .then((data) => {
           console.log("Lot data received:", data);
           setLot(data);
+          setLotError(false);
 
           // Store lotId in localStorage for persistence
           localStorage.setItem('lotId', data.lotId);
         })
         .catch((err) => {
           console.error("Error fetching lot:", err);
+          setLotError(true);
         });
     } else {
       console.warn("No lotId available for fetch");
@@ -322,6 +328,7 @@ const Account: React.FC = () => {
     logout();
   };
 
+  // Update the rendering logic for error states
   if (!currentCustomerId || !lotId) {
     return (
       <div className="content">
@@ -331,11 +338,29 @@ const Account: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="content">
+        <h1>Account</h1>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   if (!customer) {
     return (
       <div className="content">
         <h1>Account</h1>
         <p>Loading account data for customer ID: {formatId(currentCustomerId)}...</p>
+      </div>
+    );
+  }
+
+  if (lotError) {
+    return (
+      <div className="content">
+        <h1>Account</h1>
+        <p>Failed to load lot pricing data. Please try again.</p>
       </div>
     );
   }

@@ -81,7 +81,7 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
       setLotData(data);
     } catch (err: any) {
       console.error('Error fetching lot data:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch lot data'));
+      setError(err instanceof Error ? new Error('Failed to load lot pricing data. Please try again.') : new Error('Failed to load lot pricing data. Please try again.'));
       // If we get a 403 or 404, navigate to login
       if (err.response && (err.response.status === 403 || err.response.status === 404)) {
         console.log('Unauthorized access or lot not found, redirecting to login');

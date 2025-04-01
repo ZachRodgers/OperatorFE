@@ -12,6 +12,8 @@ interface UserContextType {
     fetchUserData: () => Promise<User | null>;
     fetchUserLots: () => Promise<Lot[]>;
     logout: () => void;
+    isServerOffline: boolean;
+    retryConnection: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -29,7 +31,24 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [userLots, setUserLots] = useState<Lot[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [isServerOffline, setIsServerOffline] = useState<boolean>(false);
     const navigate = useNavigate();
+
+    // Handler for server status events
+    useEffect(() => {
+        const handleServerStatus = (event: any) => {
+            if (event.detail.status === 'offline') {
+                setIsServerOffline(true);
+            } else if (event.detail.status === 'online') {
+                setIsServerOffline(false);
+            }
+        };
+
+        window.addEventListener('server-status', handleServerStatus);
+        return () => {
+            window.removeEventListener('server-status', handleServerStatus);
+        };
+    }, []);
 
     const fetchUserData = async () => {
         setLoading(true);
@@ -80,6 +99,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate('/login');
     };
 
+    const retryConnection = () => {
+        // Try to fetch user data again to see if server is back online
+        fetchUserData().then(userData => {
+            if (userData) {
+                // If successful, also fetch lots
+                fetchUserLots();
+                // Reset the offline state
+                setIsServerOffline(false);
+            }
+        });
+    };
+
     // Load user data on initial mount if authenticated
     useEffect(() => {
         const authData = getAuthData();
@@ -104,7 +135,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 error,
                 fetchUserData,
                 fetchUserLots,
-                logout
+                logout,
+                isServerOffline,
+                retryConnection
             }}
         >
             {children}

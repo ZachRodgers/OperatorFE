@@ -4,6 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import Modal from "../components/Modal";
 import LoadingWheel from "./LoadingWheel";
 import { extendSession } from '../utils/auth';
+import { healthService } from '../utils/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,13 +12,14 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, loading, fetchUserData } = useUser();
+  const { user, loading, fetchUserData, isServerOffline, retryConnection, logout } = useUser();
   const [isSessionWarningVisible, setSessionWarningVisible] = useState(false);
   const [isExtendingSession, setIsExtendingSession] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     // Fetch user data if not already loaded
-    if (!user && !loading) {
+    if (!user && !loading && !isServerOffline) {
       fetchUserData();
     }
 
@@ -42,7 +44,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // Run the check every minute
     const interval = setInterval(checkSessionExpiration, 60 * 1000);
     return () => clearInterval(interval);
-  }, [navigate, user, loading, fetchUserData]);
+  }, [navigate, user, loading, fetchUserData, isServerOffline]);
 
   const handleExtendSession = async () => {
     setIsExtendingSession(true);
@@ -60,6 +62,40 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       setSessionWarningVisible(false);
     }
   };
+
+  const handleRetryConnection = async () => {
+    setIsRetrying(true);
+    try {
+      const isOnline = await healthService.checkServerStatus();
+      if (isOnline) {
+        // If server is online, attempt to fetch user data
+        retryConnection();
+      }
+    } catch (error) {
+      console.error("Failed to check server status:", error);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  // Show server offline modal if server is offline
+  if (isServerOffline) {
+    return (
+      <>
+        {children}
+        <Modal
+          isOpen={true}
+          title="Servers Offline"
+          description="The server is currently unreachable. Please check your connection or try again later."
+          confirmText={isRetrying ? "Retrying..." : "Retry"}
+          cancelText="Logout"
+          onConfirm={handleRetryConnection}
+          onCancel={logout}
+          disableConfirm={isRetrying}
+        />
+      </>
+    );
+  }
 
   // Show loading state while checking authentication
   if (loading) {

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import { healthService } from "../utils/api";
 import { storeAuthData, validateAuthStorage, isAuthenticated } from "../utils/auth";
+import Modal from "../components/Modal";
 import "./Login.css";
 
 const Login = () => {
@@ -10,15 +12,32 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isServerOffline, setIsServerOffline] = useState(false);
   const navigate = useNavigate();
+
+  // Listen for server status events
+  useEffect(() => {
+    const handleServerStatus = (event: any) => {
+      if (event.detail.status === 'offline') {
+        setIsServerOffline(true);
+      } else if (event.detail.status === 'online') {
+        setIsServerOffline(false);
+      }
+    };
+
+    window.addEventListener('server-status', handleServerStatus);
+    return () => {
+      window.removeEventListener('server-status', handleServerStatus);
+    };
+  }, []);
 
   // Check if already logged in
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated() && !isServerOffline) {
       console.log("User already authenticated, redirecting to dashboard");
       window.location.href = "/dashboard";
     }
-  }, []);
+  }, [isServerOffline]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -75,14 +94,16 @@ const Login = () => {
       console.error("Login error:", err);
       let errorMessage = "Invalid credentials";
 
-      if (err.response) {
+      if (!err.response) {
+        // Network error - server is likely offline
+        setIsServerOffline(true);
+        errorMessage = "Server not responding. Please try again later.";
+      } else if (err.response) {
         if (err.response.status === 401) {
           errorMessage = "Incorrect email or password";
         } else if (err.response.data) {
           errorMessage = err.response.data;
         }
-      } else if (err.request) {
-        errorMessage = "Server not responding. Please try again later.";
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -95,6 +116,27 @@ const Login = () => {
   const handleForgotPassword = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/forgot-password');
+  };
+
+  const handleRetryConnection = () => {
+    // Try to check if server is back online using the health service
+    healthService.checkServerStatus()
+      .then(isOnline => {
+        if (isOnline) {
+          setIsServerOffline(false);
+          // If previously authenticated, redirect to dashboard
+          if (isAuthenticated()) {
+            window.location.href = "/dashboard";
+          }
+        } else {
+          // Server still offline
+          setIsServerOffline(true);
+        }
+      })
+      .catch(() => {
+        // Server still offline
+        setIsServerOffline(true);
+      });
   };
 
   if (isRedirecting) {
@@ -112,45 +154,58 @@ const Login = () => {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-        <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo-operator" />
+    <>
+      <div className="login-container">
+        <div className="login-box">
+          <img src="/assets/Logo_Operator.svg" alt="Parallel Operator" className="logo-operator" />
 
-        <form onSubmit={handleLogin}>
-          <input
-            type="text"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
-            name="email"
-            disabled={isLoading}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            name="password"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className={`login-button ${isLoading ? 'loading' : ''}`}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-          {error && <p className="error">{error}</p>}
-        </form>
+          <form onSubmit={handleLogin}>
+            <input
+              type="text"
+              placeholder="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              name="email"
+              disabled={isLoading}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              name="password"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              className={`login-button ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+            {error && <p className="error">{error}</p>}
+          </form>
 
-        <a href="#" className="forgot-password" onClick={handleForgotPassword}>Forgot my password</a>
+          <a href="#" className="forgot-password" onClick={handleForgotPassword}>Forgot my password</a>
+        </div>
+        <footer>
+          <img src="/assets/PoweredbyParallelDark.svg" alt="Powered by Parallel" className="powered-by-logo" />
+        </footer>
       </div>
-      <footer>
-        <img src="/assets/PoweredbyParallelDark.svg" alt="Powered by Parallel" className="powered-by-logo" />
-      </footer>
-    </div>
+
+      {/* Server Offline Modal */}
+      <Modal
+        isOpen={isServerOffline}
+        title="Servers Offline"
+        description="The server is currently unreachable. Please check your connection or try again later."
+        confirmText="Retry"
+        cancelText="Dismiss"
+        onConfirm={handleRetryConnection}
+        onCancel={() => setIsServerOffline(false)}
+      />
+    </>
   );
 };
 

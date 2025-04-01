@@ -81,7 +81,7 @@ const Occupants: React.FC = () => {
       setError(null);
     } catch (err) {
       console.error("Failed to fetch sessions:", err);
-      setError("Failed to load occupant data. Please try again.");
+      setError("Failed to load lot pricing data. Please try again.");
       setSessions([]); // Clear sessions on error
     } finally {
       setLoading(false);

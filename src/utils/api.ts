@@ -1,5 +1,11 @@
 import axios from "axios";
 import { getToken } from "./auth";
+import { AxiosRequestConfig } from "axios";
+
+// Define a custom interface to extend AxiosRequestConfig
+interface CustomAxiosRequestConfig extends AxiosRequestConfig {
+  skipAuthRedirect?: boolean;
+}
 
 // Create an Axios instance with default config
 const api = axios.create({
@@ -26,9 +32,23 @@ api.interceptors.request.use(
 // Add a response interceptor to handle common error cases
 api.interceptors.response.use(
   (response) => {
+    // If we get a successful response, clear any server offline state
+    window.dispatchEvent(
+      new CustomEvent("server-status", { detail: { status: "online" } })
+    );
     return response;
   },
   (error) => {
+    // Check if the error is due to network connectivity (server offline)
+    if (!error.response) {
+      // Network error, server is likely offline
+      console.error("Network error, server may be offline:", error);
+      window.dispatchEvent(
+        new CustomEvent("server-status", { detail: { status: "offline" } })
+      );
+      return Promise.reject(error);
+    }
+
     // Handle 401 Unauthorized - redirect to login for protected endpoints
     if (error.response && error.response.status === 401) {
       try {
@@ -445,4 +465,25 @@ export const authService = {
   },
 };
 
+// Health check service
+export const healthService = {
+  // Simple health check to verify server connectivity
+  checkServerStatus: async () => {
+    try {
+      // Use a simple endpoint that should always respond quickly
+      const response = await api.get("/health", {
+        // Don't want auto redirects for health checks
+        skipAuthRedirect: true,
+        // Short timeout for quick feedback
+        timeout: 3000,
+      } as CustomAxiosRequestConfig);
+      return response.status === 200;
+    } catch (error) {
+      console.error("Health check failed:", error);
+      return false;
+    }
+  },
+};
+
+// Export the api instance for direct use
 export default api;
