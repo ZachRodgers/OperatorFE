@@ -8,13 +8,33 @@ const ForgotPassword = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [cooldownTime, setCooldownTime] = useState(0);
     const navigate = useNavigate();
+
+    // For countdown timer if rate limited
+    React.useEffect(() => {
+        let timer: NodeJS.Timeout | null = null;
+        if (cooldownTime > 0) {
+            timer = setInterval(() => {
+                setCooldownTime(prev => {
+                    if (prev <= 1) {
+                        if (timer) clearInterval(timer);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+    }, [cooldownTime]);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         // Prevent multiple submissions
-        if (isLoading) return;
+        if (isLoading || cooldownTime > 0) return;
 
         setIsLoading(true);
         setError("");
@@ -27,13 +47,20 @@ const ForgotPassword = () => {
             await authService.requestPasswordReset(email);
 
             console.log("Password reset request successful");
-            setSuccess("Email sent with password reset instructions.");
+            setSuccess("Email sent with password reset instructions. If you don't see it, please check your spam folder.");
 
         } catch (err: any) {
             console.error("Password reset error:", err);
             let errorMessage = "An error occurred while processing your request.";
 
-            if (err.response?.data) {
+            // Handle rate limiting (429 Too Many Requests)
+            if (err.response?.status === 429) {
+                // Set a cooldown timer (for development, 10 seconds; for production would be longer)
+                setCooldownTime(10);
+                errorMessage = "Please wait before requesting another password reset. You can try again in a few moments.";
+            }
+            // Handle other error responses
+            else if (err.response?.data) {
                 // Handle structured error response
                 if (typeof err.response.data === 'string') {
                     errorMessage = err.response.data;
@@ -43,7 +70,8 @@ const ForgotPassword = () => {
                     errorMessage = err.response.data.error;
                 }
             } else if (err.response?.status === 404) {
-                errorMessage = "Email not found.";
+                // Don't expose that email wasn't found (security best practice)
+                errorMessage = "If your email is registered, you will receive reset instructions shortly.";
             } else if (err.request) {
                 errorMessage = "Server not responding. Please try again later.";
             } else if (err.message) {
@@ -72,16 +100,17 @@ const ForgotPassword = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         autoComplete="email"
                         name="email"
-                        disabled={isLoading}
+                        disabled={isLoading || cooldownTime > 0}
                         required
                     />
 
                     <button
                         type="submit"
                         className={`login-button ${isLoading ? 'loading' : ''}`}
-                        disabled={isLoading}
+                        disabled={isLoading || cooldownTime > 0}
                     >
-                        {isLoading ? 'Sending...' : 'Send Email'}
+                        {isLoading ? 'Sending...' :
+                            cooldownTime > 0 ? `Retry in ${cooldownTime}s` : 'Send Email'}
                     </button>
 
                     {error && <p className="error">{error}</p>}
