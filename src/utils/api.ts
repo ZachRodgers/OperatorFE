@@ -95,7 +95,14 @@ export const lotService = {
     try {
       // Use the new dedicated endpoint
       const response = await api.get(`/parkinglots/get-by-user/${userId}`);
-      return response.data;
+
+      // Ensure each lot has accountCreated property set from createdOn if available
+      const lots = response.data.map((lot: any) => ({
+        ...lot,
+        accountCreated: lot.createdOn || lot.accountCreated || null,
+      }));
+
+      return lots;
     } catch (error) {
       console.error("Error fetching lots by user ID:", error);
       throw error;
@@ -105,7 +112,12 @@ export const lotService = {
   // Get lot by ID
   getLotById: async (lotId: string) => {
     const response = await api.get(`/parkinglots/get-by-id/${lotId}`);
-    return response.data;
+    // Ensure lot has accountCreated property set from createdOn if available
+    const lot = response.data;
+    if (lot && lot.createdOn && !lot.accountCreated) {
+      lot.accountCreated = lot.createdOn;
+    }
+    return lot;
   },
 
   // Update lot

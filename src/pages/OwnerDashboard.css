@@ -127,6 +127,14 @@
 .dashboard-table td {
     padding: 15px;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Style specifically for date columns to ensure proper formatting */
+.dashboard-table td:nth-child(4) {
+    min-width: 180px; /* Ensure enough space for date format */
 }
 
 .dashboard-table tr:nth-child(even) {

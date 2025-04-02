@@ -29,6 +29,12 @@ const OwnerDashboard = () => {
     setSortBy(column);
   };
 
+  // Format date strings consistently to match SuperAdmin dashboard
+  const formatDate = (isoDate: string): string => {
+    if (!isoDate) return 'N/A';
+    return new Date(isoDate).toLocaleString();
+  };
+
   // Filter and sort lots based on searchQuery and sort settings
   const filteredLots = userLots
     .filter((lot) =>
@@ -178,7 +184,7 @@ const OwnerDashboard = () => {
                 <td>{formatLotId(lot.lotId)}</td>
                 <td>{lot.lotName}</td>
                 <td>{lot.address}</td>
-                <td>{lot.accountCreated || 'N/A'}</td>
+                <td>{lot.accountCreated ? formatDate(lot.accountCreated) : 'N/A'}</td>
               </tr>
             ))}
           </tbody>
