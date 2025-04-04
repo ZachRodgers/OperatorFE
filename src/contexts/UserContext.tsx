@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Lot } from '../types';
 import { userService, lotService } from '../utils/api';
 import { getAuthData, clearAuthData } from '../utils/auth';
+import { isSuperadminAccess } from '../utils/superadminAuth';
 
 interface UserContextType {
     user: User | null;
@@ -14,6 +15,7 @@ interface UserContextType {
     logout: () => void;
     isServerOffline: boolean;
     retryConnection: () => void;
+    isSuperadmin: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -32,7 +34,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [isServerOffline, setIsServerOffline] = useState<boolean>(false);
+    const [isSuperadmin, setIsSuperadmin] = useState<boolean>(false);
     const navigate = useNavigate();
+
+    // Check if user is a superadmin on mount
+    useEffect(() => {
+        setIsSuperadmin(isSuperadminAccess());
+    }, []);
 
     // Handler for server status events
     useEffect(() => {
@@ -51,6 +59,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const fetchUserData = async () => {
+        // If user is a superadmin accessing via cross-portal, we don't need to fetch user data
+        if (isSuperadminAccess()) {
+            setIsSuperadmin(true);
+            setLoading(false);
+            return null; // No need to fetch user data for superadmins
+        }
+
         setLoading(true);
         setError(null);
         try {
@@ -72,6 +87,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const fetchUserLots = async () => {
+        // If user is a superadmin accessing via cross-portal, we don't need to fetch user lots
+        if (isSuperadminAccess()) {
+            setLoading(false);
+            return []; // Empty lots array as we don't need to show any user-specific lots
+        }
+
         setLoading(true);
         setError(null);
         try {
@@ -93,9 +114,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = () => {
+        // Also clear superadmin session if exists
+        sessionStorage.removeItem('superadminToken');
         clearAuthData();
         setUser(null);
         setUserLots([]);
+        setIsSuperadmin(false);
         navigate('/login');
     };
 
@@ -113,6 +137,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Load user data on initial mount if authenticated
     useEffect(() => {
+        // If user is a superadmin accessing via cross-portal, we don't need normal auth
+        if (isSuperadminAccess()) {
+            setIsSuperadmin(true);
+            setLoading(false);
+            return;
+        }
+
         const authData = getAuthData();
         if (authData) {
             // Load user data, then load user lots data
@@ -137,7 +168,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fetchUserLots,
                 logout,
                 isServerOffline,
-                retryConnection
+                retryConnection,
+                isSuperadmin
             }}
         >
             {children}

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { lotService } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { isSuperadminAccess } from '../utils/superadminAuth';
 
 // Define the shape of our lot data
 interface LotData {
@@ -43,12 +44,18 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
   const [error, setError] = useState<Error | null>(null);
   const [invalidationToken, setInvalidationToken] = useState<number>(0);
   const navigate = useNavigate();
-  const { user, userLots, fetchUserLots } = useUser();
+  const { user, userLots, fetchUserLots, isSuperadmin } = useUser();
 
   // Check if user has access to this lot
   useEffect(() => {
     // Skip checks if we don't have a lotId
     if (!lotId || !user) return;
+
+    // Skip access check if user is a superadmin
+    if (isSuperadmin || isSuperadminAccess()) {
+      console.log('Superadmin access - bypassing lot access check');
+      return;
+    }
 
     // If userLots is empty, fetch them first
     if (userLots.length === 0) {
@@ -67,7 +74,7 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
         navigate('/login');
       }
     }
-  }, [lotId, user, userLots, fetchUserLots, navigate]);
+  }, [lotId, user, userLots, fetchUserLots, navigate, isSuperadmin]);
 
   // Function to fetch lot data
   const fetchLotData = async () => {
@@ -81,9 +88,10 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
       setLotData(data);
     } catch (err: any) {
       console.error('Error fetching lot data:', err);
-      setError(err instanceof Error ? new Error('Failed to load lot pricing data. Please try again.') : new Error('Failed to load lot pricing data. Please try again.'));
-      // If we get a 403 or 404, navigate to login
-      if (err.response && (err.response.status === 403 || err.response.status === 404)) {
+      setError(err instanceof Error ? err : new Error('Failed to load lot pricing data. Please try again.'));
+
+      // If not a superadmin and we get a 403 or 404, navigate to login
+      if (!isSuperadminAccess() && err.response && (err.response.status === 403 || err.response.status === 404)) {
         console.log('Unauthorized access or lot not found, redirecting to login');
         navigate('/login');
       }

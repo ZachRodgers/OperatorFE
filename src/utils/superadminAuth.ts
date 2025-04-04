@@ -7,23 +7,37 @@ const getBaseUrl = () => {
     : "http://localhost:8085/ParkingWithParallel";
 };
 
+interface SuperadminVerificationResponse {
+  isSuperAdmin: boolean;
+  userId: string;
+  role: string;
+}
+
 /**
- * Verifies if a superadmin token is valid
+ * Verifies if a token belongs to a superadmin user
  * @param token JWT token to verify
- * @returns Promise resolving to boolean indicating if token is valid
+ * @returns Promise resolving to boolean indicating if token is valid and belongs to a superadmin
  */
 export const verifySuperadminToken = async (
   token: string
 ): Promise<boolean> => {
   try {
-    const response = await axios.get(`${getBaseUrl()}/users/current`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // Use the dedicated endpoint for superadmin verification
+    const response = await axios.post(
+      `${getBaseUrl()}/login/verify-superadmin`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-    // Token is valid if we get a 200 response
-    return response.status === 200;
+    // Parse the response
+    const data = response.data as SuperadminVerificationResponse;
+
+    // Only return true if the user is confirmed to be a superadmin
+    return data.isSuperAdmin === true;
   } catch (error) {
     console.error("Error verifying superadmin token:", error);
     return false;

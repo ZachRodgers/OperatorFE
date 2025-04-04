@@ -5,7 +5,7 @@ import Modal from "../components/Modal";
 import LoadingWheel from "./LoadingWheel";
 import { extendSession } from '../utils/auth';
 import { healthService } from '../utils/api';
-import { verifySuperadminToken } from '../utils/superadminAuth';
+import { verifySuperadminToken, getSuperadminToken } from '../utils/superadminAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,6 +22,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [superadminAuthLoading, setSuperadminAuthLoading] = useState(false);
 
   useEffect(() => {
+    // First check if we already have a superadmin token in session storage
+    const existingToken = getSuperadminToken();
+    if (existingToken) {
+      setIsSuperadminAuth(true);
+      return; // Skip other checks if already authenticated as superadmin
+    }
+
     // Check for superadmin token in URL
     const params = new URLSearchParams(location.search);
     const isSuperadmin = params.get('superadmin') === 'true';
@@ -30,19 +37,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (isSuperadmin && token) {
       setSuperadminAuthLoading(true);
 
+      // Decode the token if it's URL-encoded
+      const decodedToken = decodeURIComponent(token);
+
       // Verify the token is valid using our utility function
       const verifyToken = async () => {
         try {
-          const isValid = await verifySuperadminToken(token);
+          console.log("Verifying superadmin token...");
+          const isValid = await verifySuperadminToken(decodedToken);
+          console.log("Token validation result:", isValid);
 
           if (isValid) {
             // Store the superadmin token temporarily (will be cleared on page refresh)
-            sessionStorage.setItem('superadminToken', token);
+            sessionStorage.setItem('superadminToken', decodedToken);
 
             // Remove the query parameters from the URL to avoid sharing the token
             navigate(location.pathname, { replace: true });
 
             setIsSuperadminAuth(true);
+          } else {
+            console.error("Token verification failed: Not a superadmin token");
           }
         } catch (error) {
           console.error("Invalid superadmin token:", error);

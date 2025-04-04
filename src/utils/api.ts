@@ -30,9 +30,18 @@ const api = axios.create({
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
   (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+    // First check if there is a superadmin token in session storage
+    const superadminToken = sessionStorage.getItem("superadminToken");
+
+    if (superadminToken) {
+      // Use the superadmin token if available
+      config.headers["Authorization"] = `Bearer ${superadminToken}`;
+    } else {
+      // Fall back to the regular token
+      const token = getToken();
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
     }
     return config;
   },
