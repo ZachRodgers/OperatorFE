@@ -121,6 +121,9 @@ const Settings: React.FC = () => {
       setCompanyName(contextLotData.companyName || "Unknown Company");
       setAddress(contextLotData.address || "Unknown Address");
       setLotCapacity(String(contextLotData.lotCapacity ?? "0"));
+      setRegistryOn(contextLotData.registryOn !== undefined ? contextLotData.registryOn : false);
+      // Also update the full lotData object to keep everything in sync
+      setLotData(contextLotData);
     }
   }, [contextLotData]);
 
@@ -144,22 +147,32 @@ const Settings: React.FC = () => {
     try {
       console.log("📡 Sending update-lot request for field:", { [editingField]: tempValue });
 
-      // Create update object with only required fields
+      // Create update object with only required fields - but ensure we have the latest lot data first
+      const latestLotData = contextLotData || lotData; // Use context data if available (most up-to-date)
+
       const updatedLot = {
-        lotName: editingField === "lotName" ? tempValue : lotData.lotName,
-        companyName: editingField === "companyName" ? tempValue : lotData.companyName,
-        address: editingField === "address" ? tempValue : lotData.address,
+        lotName: editingField === "lotName" ? tempValue : latestLotData.lotName,
+        companyName: editingField === "companyName" ? tempValue : latestLotData.companyName,
+        address: editingField === "address" ? tempValue : latestLotData.address,
         lotCapacity: editingField === "lotCapacity"
-          ? (tempValue.trim() === "" ? (parseInt(String(lotData.lotCapacity)) || 0) : parseInt(tempValue))
-          : (parseInt(String(lotData.lotCapacity)) || 0),
-        ownerCustomerId: lotData.ownerCustomerId,
+          ? (tempValue.trim() === "" ? (parseInt(String(latestLotData.lotCapacity)) || 0) : parseInt(tempValue))
+          : (parseInt(String(latestLotData.lotCapacity)) || 0),
+        ownerCustomerId: latestLotData.ownerCustomerId,
         accountStatus: "ACTIVE",
-        registryOn: lotData.registryOn
+        registryOn: latestLotData.registryOn
       };
 
       console.log("Updated lot object:", updatedLot);
       await lotService.updateLot(lotId, updatedLot);
       console.log("Successfully updated lot settings");
+
+      // Update local state with the new values to keep in sync
+      setLotData({
+        ...latestLotData,
+        [editingField]: editingField === "lotCapacity"
+          ? (tempValue.trim() === "" ? (parseInt(String(latestLotData.lotCapacity)) || 0) : parseInt(tempValue))
+          : tempValue
+      });
 
       // Update UI state
       setEditingField(null);
