@@ -9,7 +9,7 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 
 // Define base URLs for development and production
 const devBaseUrl = "http://localhost:8085/ParkingWithParallel";
-const prodBaseUrl = "http://api.parkwithparallel.com";
+const prodBaseUrl = "https://api.parkwithparallel.com";
 
 // Determine the environment based on window.location.hostname
 const isProd =
