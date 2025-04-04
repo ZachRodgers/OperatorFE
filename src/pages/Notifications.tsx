@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import RecipientModal from "../components/RecipientModal";
 import "./Notifications.css";
 import LoadingWheel from "../components/LoadingWheel";
+import api from "../utils/api"; // Import the configured API instance
 
 interface NotificationItem {
   notificationId: string;
@@ -54,11 +55,8 @@ const Notifications: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`http://localhost:8085/ParkingWithParallel/notifications/lot/${lotId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch notifications');
-        }
-        const data = await response.json();
+        const response = await api.get(`/notifications/lot/${lotId}`);
+        const data = response.data;
         const relevant = data
           .filter((n: NotificationItem) => !n.deleted)
           .map((n: NotificationItem, index: number) => ({
@@ -74,13 +72,8 @@ const Notifications: React.FC = () => {
             .filter((n: NotificationItem) => !n.read)
             .map((n: NotificationItem) => n.notificationId);
           if (unreadIds.length > 0) {
-            fetch('http://localhost:8085/ParkingWithParallel/notifications/mark-read', {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(unreadIds),
-            }).catch(error => console.error('Error marking notifications as read:', error));
+            api.put('/notifications/mark-read', unreadIds)
+              .catch(error => console.error('Error marking notifications as read:', error));
           }
         }, 4000);
       } catch (error) {
@@ -94,12 +87,8 @@ const Notifications: React.FC = () => {
     // 3) Load recipients from the API
     const fetchRecipients = async () => {
       try {
-        const response = await fetch(`http://localhost:8085/ParkingWithParallel/lots/${lotId}/recipients`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch recipients');
-        }
-        const data = await response.json();
-        setCurrentRecipients(data);
+        const response = await api.get(`/lots/${lotId}/recipients`);
+        setCurrentRecipients(response.data);
       } catch (error) {
         console.error('Error fetching recipients:', error);
         setCurrentRecipients([]);
@@ -149,9 +138,7 @@ const Notifications: React.FC = () => {
       // Delete each selected notification
       await Promise.all(
         selectedIds.map(id =>
-          fetch(`http://localhost:8085/ParkingWithParallel/notifications/${id}`, {
-            method: 'DELETE'
-          })
+          api.delete(`/notifications/${id}`)
         )
       );
 
@@ -172,17 +159,7 @@ const Notifications: React.FC = () => {
     if (selectedUnreadIds.length === 0) return;
 
     try {
-      const response = await fetch('http://localhost:8085/ParkingWithParallel/notifications/mark-read', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(selectedUnreadIds),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to mark notifications as read');
-      }
+      await api.put('/notifications/mark-read', selectedUnreadIds);
 
       // Update local state to reflect the changes
       setNotifications(prev =>
@@ -205,17 +182,7 @@ const Notifications: React.FC = () => {
     if (selectedReadIds.length === 0) return;
 
     try {
-      const response = await fetch('http://localhost:8085/ParkingWithParallel/notifications/mark-unread', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(selectedReadIds),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to mark notifications as unread');
-      }
+      await api.put('/notifications/mark-unread', selectedReadIds);
 
       // Update local state to reflect the changes
       setNotifications(prev =>
@@ -241,16 +208,10 @@ const Notifications: React.FC = () => {
   const handleUpdateRecipients = async (newRecipients: string[]) => {
     setCurrentRecipients(newRecipients);
     try {
-      const resp = await fetch(`http://localhost:8085/ParkingWithParallel/lots/${lotId}/recipients`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipients: newRecipients }),
-      });
-      if (!resp.ok) {
-        console.error("Failed to update recipients on server");
-      }
-    } catch (err) {
-      console.error("Error updating recipients:", err);
+      await api.put(`/lots/${lotId}/recipients`, { recipients: newRecipients });
+      handleCloseRecipients();
+    } catch (error) {
+      console.error("Failed to update recipients on server", error);
     }
   };
 
@@ -285,24 +246,14 @@ const Notifications: React.FC = () => {
   };
 
   const handleDismissFromModal = async () => {
-    if (!modalNotifId) return;
-
-    try {
-      const response = await fetch(`http://localhost:8085/ParkingWithParallel/notifications/${modalNotifId}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to dismiss notification');
+    if (modalNotifId) {
+      try {
+        await api.delete(`/notifications/${modalNotifId}`);
+        setNotifications((prev) => prev.filter((item) => item.notificationId !== modalNotifId));
+        handleCloseModal();
+      } catch (error) {
+        console.error('Error dismissing notification:', error);
       }
-
-      // Update local state
-      setNotifications(prev =>
-        prev.filter(item => item.notificationId !== modalNotifId)
-      );
-      handleCloseModal();
-    } catch (error) {
-      console.error('Error dismissing notification:', error);
     }
   };
 

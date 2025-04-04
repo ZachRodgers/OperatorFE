@@ -436,7 +436,12 @@ const Occupants: React.FC = () => {
                 <td>{formatDuration(durationMins)}</td>
                 <td>
                   {/* Validation logic */}
-                  {allowValidation && !isVal && !isReg && (
+                  {/* First priority: Show "Registered" if in registry */}
+                  {isReg && (
+                    <span className="registered-label">Registered</span>
+                  )}
+                  {/* If not registered but validation is allowed and not validated, show validate button */}
+                  {!isReg && allowValidation && !isVal && (
                     <button
                       className="validate-button"
                       onClick={() => handleValidate(session.sessionId)}
@@ -444,7 +449,8 @@ const Occupants: React.FC = () => {
                       Validate
                     </button>
                   )}
-                  {allowValidation && isVal && (
+                  {/* If not registered but validated, show validated button */}
+                  {!isReg && allowValidation && isVal && (
                     <button
                       className="validate-button validated"
                       onClick={() => handleRemoveValidationModal(session.sessionId)}
@@ -452,11 +458,8 @@ const Occupants: React.FC = () => {
                       Validated
                     </button>
                   )}
-                  {!isVal && isReg && (
-                    <span className="registered-label">Registered</span>
-                  )}
                   {/* If validation isn't allowed and status is Active, we show blank or any label */}
-                  {!allowValidation && statusStr === "Active" && <span></span>}
+                  {!isReg && !allowValidation && statusStr === "Active" && <span></span>}
                 </td>
                 <td>
                   <img
