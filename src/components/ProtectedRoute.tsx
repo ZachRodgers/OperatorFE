@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import Modal from "../components/Modal";
 import LoadingWheel from "./LoadingWheel";
 import { extendSession } from '../utils/auth';
 import { healthService } from '../utils/api';
+import { verifySuperadminToken } from '../utils/superadminAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,14 +13,50 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, fetchUserData, isServerOffline, retryConnection, logout } = useUser();
   const [isSessionWarningVisible, setSessionWarningVisible] = useState(false);
   const [isExtendingSession, setIsExtendingSession] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isSuperadminAuth, setIsSuperadminAuth] = useState(false);
+  const [superadminAuthLoading, setSuperadminAuthLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch user data if not already loaded
-    if (!user && !loading && !isServerOffline) {
+    // Check for superadmin token in URL
+    const params = new URLSearchParams(location.search);
+    const isSuperadmin = params.get('superadmin') === 'true';
+    const token = params.get('token');
+
+    if (isSuperadmin && token) {
+      setSuperadminAuthLoading(true);
+
+      // Verify the token is valid using our utility function
+      const verifyToken = async () => {
+        try {
+          const isValid = await verifySuperadminToken(token);
+
+          if (isValid) {
+            // Store the superadmin token temporarily (will be cleared on page refresh)
+            sessionStorage.setItem('superadminToken', token);
+
+            // Remove the query parameters from the URL to avoid sharing the token
+            navigate(location.pathname, { replace: true });
+
+            setIsSuperadminAuth(true);
+          }
+        } catch (error) {
+          console.error("Invalid superadmin token:", error);
+          // Don't set superadmin auth if token verification fails
+        } finally {
+          setSuperadminAuthLoading(false);
+        }
+      };
+
+      verifyToken();
+    }
+
+    // Fetch user data if not already loaded and not in superadmin verification process
+    if (!user && !loading && !isServerOffline && !superadminAuthLoading) {
       fetchUserData();
     }
 
@@ -44,7 +81,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // Run the check every minute
     const interval = setInterval(checkSessionExpiration, 60 * 1000);
     return () => clearInterval(interval);
-  }, [navigate, user, loading, fetchUserData, isServerOffline]);
+  }, [navigate, user, loading, fetchUserData, isServerOffline, location]);
 
   const handleExtendSession = async () => {
     setIsExtendingSession(true);
@@ -98,8 +135,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   // Show loading state while checking authentication
-  if (loading) {
+  if (loading || superadminAuthLoading) {
     return <LoadingWheel text="Checking authentication..." />;
+  }
+
+  // If superadmin authenticated, allow access to the children
+  if (isSuperadminAuth) {
+    return <>{children}</>;
   }
 
   // If not authenticated, redirect to login
