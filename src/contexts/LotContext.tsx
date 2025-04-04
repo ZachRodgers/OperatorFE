@@ -49,13 +49,16 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
   // Check if user has access to this lot
   useEffect(() => {
     // Skip checks if we don't have a lotId
-    if (!lotId || !user) return;
+    if (!lotId) return;
 
-    // Skip access check if user is a superadmin
-    if (isSuperadmin || isSuperadminAccess()) {
-      console.log('Superadmin access - bypassing lot access check');
+    // CRITICAL: Skip ALL access checks if superadmin access is granted
+    if (isSuperadminAccess() || isSuperadmin) {
+      console.log('SUPERADMIN ACCESS CONFIRMED - bypassing lot access check for', lotId);
       return;
     }
+
+    // Skip checks during loading or if no user is found
+    if (!user) return;
 
     // If userLots is empty, fetch them first
     if (userLots.length === 0) {
@@ -84,14 +87,16 @@ export const LotProvider: React.FC<LotProviderProps> = ({ children, lotId }) => 
     setError(null);
 
     try {
+      console.log(`Fetching lot data for ${lotId}`);
       const data = await lotService.getLotById(lotId);
+      console.log('Lot data fetched successfully:', data);
       setLotData(data);
     } catch (err: any) {
       console.error('Error fetching lot data:', err);
       setError(err instanceof Error ? err : new Error('Failed to load lot pricing data. Please try again.'));
 
-      // If not a superadmin and we get a 403 or 404, navigate to login
-      if (!isSuperadminAccess() && err.response && (err.response.status === 403 || err.response.status === 404)) {
+      // Important: Only redirect on error if NOT a superadmin
+      if (!isSuperadminAccess() && !isSuperadmin && err.response && (err.response.status === 403 || err.response.status === 404)) {
         console.log('Unauthorized access or lot not found, redirecting to login');
         navigate('/login');
       }

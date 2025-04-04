@@ -33,9 +33,19 @@ api.interceptors.request.use(
     // First check if there is a superadmin token in session storage
     const superadminToken = sessionStorage.getItem("superadminToken");
 
+    // Also check for a direct token transfer
+    const transferToken = sessionStorage.getItem("superadmin_token_transfer");
+
     if (superadminToken) {
       // Use the superadmin token if available
+      console.log(`Using superadmin token for ${config.url}`);
       config.headers["Authorization"] = `Bearer ${superadminToken}`;
+    } else if (transferToken) {
+      // Use the transferred token and save it for future use
+      console.log(`Using transferred token for ${config.url}`);
+      sessionStorage.setItem("superadminToken", transferToken);
+      sessionStorage.removeItem("superadmin_token_transfer");
+      config.headers["Authorization"] = `Bearer ${transferToken}`;
     } else {
       // Fall back to the regular token
       const token = getToken();

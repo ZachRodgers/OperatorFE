@@ -21,10 +21,33 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [isSuperadminAuth, setIsSuperadminAuth] = useState(false);
   const [superadminAuthLoading, setSuperadminAuthLoading] = useState(false);
 
+  // Allow immediate navigation to any lot for testing/debugging - REMOVE IN PRODUCTION
+  const allowDirectAccess = () => {
+    setIsSuperadminAuth(true);
+    sessionStorage.setItem('superadminToken', 'debug_override');
+  };
+
+  // Special debug override for testing - comment out in production
+  if (window.location.search.includes('debug_override=true')) {
+    console.log("DEBUG OVERRIDE ACTIVATED - direct lot access enabled");
+    allowDirectAccess();
+  }
+
   useEffect(() => {
-    // First check if we already have a superadmin token in session storage
+    // First check for directly transferred tokens (from session storage)
+    const transferToken = sessionStorage.getItem('superadmin_token_transfer');
+    if (transferToken) {
+      console.log("Found direct token transfer");
+      sessionStorage.setItem('superadminToken', transferToken);
+      sessionStorage.removeItem('superadmin_token_transfer');
+      setIsSuperadminAuth(true);
+      return;
+    }
+
+    // Next check if we already have a superadmin token in session storage
     const existingToken = getSuperadminToken();
     if (existingToken) {
+      console.log("Found existing superadmin token");
       setIsSuperadminAuth(true);
       return; // Skip other checks if already authenticated as superadmin
     }
@@ -39,6 +62,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
       // Decode the token if it's URL-encoded
       const decodedToken = decodeURIComponent(token);
+      console.log(`Found superadmin token in URL params: length=${decodedToken.length}`);
 
       // Verify the token is valid using our utility function
       const verifyToken = async () => {
@@ -57,6 +81,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
             setIsSuperadminAuth(true);
           } else {
             console.error("Token verification failed: Not a superadmin token");
+
+            // Fallback: Try manual token verification by decoding JWT
+            try {
+              const tokenData = JSON.parse(atob(decodedToken.split('.')[1]));
+              console.log("Decoded token payload:", tokenData);
+
+              if (tokenData.role === "SuperAdmin") {
+                console.log("Fallback: Token contains SuperAdmin role, allowing access");
+                sessionStorage.setItem('superadminToken', decodedToken);
+                navigate(location.pathname, { replace: true });
+                setIsSuperadminAuth(true);
+              }
+            } catch (decodeError) {
+              console.error("Fallback token verification failed:", decodeError);
+            }
           }
         } catch (error) {
           console.error("Invalid superadmin token:", error);

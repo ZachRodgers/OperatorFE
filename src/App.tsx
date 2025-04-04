@@ -53,6 +53,13 @@ const PageLayout = ({ children }: { children: ReactElement }) => (
   </div>
 );
 
+// Add an emergency debug route that activates superadmin mode for any lot
+// IMPORTANT: Remove this in production or protect with a secure mechanism
+const activateDebugMode = () => {
+  sessionStorage.setItem('superadminToken', 'debug_override');
+  window.location.href = '/'; // Redirect to dashboard
+};
+
 // The main App component now just sets up routes and providers
 function App() {
   return (

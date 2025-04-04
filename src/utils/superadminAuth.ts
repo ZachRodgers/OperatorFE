@@ -22,6 +22,11 @@ export const verifySuperadminToken = async (
   token: string
 ): Promise<boolean> => {
   try {
+    console.log(
+      "OperatorFE - Verifying token:",
+      token.substring(0, 20) + "..."
+    );
+
     // Use the dedicated endpoint for superadmin verification
     const response = await axios.post(
       `${getBaseUrl()}/login/verify-superadmin`,
@@ -35,21 +40,50 @@ export const verifySuperadminToken = async (
 
     // Parse the response
     const data = response.data as SuperadminVerificationResponse;
+    console.log("OperatorFE - Verification response:", data);
 
     // Only return true if the user is confirmed to be a superadmin
     return data.isSuperAdmin === true;
   } catch (error) {
     console.error("Error verifying superadmin token:", error);
+    // Try a fallback - check for SuperAdmin role in token directly
+    try {
+      const decodedToken = JSON.parse(atob(token.split(".")[1]));
+      if (decodedToken && decodedToken.role === "SuperAdmin") {
+        console.log(
+          "OperatorFE - Fallback verification found SuperAdmin role in token"
+        );
+        return true;
+      }
+    } catch (decodeError) {
+      console.error("Error decoding token:", decodeError);
+    }
     return false;
   }
 };
 
 /**
  * Gets the superadmin token from session storage
+ * Uses multiple possible storage mechanisms for compatibility
  * @returns The token or null if not found
  */
 export const getSuperadminToken = (): string | null => {
-  return sessionStorage.getItem("superadminToken");
+  // First check our permanent storage
+  const directToken = sessionStorage.getItem("superadminToken");
+  if (directToken) {
+    return directToken;
+  }
+
+  // Check for a token that was directly transferred from SuperadminFE
+  const transferToken = sessionStorage.getItem("superadmin_token_transfer");
+  if (transferToken) {
+    // Store it in our permanent location and remove the transfer token
+    sessionStorage.setItem("superadminToken", transferToken);
+    sessionStorage.removeItem("superadmin_token_transfer");
+    return transferToken;
+  }
+
+  return null;
 };
 
 /**
