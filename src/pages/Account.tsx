@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import { useUser } from "../contexts/UserContext";
 import { User } from "../types";
+import api from "../utils/api"; // Import the configured API instance
 import "./Account.css";
 
 interface Customer {
@@ -61,7 +62,6 @@ const Account: React.FC = () => {
 
   console.log("Account.tsx: Using authenticated user:", user?.name, "customerId:", currentCustomerId, "lotId:", lotId);
 
-  const BASE_URL = "http://localhost:8085/ParkingWithParallel";
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [lot, setLot] = useState<Lot | null>(null);
   const [operators, setOperators] = useState<Customer[]>([]);
@@ -134,17 +134,11 @@ const Account: React.FC = () => {
     // Otherwise fetch from API
     else if (currentCustomerId) {
       console.log(`Fetching customer with ID: ${currentCustomerId}`);
-      fetch(`${BASE_URL}/users/get-user-by-id/${currentCustomerId}`)
+      api.get(`/users/get-user-by-id/${currentCustomerId}`)
         .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch customer: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Customer data received:", data);
+          console.log("Customer data received:", res.data);
           // Convert API response to Customer
-          setCustomer(convertApiUserToCustomer(data));
+          setCustomer(convertApiUserToCustomer(res.data));
           setError(null);
         })
         .catch((err) => {
@@ -157,26 +151,20 @@ const Account: React.FC = () => {
       console.warn("No authenticated user available. Redirecting to login.");
       logout();
     }
-  }, [user, currentCustomerId, BASE_URL, logout]);
+  }, [user, currentCustomerId, logout]);
 
   // 2. Load lot data
   useEffect(() => {
     if (lotId) {
       console.log(`Fetching lot with ID: ${lotId}`);
-      fetch(`${BASE_URL}/parkinglots/get-by-id/${lotId}`)
+      api.get(`/parkinglots/get-by-id/${lotId}`)
         .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch lot: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Lot data received:", data);
-          setLot(data);
+          console.log("Lot data received:", res.data);
+          setLot(res.data);
           setLotError(false);
 
           // Store lotId in localStorage for persistence
-          localStorage.setItem('lotId', data.lotId);
+          localStorage.setItem('lotId', res.data.lotId);
         })
         .catch((err) => {
           console.error("Error fetching lot:", err);
@@ -185,7 +173,7 @@ const Account: React.FC = () => {
     } else {
       console.warn("No lotId available for fetch");
     }
-  }, [lotId, BASE_URL]);
+  }, [lotId]);
 
   // 3. Determine user role for this lot and fetch related users
   useEffect(() => {
@@ -193,35 +181,23 @@ const Account: React.FC = () => {
       console.log("Determining user role for lot:", lot.lotId);
 
       // First, always fetch the owner information
-      fetch(`${BASE_URL}/users/get-user-by-id/${lot.ownerCustomerId}`)
+      api.get(`/users/get-user-by-id/${lot.ownerCustomerId}`)
         .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch owner: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Owner data received:", data);
+          console.log("Owner data received:", res.data);
           // Convert API response to Customer before setting
-          setOwner(convertApiUserToCustomer(data));
+          setOwner(convertApiUserToCustomer(res.data));
         })
         .catch((err) => {
           console.error("Error fetching owner:", err);
         });
 
       // Then, fetch operators for this lot
-      fetch(`${BASE_URL}/parkinglots/get-operators/${lot.lotId}`)
+      api.get(`/parkinglots/get-operators/${lot.lotId}`)
         .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch operators: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Operators data received:", data);
+          console.log("Operators data received:", res.data);
           // Map each operator through the converter function
-          const convertedOperators = Array.isArray(data)
-            ? data.map(op => convertApiUserToCustomer(op))
+          const convertedOperators = Array.isArray(res.data)
+            ? res.data.map(op => convertApiUserToCustomer(op))
             : [];
           setOperators(convertedOperators);
         })
@@ -229,7 +205,7 @@ const Account: React.FC = () => {
           console.error("Error fetching operators:", err);
         });
     }
-  }, [customer, lot, BASE_URL]);
+  }, [customer, lot]);
 
   // Open edit modal for non-password fields
   const openEditPopup = (field: string, currentValue: string) => {
@@ -244,24 +220,18 @@ const Account: React.FC = () => {
 
     const updatedField = { [editingField]: tempValue };
 
-    fetch(`${BASE_URL}/users/update-user/${customer.customerId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...customer, ...updatedField }),
-    })
+    api.put(`/users/update-user/${customer.customerId}`, { ...customer, ...updatedField })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to update customer.");
-        return res.json();
-      })
-      .then(() => {
-        setCustomer((prev) => (prev ? { ...prev, ...updatedField } : prev));
-        setEditingField(null);
-        setTempValue("");
+        // Update local state
+        setCustomer(prev => {
+          if (!prev) return null;
+          return { ...prev, [editingField]: tempValue };
+        });
         setModalOpen(false);
       })
       .catch((err) => {
-        console.error("Error updating customer:", err);
-        alert("Failed to update account field.");
+        console.error("Error updating field:", err);
+        setError("Failed to update field. Please try again.");
       });
   };
 
@@ -273,53 +243,51 @@ const Account: React.FC = () => {
     setResetModalOpen(true);
   };
 
-  // Handle password reset submission
+  // Submit password reset
   const submitPasswordReset = () => {
     if (!customer) return;
 
-    // Form validation
+    setResetError("");
+
     if (!oldPasswordInput || !newPasswordInput) {
-      setResetError("Please fill in both password fields.");
+      setResetError("Both fields are required.");
       return;
     }
 
-    // Password complexity check
-    if (newPasswordInput.length < 6) {
-      setResetError("New password must be at least 6 characters long.");
+    if (newPasswordInput.length < 8) {
+      setResetError("New password must be at least 8 characters long.");
       return;
     }
 
-    // Create the data for password change
+    // Create the request body
     const passwordChangeData = {
       oldPassword: oldPasswordInput,
-      newPassword: newPasswordInput
+      newPassword: newPasswordInput,
     };
 
     // Use the dedicated password change endpoint
-    fetch(`${BASE_URL}/users/change-password/${customer.customerId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(passwordChangeData),
-    })
+    api.post(`/users/change-password/${customer.customerId}`, passwordChangeData)
       .then((res) => {
-        if (!res.ok) {
-          if (res.status === 401) {
-            throw new Error("The current password you entered is incorrect.");
-          }
-          throw new Error("Failed to update password.");
+        // Axios responses don't have .ok property, check status code instead
+        if (res.status !== 200) {
+          throw new Error("Failed to change password");
         }
-        return res.json();
-      })
-      .then(() => {
-        // Show success message
-        alert("Password updated successfully. You will be logged out for security reasons.");
 
-        // Clear all auth data and redirect to login
-        logout();
+        // Reset form and close modal
+        setOldPasswordInput("");
+        setNewPasswordInput("");
+        setResetModalOpen(false);
+
+        // Show success message
+        alert("Password changed successfully!");
       })
       .catch((err) => {
-        console.error("Error updating password:", err);
-        setResetError(err.message || "Server error. Please try again.");
+        console.error("Error changing password:", err);
+        if (err.response && err.response.status === 401) {
+          setResetError("Current password is incorrect.");
+        } else {
+          setResetError("Failed to change password. Please try again.");
+        }
       });
   };
 

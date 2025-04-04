@@ -9,14 +9,15 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 
 // Define base URLs for development and production
 const devBaseUrl = "http://localhost:8085/ParkingWithParallel";
-const prodBaseUrl = "https://api.parkwithparallel.com/ParkingWithParallel";
+const prodBaseUrl = "http://api.parkwithparallel.com";
 
-// Use an environment variable if defined, otherwise choose based on NODE_ENV
-const baseURL = process.env.REACT_APP_API_URL
-  ? process.env.REACT_APP_API_URL
-  : process.env.NODE_ENV === "production"
-    ? prodBaseUrl
-    : devBaseUrl;
+// Determine the environment based on window.location.hostname
+const isProd =
+  typeof window !== "undefined" &&
+  window.location.hostname === "operator.parkwithparallel.com";
+
+// Set the base URL based on environment
+const baseURL = isProd ? prodBaseUrl : devBaseUrl;
 
 // Create an Axios instance with default config
 const api = axios.create({

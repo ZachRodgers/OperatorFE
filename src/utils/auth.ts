@@ -1,4 +1,5 @@
 import axios from "axios";
+import api from "./api"; // Import the configured API instance
 
 interface AuthPayload {
   userId: string;
@@ -112,9 +113,9 @@ export const extendSession = async (): Promise<boolean> => {
       return false;
     }
 
-    // Call the token refresh endpoint
-    const response = await axios.post(
-      "http://localhost:8085/ParkingWithParallel/login/refresh",
+    // Call the token refresh endpoint using the configured API instance
+    const response = await api.post(
+      "/login/refresh",
       {},
       {
         headers: {
