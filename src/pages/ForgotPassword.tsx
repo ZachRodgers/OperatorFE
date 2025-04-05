@@ -47,7 +47,7 @@ const ForgotPassword = () => {
             await authService.requestPasswordReset(email);
 
             console.log("Password reset request successful");
-            setSuccess("Email sent with password reset instructions. If you don't see it, please check your spam folder.");
+            setSuccess("Please check your email to reset password. Check spam.");
 
         } catch (err: any) {
             console.error("Password reset error:", err);
