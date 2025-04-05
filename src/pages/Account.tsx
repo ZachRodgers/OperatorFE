@@ -218,14 +218,20 @@ const Account: React.FC = () => {
   const saveEditPopup = () => {
     if (!editingField || !customer) return;
 
-    const updatedField = { [editingField]: tempValue };
+    // Convert email to lowercase if updating the email field
+    let valueToUpdate = tempValue;
+    if (editingField === "email") {
+      valueToUpdate = tempValue.toLowerCase();
+    }
+
+    const updatedField = { [editingField]: valueToUpdate };
 
     api.put(`/users/update-user/${customer.customerId}`, { ...customer, ...updatedField })
       .then((res) => {
         // Update local state
         setCustomer(prev => {
           if (!prev) return null;
-          return { ...prev, [editingField]: tempValue };
+          return { ...prev, [editingField]: valueToUpdate };
         });
         setModalOpen(false);
       })
@@ -474,10 +480,10 @@ const Account: React.FC = () => {
       )}
 
       {/* Payment/Billing placeholders */}
-      <h1 style={{ opacity: 0.5 }}>Payment</h1>
-      <p style={{ opacity: 0.5 }}>Offline</p>
-      <h1 style={{ opacity: 0.5 }}>Billing</h1>
-      <p style={{ opacity: 0.5 }}>Offline</p>
+      <h1 style={{ opacity: 0.6 }}>Payment</h1>
+      <p className="OptOffline">Offline</p>
+      <h1 style={{ opacity: 0.6 }}>Billing</h1>
+      <p className="OptOffline">Offline</p>
 
       {/* Modal for editing non-password fields */}
       {modalOpen && editingField && (

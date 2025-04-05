@@ -72,14 +72,14 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
       // Always include all required fields
       const updateData = {
         name: editableFields.name,
-        email: editableFields.email,
+        email: editableFields.email.toLowerCase(),
         phoneNo: editableFields.phoneNo,
         role: user.role // Include the existing role
       };
 
       // Only make the API call if there are actual changes
       if (editableFields.name !== user.name ||
-        editableFields.email !== user.email ||
+        editableFields.email.toLowerCase() !== user.email.toLowerCase() ||
         editableFields.phoneNo !== user.phoneNo) {
         const response = await api.put(`/users/update-user/${user.userId}`, updateData);
 

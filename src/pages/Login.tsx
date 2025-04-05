@@ -49,11 +49,13 @@ const Login = () => {
     setError("");
 
     try {
-      console.log("Attempting login for:", email);
+      // Convert email to lowercase for case-insensitive comparison
+      const emailLowercase = email.toLowerCase();
+      console.log("Attempting login for:", emailLowercase);
 
       // This calls our Spring Boot /login endpoint
       const response = await api.post('/login', {
-        email: email,
+        email: emailLowercase,
         password: password
       }, { skipAuthRedirect: true } as any);
 
