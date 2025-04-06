@@ -47,7 +47,7 @@ const ForgotPassword = () => {
             await authService.requestPasswordReset(email);
 
             console.log("Password reset request successful");
-            setSuccess("Please check your email to reset password. Check spam.");
+            setSuccess("Email sent to reset password, may take a few moments, please check spam.");
 
         } catch (err: any) {
             console.error("Password reset error:", err);
@@ -56,7 +56,7 @@ const ForgotPassword = () => {
             // Handle rate limiting (429 Too Many Requests)
             if (err.response?.status === 429) {
                 // Set a cooldown timer (for development, 10 seconds; for production would be longer)
-                setCooldownTime(10);
+                setCooldownTime(30);
                 errorMessage = "Please wait before requesting another password reset. You can try again in a few moments.";
             }
             // Handle other error responses
